@@ -10,8 +10,8 @@ function Index() {
     <>
       <Navbar/>
       <HeroSection/>
+       <Features/>
       <TestimonialsSection/>
-      <Features/>
       <Footer/>
     </>
   )

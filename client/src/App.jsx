@@ -1,5 +1,8 @@
 import React, { useEffect } from 'react'
 import {BrowserRouter,Routes,Route} from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
+import ProtectedRoute from './components/ProtectedRoute'
+import Layout from './components/Layout'
 import Index from './pages/Index'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
@@ -24,23 +27,76 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path='/' element={<Index/>}/>
-        <Route path='/splash' element={<SplashScreen/>}/>
-        <Route path='/login' element={<Login/>}/>
-        <Route path='/loginpage' element={<LoginPage/>}/>
-        <Route path='/signup' element={<SignupPage/>}/>
-        <Route path='/register' element={<Register/>}/>
-        <Route path='/dashboard' element={<DashboardPage/>}/>
-        <Route path='/inventory' element={<InventoryPage/>}/>
-        <Route path='/products' element={<ProductsPage/>}/>
-        <Route path='/ecommerce' element={<ECommercePage/>}/>
-        <Route path='/appointments' element={<AppointmentPage/>}/>
-        <Route path='/finance' element={<FinancePage/>}/>
-        <Route path='/profile' element={<Profile/>}/>
-        <Route path='/settings' element={<Settings/>}/>
-        <Route path='*' element={<NotFound/>}/>
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          {/* Public Routes */}
+          <Route path='/' element={<Index/>}/>
+          <Route path='/splash' element={<SplashScreen/>}/>
+          <Route path='/login' element={<Login/>}/>
+          <Route path='/loginpage' element={<LoginPage/>}/>
+          <Route path='/signup' element={<SignupPage/>}/>
+          <Route path='/register' element={<Register/>}/>
+
+          {/* Protected Routes */}
+          <Route path='/dashboard' element={
+            <ProtectedRoute>
+              <Layout>
+                <DashboardPage/>
+              </Layout>
+            </ProtectedRoute>
+          }/>
+          <Route path='/inventory' element={
+            <ProtectedRoute>
+              <Layout>
+                <InventoryPage/>
+              </Layout>
+            </ProtectedRoute>
+          }/>
+          <Route path='/products' element={
+            <ProtectedRoute>
+              <Layout>
+                <ProductsPage/>
+              </Layout>
+            </ProtectedRoute>
+          }/>
+          <Route path='/ecommerce' element={
+            <ProtectedRoute>
+              <Layout>
+                <ECommercePage/>
+              </Layout>
+            </ProtectedRoute>
+          }/>
+          <Route path='/appointments' element={
+            <ProtectedRoute>
+              <Layout>
+                <AppointmentPage/>
+              </Layout>
+            </ProtectedRoute>
+          }/>
+          <Route path='/finance' element={
+            <ProtectedRoute>
+              <Layout>
+                <FinancePage/>
+              </Layout>
+            </ProtectedRoute>
+          }/>
+          <Route path='/profile' element={
+            <ProtectedRoute>
+              <Layout>
+                <Profile/>
+              </Layout>
+            </ProtectedRoute>
+          }/>
+          <Route path='/settings' element={
+            <ProtectedRoute>
+              <Layout>
+                <Settings/>
+              </Layout>
+            </ProtectedRoute>
+          }/>
+          <Route path='*' element={<NotFound/>}/>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

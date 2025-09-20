@@ -16,7 +16,23 @@ import {
   Smartphone,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  Download,
+  Upload,
+  Trash2,
+  Key,
+  Wifi,
+  Volume2,
+  VolumeX,
+  Calendar,
+  Clock,
+  MapPin,
+  Languages,
+  Zap,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  Settings as SettingsIcon
 } from 'lucide-react'
 
 function Settings() {
@@ -26,18 +42,53 @@ function Settings() {
     email: true,
     push: true,
     sms: false,
-    marketing: false
+    marketing: false,
+    desktop: true,
+    sound: true,
+    weekends: false
   })
   const [showPassword, setShowPassword] = useState(false)
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [autoSave, setAutoSave] = useState(true)
+  const [language, setLanguage] = useState('en')
+  const [timezone, setTimezone] = useState('UTC-5')
+  const [currency, setCurrency] = useState('USD')
 
   const settingsTabs = [
-    { id: 'general', label: 'General', icon: User },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'security', label: 'Security', icon: Shield },
-    { id: 'appearance', label: 'Appearance', icon: Palette },
-    { id: 'billing', label: 'Billing', icon: CreditCard },
-    { id: 'data', label: 'Data & Privacy', icon: Database },
-    { id: 'support', label: 'Support', icon: HelpCircle }
+    { id: 'general', label: 'General', icon: User, description: 'Basic account and profile settings' },
+    { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Manage your notification preferences' },
+    { id: 'security', label: 'Security', icon: Shield, description: 'Password and security settings' },
+    { id: 'appearance', label: 'Appearance', icon: Palette, description: 'Customize your interface' },
+    { id: 'integrations', label: 'Integrations', icon: Zap, description: 'Connect with third-party services' },
+    { id: 'billing', label: 'Billing', icon: CreditCard, description: 'Subscription and payment settings' },
+    { id: 'data', label: 'Data & Privacy', icon: Database, description: 'Data export and privacy controls' },
+    { id: 'support', label: 'Support', icon: HelpCircle, description: 'Help and support resources' }
+  ]
+
+  const languages = [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Español' },
+    { code: 'fr', name: 'Français' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'it', name: 'Italiano' },
+    { code: 'pt', name: 'Português' }
+  ]
+
+  const timezones = [
+    { value: 'UTC-8', label: 'Pacific Time (UTC-8)' },
+    { value: 'UTC-7', label: 'Mountain Time (UTC-7)' },
+    { value: 'UTC-6', label: 'Central Time (UTC-6)' },
+    { value: 'UTC-5', label: 'Eastern Time (UTC-5)' },
+    { value: 'UTC+0', label: 'Greenwich Mean Time (UTC+0)' },
+    { value: 'UTC+1', label: 'Central European Time (UTC+1)' }
+  ]
+
+  const currencies = [
+    { code: 'USD', name: 'US Dollar', symbol: '$' },
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'GBP', name: 'British Pound', symbol: '£' },
+    { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
+    { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' }
   ]
 
   const handleNotificationChange = (type) => {
@@ -309,6 +360,107 @@ function Settings() {
                   <button className="bg-destructive text-white px-4 py-2 rounded-md text-sm hover:bg-destructive/90">
                     Delete Account
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'integrations':
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Integrations</h3>
+              <p className="text-muted-foreground mb-6">Connect OmniBiz with your favorite tools and services</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Popular Integrations */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-foreground">Popular Integrations</h4>
+
+                  <div className="p-4 border border-input rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Mail className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-foreground">Gmail</h5>
+                          <p className="text-sm text-muted-foreground">Email integration</p>
+                        </div>
+                      </div>
+                      <button className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90">
+                        Connect
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border border-input rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <DollarSign className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-foreground">Stripe</h5>
+                          <p className="text-sm text-muted-foreground">Payment processing</p>
+                        </div>
+                      </div>
+                      <span className="px-3 py-1 bg-green-100 text-green-800 rounded text-sm">
+                        Connected
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border border-input rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                          <Calendar className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-foreground">Google Calendar</h5>
+                          <p className="text-sm text-muted-foreground">Schedule management</p>
+                        </div>
+                      </div>
+                      <button className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90">
+                        Connect
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* API & Webhooks */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-foreground">API & Webhooks</h4>
+
+                  <div className="p-4 border border-input rounded-lg">
+                    <h5 className="font-medium text-foreground mb-2">API Keys</h5>
+                    <p className="text-sm text-muted-foreground mb-3">Manage your API access keys</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2 bg-muted rounded">
+                        <span className="text-sm font-mono">sk_live_••••••••••••••••</span>
+                        <button className="text-sm text-primary hover:underline">Regenerate</button>
+                      </div>
+                    </div>
+                    <button className="mt-3 px-3 py-1 border border-input rounded text-sm hover:bg-accent">
+                      Create New Key
+                    </button>
+                  </div>
+
+                  <div className="p-4 border border-input rounded-lg">
+                    <h5 className="font-medium text-foreground mb-2">Webhooks</h5>
+                    <p className="text-sm text-muted-foreground mb-3">Configure webhook endpoints</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2 bg-muted rounded">
+                        <span className="text-sm">https://api.example.com/webhook</span>
+                        <span className="text-xs text-green-600">Active</span>
+                      </div>
+                    </div>
+                    <button className="mt-3 px-3 py-1 border border-input rounded text-sm hover:bg-accent">
+                      Add Webhook
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

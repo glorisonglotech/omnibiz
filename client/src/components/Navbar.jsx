@@ -35,11 +35,11 @@ const Navbar = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/login">
+            <Link to="/loginpage">
               <Button variant="ghost">Login</Button>
             </Link>
             <Link to="/signup">
-              <Button className='bg-green-500 py-6 px-8 cursor-pointer'>Start Free Trial</Button>
+              <Button className='bg-green-500 py-6 px-8 cursor-pointer hover:bg-green-400'>Start Free Trial</Button>
             </Link>
           </div>
 
@@ -92,7 +92,7 @@ const Navbar = () => {
                 Contact
               </Link>
               <div className="pt-4 space-y-2">
-                <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/loginpage" onClick={() => setIsMenuOpen(false)}>
                   <Button variant="ghost" className="w-full">
                     Login
                   </Button>

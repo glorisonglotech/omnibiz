@@ -1,5 +1,6 @@
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import {Link} from 'react-router-dom'
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,6 +13,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function LoginForm({ className, ...props }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    // No backend logic, just redirect
+    navigate('/dashboardlayout');
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="bg-white border border-green-100 shadow-sm">
@@ -22,13 +33,15 @@ export function LoginForm({ className, ...props }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleLogin}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-3">
                 <Label htmlFor="email" className="text-green-700">Email</Label>
                 <Input
                   id="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="m@example.com"
                   required
                   className="border-green-300 focus-visible:ring-green-500"
@@ -47,6 +60,8 @@ export function LoginForm({ className, ...props }) {
                 <Input
                   id="password"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                   className="border-green-300 focus-visible:ring-green-500"
                 />

@@ -87,7 +87,7 @@ function Features() {
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-foreground mb-4">
-            Powerful Features for Your Business
+            Powerful <span className='text-green-400'>Features </span> for Your Business
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Everything you need to streamline operations, boost productivity, and grow your business in one comprehensive platform.
@@ -105,7 +105,7 @@ function Features() {
               >
                 <div className="flex items-center mb-4">
                   <div className="p-3 bg-primary/10 rounded-lg mr-4 group-hover:bg-primary/20 transition-colors duration-300">
-                    <IconComponent className="h-6 w-6 text-primary" />
+                    <IconComponent className="h-6 w-6 text-green-500" />
                   </div>
                   <h3 className="text-lg font-semibold text-foreground">{feature.title}</h3>
                 </div>
@@ -138,7 +138,7 @@ function Features() {
               return (
                 <div key={index} className="text-center">
                   <div className="inline-flex p-4 bg-primary/10 rounded-full mb-4">
-                    <IconComponent className="h-8 w-8 text-primary" />
+                    <IconComponent className="h-8 w-8 text-green-500" />
                   </div>
                   <h4 className="font-semibold text-foreground mb-2">{feature.title}</h4>
                   <p className="text-sm text-muted-foreground">{feature.description}</p>
@@ -158,10 +158,10 @@ function Features() {
             Start your free trial today and see the difference.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200">
+            <button className="bg-green-500 text-white px-8 py-3 rounded-lg font-medium cursor-pointer hover:bg-green-400  transition-colors duration-200">
               Start Free Trial
             </button>
-            <button className="border border-input px-8 py-3 rounded-lg font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+            <button className="border border-input px-8 py-3 rounded-lg  cursor-pointer font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
               Schedule Demo
             </button>
           </div>

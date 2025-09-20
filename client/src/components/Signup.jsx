@@ -86,7 +86,7 @@ export function Signup({ className, ...props }) {
             <div className="mt-4 text-center text-sm text-green-700">
               Already have an account?{" "}
               <Link
-                to="/login"
+                to="/loginpage"
                 className="underline underline-offset-4 text-green-600 hover:text-green-700"
               >
                 Log in

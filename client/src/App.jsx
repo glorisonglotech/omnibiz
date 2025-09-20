@@ -16,7 +16,6 @@ function App() {
         <Route path='/' element={<Index/>}/>
         <Route path='/loginpage' element={<LoginPage/>}/>
         <Route path='/signup' element={<SignupPage/>}/>
-        {/* <Route path='/dashboardlayout' element={<DashboardLayout/>}/> */}
          <Route path="/dashboardlayout" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="inventory" element={<Inventory />} />

@@ -9,19 +9,19 @@ import { Button } from "./ui/button";
 
 function HeroSection() {
   return (
-    <section className="bg-gray-200 flex flex-col md:flex-row items-center md:h-screen px-4 sm:px-6 lg:px-10 py-10">
+    <section className="bg-background flex flex-col md:flex-row items-center md:h-screen px-4 sm:px-6 lg:px-10 py-10">
       <div className="space-y-5 w-full md:w-1/2">
-        <p className="bg-green-500 mt-4 text-white flex items-center w-fit px-4 py-2 rounded-md text-sm">
-          <ArrowTrendingUpIcon className="w-5 h-5 text-white mr-2" />
-          Trusted by 10,000+ businesses
+        <p className="bg-primary mt-4 text-primary-foreground flex items-center w-fit px-4 py-2 rounded-md text-sm">
+          <ArrowTrendingUpIcon className="w-5 h-5 text-primary-foreground mr-2" />
+          Trusted by 10,000+ businesses worldwide
         </p>
 
-        <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-gray-800 leading-tight">
-          Complete Business <span className="text-green-600">Management</span>{" "}
+        <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-foreground leading-tight">
+          Complete Business <span className="text-primary">Management</span>{" "}
           Solution
         </h1>
 
-        <p className="text-base sm:text-lg md:text-2xl font-medium text-gray-600">
+        <p className="text-base sm:text-lg md:text-2xl font-medium text-muted-foreground">
           Streamline your entire business with our all-in-one platform. Manage
           inventory, run your e-commerce store, schedule appointments, and track
           finances — all from one beautiful dashboard.

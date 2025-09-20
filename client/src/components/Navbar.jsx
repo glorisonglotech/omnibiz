@@ -16,7 +16,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
             <img src="https://2aa832b0f010801d3551c6c63b116063.cdn.bubble.io/cdn-cgi/image/w=48,h=48,f=auto,dpr=1,fit=contain/f1758225569468x933635082935872100/logo.webp" alt="" />
-            <span className="text-xl font-bold text-foreground">Omin<span className="text-green-500">BIZ</span></span>
+            <span className="text-xl font-bold text-foreground">Omni<span className="text-primary">BIZ</span></span>
           </Link>
           <div className="hidden md:flex items-center space-x-8">
             <Link to="/features" className="text-foreground hover:text-primary transition-colors">
@@ -39,7 +39,7 @@ const Navbar = () => {
               <Button variant="ghost">Login</Button>
             </Link>
             <Link to="/signup">
-              <Button className='bg-green-500 py-6 px-8 cursor-pointer'>Start Free Trial</Button>
+              <Button className='bg-primary text-primary-foreground py-6 px-8 cursor-pointer hover:bg-primary/90'>Start Free Trial</Button>
             </Link>
           </div>
 
@@ -98,7 +98,7 @@ const Navbar = () => {
                   </Button>
                 </Link>
                 <Link to="/signup" onClick={() => setIsMenuOpen(false)}>
-                  <Button className='bg-green-500 py-6 px-8 cursor-pointer w-full'>
+                  <Button className='bg-primary text-primary-foreground py-6 px-8 cursor-pointer w-full hover:bg-primary/90'>
                     Start Free Trial
                   </Button>
                 </Link>

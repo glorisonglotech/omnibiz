@@ -20,7 +20,7 @@ export function LoginForm({ className, ...props }) {
   const handleLogin = (e) => {
     e.preventDefault();
     // No backend logic, just redirect
-    navigate('/dashboardlayout');
+    navigate('/dashboard');
   };
 
   return (

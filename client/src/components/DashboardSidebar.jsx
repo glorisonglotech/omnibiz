@@ -17,14 +17,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navigationItems = [
-  { name: "Overview", href: "/dashboard", icon: BarChart3 },
-  { name: "Inventory", href: "/inventory", icon: Package },
-  { name: "E-Commerce", href: "/ecommerce", icon: ShoppingCart },
-  { name: "Appointments", href: "/appointments", icon: Calendar },
-  { name: "Finances", href: "/finances", icon: DollarSign },
-  { name: "Team", href: "/team", icon: Users },
-  { name: "AI Insights", href: "/ai-insights", icon: Brain },
-  { name: "Locations", href: "/locations", icon: MapPin },
+ { name: "Overview", href: "/dashboard", icon: BarChart3 },
+  { name: "Inventory", href: "/dashboard/inventory", icon: Package },
+  { name: "E-Commerce", href: "/dashboard/ecommerce", icon: ShoppingCart },
+  { name: "Appointments", href: "/dashboard/appointments", icon: Calendar },
+  { name: "Finances", href: "/dashboard/finances", icon: DollarSign },
+  { name: "Team", href: "/dashboard/team", icon: Users },
+  { name: "AI Insights", href: "", icon: Brain },
+  { name: "Locations", href: "", icon: MapPin },
 ];
 
 function DashboardSidebar() {

@@ -82,7 +82,7 @@ const Dashboard = () => {
             <Eye className="mr-2 h-4 w-4" />
             View Reports
           </Button>
-          <Button>
+          <Button className='bg-green-500 cursor-pointer hover:bg-green-400'>
             <Plus className="mr-2 h-4 w-4" />
             Quick Action
           </Button>

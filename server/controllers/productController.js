@@ -1,9 +1,16 @@
 const Product = require("../models/product");
 
+
+
 // Create a new product
 exports.createProduct = async (req, res) => {
   try {
-    const product = new Product(req.body);
+    // Ensure the user ID is taken from the logged-in user
+    const product = new Product({
+      ...req.body,
+      userId: req.user._id 
+    });
+
     await product.save();
     res.status(201).json(product);
   } catch (error) {
@@ -11,10 +18,10 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// Get all products
+// Get all products for the logged-in user
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find().populate("userId");
+    const products = await Product.find({ userId: req.user._id }).populate("userId");
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: error.message });

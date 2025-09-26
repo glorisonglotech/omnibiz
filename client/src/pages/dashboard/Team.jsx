@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ import {
   History,
   MessageSquare,
 } from "lucide-react";
+import api from '@/lib/api'
 
 const Team = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,86 +60,95 @@ const Team = () => {
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [isPayrollOpen, setIsPayrollOpen] = useState(false);
 
-  const employees = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah@example.com",
-      phone: "+254701234567",
-      role: "Manager",
-      salary: 45000,
-      status: "Active",
-      joinDate: "2023-01-15",
-      lastPaid: "2024-01-01",
-      notifications: { sms: true, email: true }
-    },
-    {
-      id: 2,
-      name: "Michael Ochieng",
-      email: "michael@example.com",
-      phone: "+254712345678",
-      role: "Stylist",
-      salary: 35000,
-      status: "Active",
-      joinDate: "2023-03-20",
-      lastPaid: "2024-01-01",
-      notifications: { sms: true, email: false }
-    },
-    {
-      id: 3,
-      name: "Grace Wanjiku",
-      email: "grace@example.com",
-      phone: "+254723456789",
-      role: "Receptionist",
-      salary: 25000,
-      status: "Active",
-      joinDate: "2023-06-10",
-      lastPaid: "2024-01-01",
-      notifications: { sms: false, email: true }
-    },
-    {
-      id: 4,
-      name: "David Kimani",
-      email: "david@example.com",
-      phone: "+254734567890",
-      role: "Staff",
-      salary: 30000,
-      status: "On Leave",
-      joinDate: "2023-08-05",
-      lastPaid: "2023-12-01",
-      notifications: { sms: true, email: true }
-    }
-  ];
+  // Employee state
+  const [employees, setEmployees] = useState([]);
+  // Payment history state
+  const [paymentHistory, setPaymentHistory] = useState([]);
 
-  const paymentHistory = [
-    {
-      id: 1,
-      employeeName: "Sarah Johnson",
-      amount: 45000,
-      date: "2024-01-01",
-      status: "Completed",
-      transactionId: "TXN123456789",
-      method: "M-Pesa"
-    },
-    {
-      id: 2,
-      employeeName: "Michael Ochieng",
-      amount: 35000,
-      date: "2024-01-01",
-      status: "Completed",
-      transactionId: "TXN123456790",
-      method: "M-Pesa"
-    },
-    {
-      id: 3,
-      employeeName: "Grace Wanjiku",
-      amount: 25000,
-      date: "2024-01-01",
-      status: "Failed",
-      transactionId: "TXN123456791",
-      method: "M-Pesa"
+  // Add employee form state
+  const [newEmployee, setNewEmployee] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "",
+    salary: "",
+    notifications: { sms: false, email: false }
+  });
+
+  // Payroll form state
+  const [payroll, setPayroll] = useState({
+    employeeId: "",
+    amount: "",
+    phone: "",
+    message: "",
+    smsReceipt: false
+  });
+
+    useEffect(() => {
+    // Fetch employees and payment history from the API
+    api.get("/employees")
+      .then(res => setEmployees(res.data))
+      .catch(() => setEmployees([]));
+    api.get("/payments")
+      .then(res => setPaymentHistory(res.data))
+      .catch(() => setPaymentHistory([]));
+  }, []);
+
+  // Add employee handler
+  const handleAddEmployee = async () => {
+    try {
+      const res = await api.post("/employees", {
+        ...newEmployee,
+        salary: Number(newEmployee.salary),
+      });
+      setEmployees(prev => [...prev, res.data]);
+      setIsAddEmployeeOpen(false);
+      setNewEmployee({
+        name: "",
+        email: "",
+        phone: "",
+        role: "",
+        salary: "",
+        notifications: { sms: false, email: false }
+      });
+
+      // Display success notification
+      toast.success("Employee added successfully!");
+    } catch (err) {
+      // Display error notification
+      toast.error("Error adding employee. Please try again.");
     }
-  ];
+  };
+
+  // Payroll handler
+  const handleSendPayroll = async () => {
+    try {
+      await api.post("/payments", {
+        employeeId: payroll.employeeId,
+        amount: Number(payroll.amount),
+        phone: payroll.phone,
+        message: payroll.message,
+        smsReceipt: payroll.smsReceipt
+      });
+      setIsPayrollOpen(false);
+      setPayroll({
+        employeeId: "",
+        amount: "",
+        phone: "",
+        message: "",
+        smsReceipt: false
+      });
+      // Optionally refetch payment history
+      api.get("/payments")
+        .then(res => setPaymentHistory(res.data));
+
+      // Display success notification
+      toast.success("Payroll payment sent successfully!");
+    } catch (err) {
+      // Display error notification
+      toast.error("Error sending payroll. Please try again.");
+    }
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -166,13 +177,13 @@ const Team = () => {
   };
 
   const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         employee.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === "all" || employee.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
-  const totalSalaryBudget = employees.reduce((sum, emp) => sum + emp.salary, 0);
+  const totalSalaryBudget = employees.reduce((sum, emp) => sum + (emp.salary || 0), 0);
   const activeEmployees = employees.filter(emp => emp.status === "Active").length;
 
   return (
@@ -207,14 +218,17 @@ const Team = () => {
                   <div className="grid gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="employee-select">Select Employee</Label>
-                      <Select>
+                      <Select
+                        value={payroll.employeeId}
+                        onValueChange={val => setPayroll(p => ({ ...p, employeeId: val }))}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Choose employee" />
                         </SelectTrigger>
                         <SelectContent>
                           {employees.map(emp => (
-                            <SelectItem key={emp.id} value={emp.id.toString()}>
-                              {emp.name} - KSh {emp.salary.toLocaleString()}
+                            <SelectItem key={emp._id || emp.id} value={emp._id || emp.id}>
+                              {emp.name} - KSh {emp.salary?.toLocaleString()}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -223,23 +237,39 @@ const Team = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="amount">Amount (KSh)</Label>
-                        <Input id="amount" placeholder="45,000" />
+                        <Input
+                          id="amount"
+                          placeholder="45,000"
+                          value={payroll.amount}
+                          onChange={e => setPayroll(p => ({ ...p, amount: e.target.value }))}
+                        />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" placeholder="+254701234567" />
+                        <Input
+                          id="phone"
+                          placeholder="+254701234567"
+                          value={payroll.phone}
+                          onChange={e => setPayroll(p => ({ ...p, phone: e.target.value }))}
+                        />
                       </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="message">Payment Message (Optional)</Label>
-                      <Textarea 
-                        id="message" 
+                      <Textarea
+                        id="message"
                         placeholder="Salary payment for January 2024"
                         className="resize-none"
+                        value={payroll.message}
+                        onChange={e => setPayroll(p => ({ ...p, message: e.target.value }))}
                       />
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Switch id="sms-receipt"  />
+                      <Switch
+                        id="sms-receipt"
+                        checked={payroll.smsReceipt}
+                        onCheckedChange={val => setPayroll(p => ({ ...p, smsReceipt: val }))}
+                      />
                       <Label htmlFor="sms-receipt">Send SMS receipt</Label>
                     </div>
                   </div>
@@ -247,7 +277,7 @@ const Team = () => {
                     <Button variant="outline" className='text-red-500 cursor-pointer hover:text-red-500' onClick={() => setIsPayrollOpen(false)}>
                       Cancel
                     </Button>
-                    <Button className='bg-green-500 cursor-pointer hover:bg-green-400'>
+                    <Button className='bg-green-500 cursor-pointer hover:bg-green-400' onClick={handleSendPayroll}>
                       <Send className="mr-2 h-4 w-4" />
                       Send Payment
                     </Button>
@@ -267,10 +297,10 @@ const Team = () => {
                       </TableHeader>
                       <TableBody>
                         {paymentHistory.map((payment) => (
-                          <TableRow key={payment.id}>
+                          <TableRow key={payment._id || payment.id}>
                             <TableCell>{payment.employeeName}</TableCell>
-                            <TableCell>KSh {payment.amount.toLocaleString()}</TableCell>
-                            <TableCell>{payment.date}</TableCell>
+                            <TableCell>KSh {payment.amount?.toLocaleString()}</TableCell>
+                            <TableCell>{payment.date ? new Date(payment.date).toLocaleDateString() : ""}</TableCell>
                             <TableCell>{getPaymentStatusBadge(payment.status)}</TableCell>
                             <TableCell className="font-mono text-xs">{payment.transactionId}</TableCell>
                           </TableRow>
@@ -282,7 +312,7 @@ const Team = () => {
               </Tabs>
             </DialogContent>
           </Dialog>
-          
+
           <Dialog open={isAddEmployeeOpen} onOpenChange={setIsAddEmployeeOpen}>
             <DialogTrigger asChild>
               <Button className='bg-green-500 cursor-pointer hover:bg-green-400'>
@@ -300,34 +330,58 @@ const Team = () => {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" placeholder="Enter full name" />
+                  <Input
+                    id="name"
+                    placeholder="Enter full name"
+                    value={newEmployee.name}
+                    onChange={e => setNewEmployee(emp => ({ ...emp, name: e.target.value }))}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" placeholder="employee@example.com" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="employee@example.com"
+                    value={newEmployee.email}
+                    onChange={e => setNewEmployee(emp => ({ ...emp, email: e.target.value }))}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" placeholder="+254701234567" />
+                  <Input
+                    id="phone"
+                    placeholder="+254701234567"
+                    value={newEmployee.phone}
+                    onChange={e => setNewEmployee(emp => ({ ...emp, phone: e.target.value }))}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="role">Role</Label>
-                    <Select>
+                    <Select
+                      value={newEmployee.role}
+                      onValueChange={val => setNewEmployee(emp => ({ ...emp, role: val }))}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="stylist">Stylist</SelectItem>
-                        <SelectItem value="receptionist">Receptionist</SelectItem>
-                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="Manager">Manager</SelectItem>
+                        <SelectItem value="Stylist">Stylist</SelectItem>
+                        <SelectItem value="Receptionist">Receptionist</SelectItem>
+                        <SelectItem value="Staff">Staff</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="salary">Monthly Salary (KSh)</Label>
-                    <Input id="salary" placeholder="35,000" />
+                    <Input
+                      id="salary"
+                      placeholder="35,000"
+                      value={newEmployee.salary}
+                      onChange={e => setNewEmployee(emp => ({ ...emp, salary: e.target.value }))}
+                    />
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -337,14 +391,32 @@ const Team = () => {
                       <MessageSquare className="h-4 w-4" />
                       <Label htmlFor="sms-notifications">SMS Notifications</Label>
                     </div>
-                    <Switch id="sms-notifications" />
+                    <Switch
+                      id="sms-notifications"
+                      checked={newEmployee.notifications.sms}
+                      onCheckedChange={val =>
+                        setNewEmployee(emp => ({
+                          ...emp,
+                          notifications: { ...emp.notifications, sms: val }
+                        }))
+                      }
+                    />
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Mail className="h-4 w-4" />
                       <Label htmlFor="email-notifications">Email Notifications</Label>
                     </div>
-                    <Switch id="email-notifications" />
+                    <Switch
+                      id="email-notifications"
+                      checked={newEmployee.notifications.email}
+                      onCheckedChange={val =>
+                        setNewEmployee(emp => ({
+                          ...emp,
+                          notifications: { ...emp.notifications, email: val }
+                        }))
+                      }
+                    />
                   </div>
                 </div>
               </div>
@@ -352,7 +424,7 @@ const Team = () => {
                 <Button variant="outline" className='text-red-500 cursor-pointer hover:text-red-400' onClick={() => setIsAddEmployeeOpen(false)}>
                   Cancel
                 </Button>
-                <Button className='bg-green-500 cursor-pointer hover:bg-green-400' onClick={() => setIsAddEmployeeOpen(false)}>
+                <Button className='bg-green-500 cursor-pointer hover:bg-green-400' onClick={handleAddEmployee}>
                   Add Employee
                 </Button>
               </DialogFooter>
@@ -391,7 +463,9 @@ const Team = () => {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Jan 1</div>
+            <div className="text-2xl font-bold">
+              {paymentHistory[0]?.date ? new Date(paymentHistory[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "--"}
+            </div>
             <p className="text-xs text-muted-foreground">Next due: Feb 1</p>
           </CardContent>
         </Card>
@@ -407,8 +481,6 @@ const Team = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Employee Management */}
       <Card>
         <CardHeader>
           <CardTitle>Employee Directory</CardTitle>
@@ -453,12 +525,12 @@ const Team = () => {
             </TableHeader>
             <TableBody>
               {filteredEmployees.map((employee) => (
-                <TableRow key={employee.id}>
+                <TableRow key={employee._id || employee.id}>
                   <TableCell>
                     <div>
                       <div className="font-medium">{employee.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        Joined {new Date(employee.joinDate).toLocaleDateString()}
+                        Joined {employee.joinDate ? new Date(employee.joinDate).toLocaleDateString() : ""}
                       </div>
                     </div>
                   </TableCell>
@@ -475,14 +547,14 @@ const Team = () => {
                     </div>
                   </TableCell>
                   <TableCell>{employee.role}</TableCell>
-                  <TableCell>KSh {employee.salary.toLocaleString()}</TableCell>
+                  <TableCell>KSh {employee.salary?.toLocaleString()}</TableCell>
                   <TableCell>{getStatusBadge(employee.status)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-1">
-                      {employee.notifications.sms && (
+                      {employee.notifications?.sms && (
                         <Badge variant="outline" className="text-xs">SMS</Badge>
                       )}
-                      {employee.notifications.email && (
+                      {employee.notifications?.email && (
                         <Badge variant="outline" className="text-xs">Email</Badge>
                       )}
                     </div>

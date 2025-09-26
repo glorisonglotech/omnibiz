@@ -13,8 +13,12 @@ import {
   Eye,
   Plus
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+
+
 
 const Dashboard = () => {
+  const {user} = useAuth();
   const stats = [
     {
       title: "Total Revenue",
@@ -74,7 +78,7 @@ const Dashboard = () => {
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Welcome back, John!</h1>
+          <h1 className="text-3xl font-bold text-foreground">Welcome back, <span className="text-green-500">{user ? user.name : "Guest"}</span></h1>
           <p className="text-muted-foreground">Here's what's happening with your business today.</p>
         </div>
         <div className="flex space-x-2">

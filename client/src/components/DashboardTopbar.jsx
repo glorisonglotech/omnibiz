@@ -10,8 +10,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "../context/AuthContext"; // Import useAuth
+import { useNavigate } from "react-router-dom";
 
 const DashboardTopbar = () => {
+    const { logout,user } = useAuth(); // Access the logout function from context
+  const navigate = useNavigate(); // Hook to navigate
+
+  const handleLogout = () => {
+    logout(); // Call the logout function
+    navigate("/"); // Redirect to the homepage (or login page)
+  };
   return (
     <header className="bg-white border-b border-green-100 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -76,10 +85,10 @@ const DashboardTopbar = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center space-x-2 text-green-700 hover:text-green-800">
                 <div className="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">JD</span>
+                  <span className="text-sm font-medium text-white">A</span>
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium">John Doe</p>
+                  <p className="text-sm font-medium">{user ? user.fullName : "ADMIN"}</p>
                   <p className="text-xs text-green-500">Admin</p>
                 </div>
               </Button>
@@ -96,7 +105,7 @@ const DashboardTopbar = () => {
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-green-700 hover:bg-green-50">
+              <DropdownMenuItem className="text-green-700 hover:bg-green-50" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

@@ -1,5 +1,12 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { toast } from "sonner"; // Import Sonner's toast functionality
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -29,61 +36,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Search, Filter, Package, AlertTriangle, QrCode, DollarSign, Send } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Filter,
+  Package,
+  AlertTriangle,
+  QrCode,
+  DollarSign,
+  Send,
+} from "lucide-react";
+import api from "@/lib/api";
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
-
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Premium Hair Shampoo",
-      sku: "SHA-001",
-      category: "Hair Care",
-      stock: 25,
-      reorderLevel: 10,
-      price: 29.99,
-      supplier: "Beauty Supplies Co.",
-      status: "In Stock"
-    },
-    {
-      id: 2,
-      name: "Professional Hair Dryer",
-      sku: "HDR-002",
-      category: "Equipment",
-      stock: 5,
-      reorderLevel: 3,
-      price: 199.99,
-      supplier: "Salon Equipment Ltd.",
-      status: "Low Stock"
-    },
-    {
-      id: 3,
-      name: "Organic Face Mask",
-      sku: "FMK-003",
-      category: "Skincare",
-      stock: 0,
-      reorderLevel: 5,
-      price: 45.00,
-      supplier: "Natural Beauty Inc.",
-      status: "Out of Stock"
-    },
-    {
-      id: 4,
-      name: "Hair Styling Gel",
-      sku: "GEL-004",
-      category: "Hair Care",
-      stock: 18,
-      reorderLevel: 8,
-      price: 15.99,
-      supplier: "Beauty Supplies Co.",
-      status: "In Stock"
-    }
-  ]);
-
-  // Add Product Form State
+  const [products, setProducts] = useState([]);
   const [newProduct, setNewProduct] = useState({
     name: "",
     sku: "",
@@ -92,53 +61,111 @@ const Inventory = () => {
     reorderLevel: "",
     price: "",
     supplier: "",
-    description: ""
+    description: "",
   });
 
-  // Edit Product State
   const [isEditProductOpen, setIsEditProductOpen] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
 
+  // Fetch products when the component mounts
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        // Get token from localStorage
+        const token = localStorage.getItem("token");
+
+        // If no token is available, we could show an error or redirect to login
+        if (!token) {
+          toast.error("Please log in to view your products."); // Display error notification
+          return;
+        }
+
+        // Send the request with the token in the Authorization header
+        const response = await api.get("/products", {
+          headers: {
+            Authorization: `Bearer ${token}`, // Send JWT token to backend for authorization
+          },
+        });
+
+        setProducts(response.data); // Update the state with the fetched products
+      } catch (error) {
+        if (error.response) {
+          // The request was made, and the server responded with an error
+          const status = error.response.status;
+          const message =
+            error.response.data?.message || "Error fetching products";
+
+          if (status === 401) {
+            toast.error("Unauthorized: Please log in again."); // Handle unauthorized error (e.g., expired token)
+          } else if (status === 500) {
+            toast.error("Server error: Please try again later."); // Handle server error
+          } else {
+            toast.error(message); // Display specific error message from server
+          }
+
+          console.error("Error fetching products:", error.response); // Log detailed response error for debugging
+        } else if (error.request) {
+          // The request was made but no response was received
+          toast.error("Network error: Please check your internet connection.");
+          console.error("Error request:", error.request);
+        } else {
+          // Something happened in setting up the request
+          toast.error("Unexpected error occurred: Please try again.");
+          console.error("Error:", error.message);
+        }
+      }
+    };
+
+    fetchProducts();
+  }, []); // Empty dependency array ensures it runs only once when the component mounts
+
   const handleNewProductChange = (field, value) => {
-    setNewProduct(prev => ({
+    setNewProduct((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.sku || !newProduct.category || !newProduct.stock || !newProduct.price || !newProduct.supplier) {
-      // Optionally show validation error
+  // Add product to the backend
+  const handleAddProduct = async () => {
+    if (
+      !newProduct.name ||
+      !newProduct.sku ||
+      !newProduct.category ||
+      !newProduct.stock ||
+      !newProduct.price ||
+      !newProduct.supplier
+    ) {
+      toast.error("Please fill in all required fields."); // Show validation error
       return;
     }
-    setProducts(prev => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        name: newProduct.name,
-        sku: newProduct.sku,
-        category: newProduct.category,
-        stock: parseInt(newProduct.stock, 10),
-        reorderLevel: parseInt(newProduct.reorderLevel, 10) || 0,
-        price: parseFloat(newProduct.price),
-        supplier: newProduct.supplier,
-        status: parseInt(newProduct.stock, 10) === 0
-          ? "Out of Stock"
-          : (parseInt(newProduct.stock, 10) <= (parseInt(newProduct.reorderLevel, 10) || 0) ? "Low Stock" : "In Stock"),
-        description: newProduct.description
-      }
-    ]);
-    setNewProduct({
-      name: "",
-      sku: "",
-      category: "",
-      stock: "",
-      reorderLevel: "",
-      price: "",
-      supplier: "",
-      description: ""
-    });
-    setIsAddProductOpen(false);
+
+    try {
+      // Get token from localStorage
+      const token = localStorage.getItem("token");
+
+      const response = await api.post("/products", newProduct, {
+        headers: {
+          Authorization: `Bearer ${token}`, // Send JWT token to backend for authorization
+        },
+      });
+      setProducts((prev) => [...prev, response.data]); // Update the state with the new product
+      setNewProduct({
+        name: "",
+        sku: "",
+        category: "",
+        stock: "",
+        reorderLevel: "",
+        price: "",
+        supplier: "",
+        description: "",
+      });
+      setIsAddProductOpen(false); // Close the dialog after adding the product
+      toast.success("Product added successfully!"); // Success notification
+    } catch (error) {
+      toast.error("Error adding product."); // Show an error notification
+      console.error("Error adding product:", error);
+    }
   };
 
   // Edit product handlers
@@ -148,33 +175,37 @@ const Inventory = () => {
   };
 
   const handleEditProductChange = (field, value) => {
-    setEditProduct(prev => ({
+    setEditProduct((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
-  const handleUpdateProduct = () => {
-    setProducts(prev =>
-      prev.map(p =>
-        p.id === editProduct.id
-          ? {
-              ...editProduct,
-              stock: parseInt(editProduct.stock, 10),
-              reorderLevel: parseInt(editProduct.reorderLevel, 10) || 0,
-              price: parseFloat(editProduct.price),
-              status:
-                parseInt(editProduct.stock, 10) === 0
-                  ? "Out of Stock"
-                  : (parseInt(editProduct.stock, 10) <= (parseInt(editProduct.reorderLevel, 10) || 0)
-                    ? "Low Stock"
-                    : "In Stock")
-            }
-          : p
-      )
-    );
-    setIsEditProductOpen(false);
-    setEditProduct(null);
+  const handleUpdateProduct = async () => {
+    try {
+      // Get token from localStorage
+      const token = localStorage.getItem("token");
+
+      const response = await api.put(
+        `/products/${editProduct.id}`,
+        editProduct,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Send JWT token to backend for authorization
+          },
+        }
+      );
+      setProducts(
+        (prev) =>
+          prev.map((p) => (p.id === response.data.id ? response.data : p)) // Update the state with the updated product
+      );
+      setIsEditProductOpen(false);
+      setEditProduct(null);
+      toast.success("Product updated successfully!"); // Success notification
+    } catch (error) {
+      toast.error("Error updating product."); // Show an error notification
+      console.error("Error updating product:", error);
+    }
   };
 
   const getStatusBadge = (status, stock, reorderLevel) => {
@@ -187,20 +218,36 @@ const Inventory = () => {
     }
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      categoryFilter === "all" || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
+
+  // Card Calculations (Total Products, Low Stock, Out of Stock, Total Value)
+  const totalProducts = products.length;
+  const lowStockItems = products.filter(
+    (p) => p.stock <= p.reorderLevel && p.stock > 0
+  ).length;
+  const outOfStockItems = products.filter((p) => p.stock === 0).length;
+  const totalValue = products
+    .reduce((sum, p) => sum + p.price * p.stock, 0)
+    .toLocaleString();
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
-          <p className="text-muted-foreground">Manage your products, stock levels, and suppliers</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Inventory Management
+          </h1>
+          <p className="text-muted-foreground">
+            Manage your products, stock levels, and suppliers
+          </p>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline">
@@ -209,7 +256,7 @@ const Inventory = () => {
           </Button>
           <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-green-500 cursor-pointer hover:bg-green-400">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Product
               </Button>
@@ -228,7 +275,9 @@ const Inventory = () => {
                     id="product-name"
                     placeholder="Enter product name"
                     value={newProduct.name}
-                    onChange={e => handleNewProductChange("name", e.target.value)}
+                    onChange={(e) =>
+                      handleNewProductChange("name", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid gap-2">
@@ -237,7 +286,9 @@ const Inventory = () => {
                     id="sku"
                     placeholder="Product SKU"
                     value={newProduct.sku}
-                    onChange={e => handleNewProductChange("sku", e.target.value)}
+                    onChange={(e) =>
+                      handleNewProductChange("sku", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid gap-2">
@@ -246,7 +297,9 @@ const Inventory = () => {
                     id="category"
                     placeholder="Enter category"
                     value={newProduct.category}
-                    onChange={e => handleNewProductChange("category", e.target.value)}
+                    onChange={(e) =>
+                      handleNewProductChange("category", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -258,7 +311,9 @@ const Inventory = () => {
                       min="0"
                       placeholder="e.g. 25"
                       value={newProduct.stock}
-                      onChange={e => handleNewProductChange("stock", e.target.value)}
+                      onChange={(e) =>
+                        handleNewProductChange("stock", e.target.value)
+                      }
                     />
                   </div>
                   <div className="grid gap-2">
@@ -269,7 +324,9 @@ const Inventory = () => {
                       min="0"
                       placeholder="e.g. 10"
                       value={newProduct.reorderLevel}
-                      onChange={e => handleNewProductChange("reorderLevel", e.target.value)}
+                      onChange={(e) =>
+                        handleNewProductChange("reorderLevel", e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -283,7 +340,9 @@ const Inventory = () => {
                       step="0.01"
                       placeholder="e.g. 29.99"
                       value={newProduct.price}
-                      onChange={e => handleNewProductChange("price", e.target.value)}
+                      onChange={(e) =>
+                        handleNewProductChange("price", e.target.value)
+                      }
                     />
                   </div>
                   <div className="grid gap-2">
@@ -292,7 +351,9 @@ const Inventory = () => {
                       id="supplier"
                       placeholder="Supplier name"
                       value={newProduct.supplier}
-                      onChange={e => handleNewProductChange("supplier", e.target.value)}
+                      onChange={(e) =>
+                        handleNewProductChange("supplier", e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -302,16 +363,25 @@ const Inventory = () => {
                     id="description"
                     placeholder="Product description"
                     value={newProduct.description}
-                    onChange={e => handleNewProductChange("description", e.target.value)}
+                    onChange={(e) =>
+                      handleNewProductChange("description", e.target.value)
+                    }
                     className="resize-none"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" className='text-red-500 cursor-pointer hover:text-red-400' onClick={() => setIsAddProductOpen(false)}>
+                <Button
+                  variant="outline"
+                  className="text-red-500 cursor-pointer hover:text-red-400"
+                  onClick={() => setIsAddProductOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button className='bg-green-500 cursor-pointer hover:bg-green-400' onClick={handleAddProduct}>
+                <Button
+                  className="bg-green-500 cursor-pointer hover:bg-green-400"
+                  onClick={handleAddProduct}
+                >
                   <Send className="mr-2 h-4 w-4" />
                   Add Product
                 </Button>
@@ -325,25 +395,31 @@ const Inventory = () => {
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Products
+            </CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{products.length}</div>
+            <div className="text-2xl font-bold">{totalProducts}</div>
             <p className="text-xs text-muted-foreground">+12 from last month</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Low Stock Items
+            </CardTitle>
             <AlertTriangle className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {products.filter(p => p.stock <= p.reorderLevel && p.stock > 0).length}
+              {lowStockItems}
             </div>
-            <p className="text-xs text-muted-foreground">Need immediate attention</p>
+            <p className="text-xs text-muted-foreground">
+              Need immediate attention
+            </p>
           </CardContent>
         </Card>
 
@@ -354,7 +430,7 @@ const Inventory = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {products.filter(p => p.stock === 0).length}
+              {outOfStockItems}
             </div>
             <p className="text-xs text-muted-foreground">Require restocking</p>
           </CardContent>
@@ -366,9 +442,7 @@ const Inventory = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${products.reduce((sum, p) => sum + (p.price * p.stock), 0).toLocaleString()}
-            </div>
+            <div className="text-2xl font-bold">{totalValue}</div>
             <p className="text-xs text-muted-foreground">Inventory worth</p>
           </CardContent>
         </Card>
@@ -427,20 +501,25 @@ const Inventory = () => {
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.sku}</TableCell>
                   <TableCell>{product.category}</TableCell>
-                  <TableCell>
-                    <span className={product.stock <= product.reorderLevel ? "text-orange-600 font-medium" : ""}>
-                      {product.stock}
-                    </span>
-                  </TableCell>
+                  <TableCell>{product.stock}</TableCell>
                   <TableCell>${product.price}</TableCell>
                   <TableCell>{product.supplier}</TableCell>
                   <TableCell>
-                    {getStatusBadge(product.status, product.stock, product.reorderLevel)}
+                    {getStatusBadge(
+                      product.status,
+                      product.stock,
+                      product.reorderLevel
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEditClick(product)}>Edit</Button>
-                      <Button variant="outline" size="sm">Reorder</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditClick(product)}
+                      >
+                        Edit
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -456,94 +535,23 @@ const Inventory = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Product</DialogTitle>
-              <DialogDescription>
-                Update product details and stock information
-              </DialogDescription>
+              <DialogDescription>Update product details</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-product-name">Product Name</Label>
-                <Input
-                  id="edit-product-name"
-                  value={editProduct.name}
-                  onChange={e => handleEditProductChange("name", e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-sku">SKU</Label>
-                <Input
-                  id="edit-sku"
-                  value={editProduct.sku}
-                  onChange={e => handleEditProductChange("sku", e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-category">Category</Label>
-                <Input
-                  id="edit-category"
-                  placeholder="Enter category"
-                  value={editProduct.category}
-                  onChange={e => handleEditProductChange("category", e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-stock">Stock Quantity</Label>
-                  <Input
-                    id="edit-stock"
-                    type="number"
-                    min="0"
-                    value={editProduct.stock}
-                    onChange={e => handleEditProductChange("stock", e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-reorderLevel">Reorder Level</Label>
-                  <Input
-                    id="edit-reorderLevel"
-                    type="number"
-                    min="0"
-                    value={editProduct.reorderLevel}
-                    onChange={e => handleEditProductChange("reorderLevel", e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-price">Price ($)</Label>
-                  <Input
-                    id="edit-price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={editProduct.price}
-                    onChange={e => handleEditProductChange("price", e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-supplier">Supplier</Label>
-                  <Input
-                    id="edit-supplier"
-                    value={editProduct.supplier}
-                    onChange={e => handleEditProductChange("supplier", e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-description">Description (Optional)</Label>
-                <Textarea
-                  id="edit-description"
-                  value={editProduct.description}
-                  onChange={e => handleEditProductChange("description", e.target.value)}
-                  className="resize-none"
-                />
-              </div>
+              {/* Add input fields for editing products here */}
             </div>
             <DialogFooter>
-              <Button variant="outline" className='text-red-500 cursor-pointer hover:text-red-400' onClick={() => setIsEditProductOpen(false)}>
+              <Button
+                variant="outline"
+                className="text-red-500 cursor-pointer hover:text-red-400"
+                onClick={() => setIsEditProductOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button className='bg-green-500 cursor-pointer hover:bg-green-400' onClick={handleUpdateProduct}>
+              <Button
+                className="bg-green-500 cursor-pointer hover:bg-green-400"
+                onClick={handleUpdateProduct}
+              >
                 <Send className="mr-2 h-4 w-4" />
                 Save Changes
               </Button>

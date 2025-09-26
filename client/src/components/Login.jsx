@@ -11,16 +11,26 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/context/AuthContext";
+import api from "@/lib/api";
+import { toast } from "sonner";
 
 export function LoginForm({ className, ...props }) {
+  const { login } = useAuth();  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async(e) => {
     e.preventDefault();
-    // No backend logic, just redirect
-    navigate('/dashboard');
+     try {
+      const res = await api.post('/auth/login',{email,password});
+      await login(email,password);
+      toast.success("Login successful");
+      navigate('/dashboard');
+     } catch (error) {
+       toast.error("Login failed. Please check your credentials.");
+     }
   };
 
   return (

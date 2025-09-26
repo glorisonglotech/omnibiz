@@ -1,5 +1,12 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { toast } from "sonner"; // Import Sonner's toast functionality
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -22,53 +29,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ShoppingCart, Package, CreditCard, TrendingUp, Eye, Plus, Send } from "lucide-react";
+import { ShoppingCart,Package, CreditCard, TrendingUp, Eye, Plus, Send } from "lucide-react";
+import api from "@/lib/api";
 
 const ECommerce = () => {
-  const [orders, setOrders] = useState([
-    {
-      id: "ORD-001",
-      customer: "Sarah Johnson",
-      email: "sarah@email.com",
-      date: "2024-01-15",
-      total: 125.50,
-      status: "Pending",
-      items: 3,
-      notes: ""
-    },
-    {
-      id: "ORD-002",
-      customer: "Mike Chen",
-      email: "mike@email.com",
-      date: "2024-01-15",
-      total: 89.99,
-      status: "Processing",
-      items: 2,
-      notes: ""
-    },
-    {
-      id: "ORD-003",
-      customer: "Emma Wilson",
-      email: "emma@email.com",
-      date: "2024-01-14",
-      total: 299.99,
-      status: "Shipped",
-      items: 5,
-      notes: ""
-    },
-    {
-      id: "ORD-004",
-      customer: "David Brown",
-      email: "david@email.com",
-      date: "2024-01-14",
-      total: 45.00,
-      status: "Delivered",
-      items: 1,
-      notes: ""
-    }
-  ]);
-
-  // Add Order Dialog State
+  const [orders, setOrders] = useState([]);
   const [isAddOrderOpen, setIsAddOrderOpen] = useState(false);
   const [newOrder, setNewOrder] = useState({
     customer: "",
@@ -77,46 +42,60 @@ const ECommerce = () => {
     total: "",
     status: "Pending",
     items: "",
-    notes: ""
+    notes: "",
   });
 
-  // Edit/View Order Dialog State
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false);
   const [viewOrder, setViewOrder] = useState(null);
 
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const response = await api.get("/orders"); 
+        setOrders(response.data);
+      } catch (error) {
+        toast.error("Error fetching orders.");
+        console.error("Error fetching orders:", error);
+      }
+    };
+
+    fetchOrders();
+  }, []); 
+
   const handleNewOrderChange = (field, value) => {
-    setNewOrder(prev => ({
+    setNewOrder((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
-  const handleAddOrder = () => {
+  const handleAddOrder = async () => {
     if (!newOrder.customer || !newOrder.email || !newOrder.date || !newOrder.total || !newOrder.items) {
-      // Optionally show validation error
+      toast.error("Please fill in all required fields."); // Show validation error
       return;
     }
-    setOrders(prev => [
-      {
-        id: `ORD-${(prev.length + 1).toString().padStart(3, "0")}`,
-        ...newOrder,
-        total: parseFloat(newOrder.total),
-        items: parseInt(newOrder.items, 10),
-      },
-      ...prev
-    ]);
-    setNewOrder({
-      customer: "",
-      email: "",
-      date: "",
-      total: "",
-      status: "Pending",
-      items: "",
-      notes: ""
-    });
-    setIsAddOrderOpen(false);
+
+    try {
+      const response = await api.post("/orders", newOrder); // POST request to add new order
+      setOrders((prev) => [response.data, ...prev]); // Update the orders with the new one
+      setNewOrder({
+        customer: "",
+        email: "",
+        date: "",
+        total: "",
+        status: "Pending",
+        items: "",
+        notes: "",
+      });
+      setIsAddOrderOpen(false); // Close the dialog after adding the order
+      toast.success("Order added successfully!"); // Success notification
+    } catch (error) {
+      toast.error("Error adding order.");
+      console.error("Error adding order:", error);
+    }
   };
 
   const handleEditClick = (order) => {
@@ -125,26 +104,25 @@ const ECommerce = () => {
   };
 
   const handleEditOrderChange = (field, value) => {
-    setEditOrder(prev => ({
+    setEditOrder((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
-  const handleUpdateOrder = () => {
-    setOrders(prev =>
-      prev.map(o =>
-        o.id === editOrder.id
-          ? {
-              ...editOrder,
-              total: parseFloat(editOrder.total),
-              items: parseInt(editOrder.items, 10)
-            }
-          : o
-      )
-    );
-    setIsEditOrderOpen(false);
-    setEditOrder(null);
+  const handleUpdateOrder = async () => {
+    try {
+      const response = await api.put(`/orders/${editOrder.id}`, editOrder); // PUT request to update order
+      setOrders((prev) =>
+        prev.map((o) => (o.id === response.data.id ? response.data : o)) // Update the orders
+      );
+      setIsEditOrderOpen(false);
+      setEditOrder(null);
+      toast.success("Order updated successfully!");
+    } catch (error) {
+      toast.error("Error updating order.");
+      console.error("Error updating order:", error);
+    }
   };
 
   const handleViewClick = (order) => {
@@ -154,10 +132,10 @@ const ECommerce = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      "Pending": { variant: "secondary", color: "bg-yellow-100 text-yellow-800" },
-      "Processing": { variant: "default", color: "bg-blue-100 text-blue-800" },
-      "Shipped": { variant: "default", color: "bg-purple-100 text-purple-800" },
-      "Delivered": { variant: "default", color: "bg-green-100 text-green-800" }
+      Pending: { variant: "secondary", color: "bg-yellow-100 text-yellow-800" },
+      Processing: { variant: "default", color: "bg-blue-100 text-blue-800" },
+      Shipped: { variant: "default", color: "bg-purple-100 text-purple-800" },
+      Delivered: { variant: "default", color: "bg-green-100 text-green-800" },
     };
     return <Badge variant={statusConfig[status]?.variant || "default"}>{status}</Badge>;
   };
@@ -177,7 +155,7 @@ const ECommerce = () => {
           </Button>
           <Dialog open={isAddOrderOpen} onOpenChange={setIsAddOrderOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className='bg-green-500 cursor-pointer hover:bg-green-400'>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Order
               </Button>
@@ -196,7 +174,7 @@ const ECommerce = () => {
                     id="customer"
                     placeholder="Enter customer name"
                     value={newOrder.customer}
-                    onChange={e => handleNewOrderChange("customer", e.target.value)}
+                    onChange={(e) => handleNewOrderChange("customer", e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -205,7 +183,7 @@ const ECommerce = () => {
                     id="email"
                     placeholder="Enter customer email"
                     value={newOrder.email}
-                    onChange={e => handleNewOrderChange("email", e.target.value)}
+                    onChange={(e) => handleNewOrderChange("email", e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -214,7 +192,7 @@ const ECommerce = () => {
                     id="date"
                     type="date"
                     value={newOrder.date}
-                    onChange={e => handleNewOrderChange("date", e.target.value)}
+                    onChange={(e) => handleNewOrderChange("date", e.target.value)}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -227,7 +205,7 @@ const ECommerce = () => {
                       step="0.01"
                       placeholder="e.g. 125.50"
                       value={newOrder.total}
-                      onChange={e => handleNewOrderChange("total", e.target.value)}
+                      onChange={(e) => handleNewOrderChange("total", e.target.value)}
                     />
                   </div>
                   <div className="grid gap-2">
@@ -238,7 +216,7 @@ const ECommerce = () => {
                       min="1"
                       placeholder="e.g. 3"
                       value={newOrder.items}
-                      onChange={e => handleNewOrderChange("items", e.target.value)}
+                      onChange={(e) => handleNewOrderChange("items", e.target.value)}
                     />
                   </div>
                 </div>
@@ -248,7 +226,7 @@ const ECommerce = () => {
                     id="status"
                     placeholder="Pending, Processing, Shipped, Delivered"
                     value={newOrder.status}
-                    onChange={e => handleNewOrderChange("status", e.target.value)}
+                    onChange={(e) => handleNewOrderChange("status", e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -257,16 +235,16 @@ const ECommerce = () => {
                     id="notes"
                     placeholder="Order notes"
                     value={newOrder.notes}
-                    onChange={e => handleNewOrderChange("notes", e.target.value)}
+                    onChange={(e) => handleNewOrderChange("notes", e.target.value)}
                     className="resize-none"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" className='text-red-500 cursor-pointer hover:text-red-400' onClick={() => setIsAddOrderOpen(false)}>
+                <Button variant="outline" className="text-red-500 cursor-pointer hover:text-red-400" onClick={() => setIsAddOrderOpen(false)}>
                   Cancel
                 </Button>
-                <Button className='bg-green-500 cursor-pointer hover:bg-green-400' onClick={handleAddOrder}>
+                <Button className="bg-green-500 cursor-pointer hover:bg-green-400" onClick={handleAddOrder}>
                   <Send className="mr-2 h-4 w-4" />
                   Add Order
                 </Button>
@@ -284,7 +262,7 @@ const ECommerce = () => {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orders.length + 1230}</div>
+            <div className="text-2xl font-bold">{orders.length}</div>
             <p className="text-xs text-green-600">+8.1% from last month</p>
           </CardContent>
         </Card>
@@ -296,7 +274,7 @@ const ECommerce = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${orders.reduce((sum, o) => sum + o.total, 24500).toLocaleString()}
+              ${orders.reduce((sum, o) => sum + o.total, 0).toLocaleString()}
             </div>
             <p className="text-xs text-green-600">+12.3% from last month</p>
           </CardContent>
@@ -372,37 +350,7 @@ const ECommerce = () => {
           </CardContent>
         </Card>
 
-        {/* Top Products */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Products</CardTitle>
-            <CardDescription>Best selling items this month</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { name: "Premium Hair Shampoo", sales: 156, revenue: "$4,680" },
-                { name: "Hair Styling Gel", sales: 142, revenue: "$2,268" },
-                { name: "Organic Face Mask", sales: 98, revenue: "$4,410" },
-                { name: "Professional Hair Dryer", sales: 67, revenue: "$13,393" }
-              ].map((product, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">{product.sales} sales</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">{product.revenue}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Order Status Overview */}
-      <div className="grid gap-6 lg:grid-cols-4">
+        {/* Order Status Overview */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Pending Orders</CardTitle>
@@ -458,9 +406,7 @@ const ECommerce = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Order Details</DialogTitle>
-              <DialogDescription>
-                View order information
-              </DialogDescription>
+              <DialogDescription>View order information</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div>
@@ -511,9 +457,7 @@ const ECommerce = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Order</DialogTitle>
-              <DialogDescription>
-                Update order details
-              </DialogDescription>
+              <DialogDescription>Update order details</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">

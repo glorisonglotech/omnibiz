@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -38,70 +38,82 @@ import {
   FileText,
   Receipt
 } from "lucide-react";
-
-// Mock data
-const financialSummary = {
-  totalRevenue: "KES 2,450,000",
-  totalExpenses: "KES 1,680,000",
-  netProfit: "KES 770,000",
-  pendingInvoices: "KES 325,000"
-};
-
-const recentTransactions = [
-  {
-    id: "TXN001",
-    type: "income",
-    description: "Payment from John's Bakery",
-    amount: "KES 45,000",
-    date: "2024-01-15",
-    status: "completed"
-  },
-  {
-    id: "TXN002", 
-    type: "expense",
-    description: "Office supplies purchase",
-    amount: "KES 12,500",
-    date: "2024-01-14",
-    status: "completed"
-  },
-  {
-    id: "TXN003",
-    type: "income",
-    description: "Service payment - Mary's Salon",
-    amount: "KES 28,000",
-    date: "2024-01-13",
-    status: "pending"
-  }
-];
-
-const invoices = [
-  {
-    id: "INV001",
-    client: "John's Bakery",
-    amount: "KES 45,000",
-    dueDate: "2024-01-20",
-    status: "paid"
-  },
-  {
-    id: "INV002",
-    client: "Mary's Salon",
-    amount: "KES 28,000",
-    dueDate: "2024-01-25",
-    status: "pending"
-  },
-  {
-    id: "INV003",
-    client: "Tech Solutions Ltd",
-    amount: "KES 87,500",
-    dueDate: "2024-01-30",
-    status: "overdue"
-  }
-];
+import api from "@/lib/api"; // Import the api instance for API calls
+import { toast } from "sonner"; // For notifications
 
 const Finances = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
+
+  // State to hold dynamic data from the backend
+  const [financialSummary, setFinancialSummary] = useState({
+    totalRevenue: "KES 0",
+    totalExpenses: "KES 0",
+    netProfit: "KES 0",
+    pendingInvoices: "KES 0",
+  });
+
+  const [recentTransactions, setRecentTransactions] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+
+  // Fetch data from the backend when the component mounts
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch financial summary data
+        const summaryResponse = await api.get("/financial-summary");
+        setFinancialSummary(summaryResponse.data);
+
+        // Fetch recent transactions
+        const transactionsResponse = await api.get("/transactions");
+        setRecentTransactions(transactionsResponse.data);
+
+        // Fetch invoices
+        const invoicesResponse = await api.get("/invoices");
+        setInvoices(invoicesResponse.data);
+      } catch (error) {
+        toast.error("Error fetching financial data.");
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Add Expense Dialog Handler
+  const handleExpenseSubmit = async () => {
+    // Here you would send data to the backend for adding the expense
+    // For example:
+    try {
+      const response = await api.post("/expenses", {
+        description: "New expense",
+        amount: 1000,
+        category: "office",
+      });
+      toast.success("Expense added successfully!");
+      setIsExpenseDialogOpen(false);
+      // Fetch updated data if needed
+    } catch (error) {
+      toast.error("Error adding expense.");
+    }
+  };
+
+  // Create Invoice Dialog Handler
+  const handleInvoiceSubmit = async () => {
+    // Here you would send data to the backend for creating the invoice
+    try {
+      const response = await api.post("/invoices", {
+        client: "New Client",
+        amount: 2000,
+        dueDate: "2024-02-15",
+        description: "Invoice description",
+      });
+      toast.success("Invoice created successfully!");
+      setIsInvoiceDialogOpen(false);
+      // Fetch updated data if needed
+    } catch (error) {
+      toast.error("Error creating invoice.");
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -167,7 +179,7 @@ const Finances = () => {
                   <Label htmlFor="expense-notes">Notes</Label>
                   <Textarea id="expense-notes" placeholder="Additional notes (optional)" />
                 </div>
-                <Button className="w-full">
+                <Button className="w-full" onClick={handleExpenseSubmit}>
                   Record Expense
                 </Button>
               </div>
@@ -206,7 +218,7 @@ const Finances = () => {
                   <Label htmlFor="invoice-description">Description</Label>
                   <Textarea id="invoice-description" placeholder="Invoice description or items" />
                 </div>
-                <Button className="w-full">
+                <Button className="w-full" onClick={handleInvoiceSubmit}>
                   Create Invoice
                 </Button>
               </div>
@@ -270,6 +282,7 @@ const Finances = () => {
         </Card>
       </div>
 
+      {/* Recent Transactions and Invoices */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
         <Card>
@@ -328,7 +341,7 @@ const Finances = () => {
                   className="pl-8"
                 />
               </div>
-              
+
               <Table>
                 <TableHeader>
                   <TableRow>

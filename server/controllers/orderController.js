@@ -3,7 +3,11 @@ const Order = require("../models/order");
 // Create a new order
 exports.createOrder = async (req, res) => {
   try {
-    const order = new Order(req.body);
+    const userId = req.user.id; 
+    const order = new Order({
+      ...req.body,
+      userId: userId, 
+    });
     await order.save();
     res.status(201).json(order);
   } catch (error) {
@@ -11,10 +15,11 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-// Get all orders
+// Get all orders for the logged-in user
 exports.getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find()
+    const userId = req.user.id; 
+    const orders = await Order.find({ userId }) 
       .populate("userId")
       .populate("items.product");
     res.json(orders);
@@ -23,12 +28,17 @@ exports.getAllOrders = async (req, res) => {
   }
 };
 
-// Get a single order by ID
+// Get a single order by ID for the logged-in user
 exports.getOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id)
+    const userId = req.user.id; 
+    const order = await Order.findOne({
+      _id: req.params.id,
+      userId: userId 
+    })
       .populate("userId")
       .populate("items.product");
+    
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
@@ -38,18 +48,21 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
-// Update an order
+
+// Update an order for the logged-in user
 exports.updateOrder = async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
+    const userId = req.user.id;
+    const order = await Order.findOneAndUpdate(
+      { _id: req.params.id, userId: userId }, 
       req.body,
       { new: true, runValidators: true }
     )
       .populate("userId")
       .populate("items.product");
+    
     if (!order) {
-      return res.status(404).json({ error: "Order not found" });
+      return res.status(404).json({ error: "Order not found or not authorized to edit" });
     }
     res.json(order);
   } catch (error) {
@@ -57,13 +70,20 @@ exports.updateOrder = async (req, res) => {
   }
 };
 
-// Delete an order
+
+// Delete an order for the logged-in user
 exports.deleteOrder = async (req, res) => {
   try {
-    const order = await Order.findByIdAndDelete(req.params.id);
+    const userId = req.user.id; 
+    const order = await Order.findOneAndDelete({
+      _id: req.params.id,
+      userId: userId 
+    });
+
     if (!order) {
-      return res.status(404).json({ error: "Order not found" });
+      return res.status(404).json({ error: "Order not found or not authorized to delete" });
     }
+
     res.json({ message: "Order deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });

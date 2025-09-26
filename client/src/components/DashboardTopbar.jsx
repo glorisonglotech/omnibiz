@@ -14,13 +14,22 @@ import { useAuth } from "../context/AuthContext"; // Import useAuth
 import { useNavigate } from "react-router-dom";
 
 const DashboardTopbar = () => {
-    const { logout,user } = useAuth(); // Access the logout function from context
-  const navigate = useNavigate(); // Hook to navigate
+  const { logout, user } = useAuth(); // Access user from context
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout(); // Call the logout function
-    navigate("/"); // Redirect to the homepage (or login page)
+    logout();
+    navigate("/"); // Redirect to homepage/login
   };
+
+  // Fallbacks if user is not loaded yet
+  const userName = user?.name || user?.fullName || "Admin";
+  const userInitials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+
   return (
     <header className="bg-white border-b border-green-100 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -40,7 +49,11 @@ const DashboardTopbar = () => {
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative text-green-600 hover:text-green-700">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative text-green-600 hover:text-green-700"
+              >
                 <Bell className="h-5 w-5" />
                 <Badge
                   variant="destructive"
@@ -50,12 +63,19 @@ const DashboardTopbar = () => {
                 </Badge>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 border-green-100">
-              <DropdownMenuLabel className="text-green-700">Notifications</DropdownMenuLabel>
+            <DropdownMenuContent
+              align="end"
+              className="w-80 border-green-100"
+            >
+              <DropdownMenuLabel className="text-green-700">
+                Notifications
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium text-green-800">Low stock alert</p>
+                  <p className="text-sm font-medium text-green-800">
+                    Low stock alert
+                  </p>
                   <p className="text-xs text-green-500">
                     5 products are running low on inventory
                   </p>
@@ -63,7 +83,9 @@ const DashboardTopbar = () => {
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium text-green-800">New appointment booked</p>
+                  <p className="text-sm font-medium text-green-800">
+                    New appointment booked
+                  </p>
                   <p className="text-xs text-green-500">
                     Client scheduled for tomorrow at 2:00 PM
                   </p>
@@ -71,7 +93,9 @@ const DashboardTopbar = () => {
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium text-green-800">Payment received</p>
+                  <p className="text-sm font-medium text-green-800">
+                    Payment received
+                  </p>
                   <p className="text-xs text-green-500">
                     Invoice #1234 has been paid
                   </p>
@@ -83,18 +107,25 @@ const DashboardTopbar = () => {
           {/* User Profile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2 text-green-700 hover:text-green-800">
+              <Button
+                variant="ghost"
+                className="flex items-center space-x-2 text-green-700 hover:text-green-800"
+              >
                 <div className="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">A</span>
+                  <span className="text-sm font-medium text-white">
+                    {userInitials}
+                  </span>
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium">{user ? user.fullName : "ADMIN"}</p>
+                  <p className="text-sm font-medium">{userName}</p>
                   <p className="text-xs text-green-500">Admin</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="border-green-100">
-              <DropdownMenuLabel className="text-green-700">My Account</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-green-700">
+                My Account
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-green-700 hover:bg-green-50">
                 <User className="mr-2 h-4 w-4" />
@@ -105,7 +136,10 @@ const DashboardTopbar = () => {
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-green-700 hover:bg-green-50" onClick={handleLogout}>
+              <DropdownMenuItem
+                className="text-green-700 hover:bg-green-50"
+                onClick={handleLogout}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

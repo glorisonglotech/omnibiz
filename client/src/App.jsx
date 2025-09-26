@@ -11,7 +11,7 @@ import ECommerce from "./pages/dashboard/ECommerce";
 import Appointments from "./pages/dashboard/Appointments";
 import Team from "./pages/dashboard/Team";
 import Finances from "./pages/dashboard/Finances";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {

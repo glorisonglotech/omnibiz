@@ -21,17 +21,41 @@ export function LoginForm({ className, ...props }) {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async(e) => {
-    e.preventDefault();
-     try {
-      const res = await api.post('/auth/login',{email,password});
-      await login(email,password);
-      toast.success("Login successful");
-      navigate('/dashboard');
-     } catch (error) {
-       toast.error("Login failed. Please check your credentials.");
-     }
-  };
+const handleLogin = async (e) => {
+  e.preventDefault();
+
+  try {
+    // Send API request for login
+    const res = await api.post('/auth/login', { email, password });
+
+    // Assuming the API returns a token and user data upon successful login
+    const { token, user } = res.data; // Adjust based on your API response structure
+
+    // Store the token (you can also store user data in localStorage if needed)
+    localStorage.setItem('token', token);
+    // If you are using a context to manage user state, call the login function here
+    await login(user,token); // Store user information in context
+
+    toast.success("Login successful");
+
+    // Navigate to the dashboard after successful login
+    navigate('/dashboard');
+    window.location.reload(); 
+  } catch (error) {
+    // Handle specific error based on status code
+    if (error.response) {
+      // Specific error message based on status code
+      if (error.response.status === 401) {
+        toast.error("Invalid credentials. Please try again.");
+      } else {
+        toast.error("An error occurred. Please try again later.");
+      }
+    } else {
+      toast.error("Network error. Please check your internet connection.");
+    }
+  }
+};
+
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>

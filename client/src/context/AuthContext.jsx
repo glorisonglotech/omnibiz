@@ -1,50 +1,52 @@
-// src/context/AuthContext.js
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/api'; // Import the configured axios instance (api)
 
-// Create the context
 const AuthContext = createContext();
 
-// Create a custom hook to use the AuthContext
 export const useAuth = () => {
   return useContext(AuthContext);
 };
 
-// AuthContext provider component
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // State for user details
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Authentication state
   const [loading, setLoading] = useState(true); // Loading state for async actions
 
-  // Example: Checking if a user is authenticated on page load (using localStorage or API)
+  // Check if user is authenticated on page load
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get('/api/auth/profile', { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => {
+      // Use the api instance to send the request
+      api
+        .get('/auth/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`, // Attach the token to the request
+          },
+        })
+        .then((res) => {
           setUser(res.data);
           setIsAuthenticated(true);
         })
-        .catch(err => {
-          console.error(err);
+        .catch((err) => {
+          console.error('Error checking authentication:', err);
           setIsAuthenticated(false);
         })
         .finally(() => {
-          setLoading(false);
+          setLoading(false); // Once loading is done, update the state
         });
     } else {
-      setLoading(false);
+      setLoading(false); // If no token, stop loading
     }
   }, []);
 
-  // Login function
+  // Login function using the api instance
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setUser(user);
-      setIsAuthenticated(true);
+      localStorage.setItem('token', token); // Save token to localStorage
+      setUser(user); // Set user details in state immediately
+      setIsAuthenticated(true); // Set authentication state to true immediately
     } catch (error) {
       console.error('Login failed', error);
     }
@@ -52,9 +54,9 @@ export const AuthProvider = ({ children }) => {
 
   // Logout function
   const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    setIsAuthenticated(false);
+    localStorage.removeItem('token'); // Remove token from localStorage
+    setUser(null); // Clear user data
+    setIsAuthenticated(false); // Set authentication state to false
   };
 
   const value = {
@@ -64,6 +66,10 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
   };
+
+  if (loading) {
+    return <div>Loading...</div>; // Optionally, show a loading spinner or placeholder
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

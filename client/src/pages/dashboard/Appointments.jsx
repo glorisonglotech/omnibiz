@@ -17,10 +17,12 @@ import {
 import { Calendar, Clock, User, Phone, Plus, Filter, Send } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 const statusOptions = ["Confirmed", "Pending", "Cancelled"];
 
 const Appointments = () => {
+    const { user, isAuthenticated, loading } = useAuth();
   const [selectedDate, setSelectedDate] = useState("2024-01-15");
   const [appointments, setAppointments] = useState([]);
   const [totalAppointments, setTotalAppointments] = useState(0);
@@ -40,12 +42,21 @@ const Appointments = () => {
   });
 
   // Fetch appointments and stats from the API
-  useEffect(() => {
+   useEffect(() => {
     const fetchAppointments = async () => {
-      try {
-        const response = await api.get(`/appointments?date=${selectedDate}`);
-        setAppointments(response.data);
+      if (!isAuthenticated) {
+        toast.error("Please log in to view appointments.");
+        return;
+      }
 
+      try {
+        const response = await api.get(`/appointments?date=${selectedDate}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // Send JWT token to backend for authorization
+          },
+        });
+
+        setAppointments(response.data);
         setTotalAppointments(response.data.length);
         setConfirmedCount(response.data.filter((apt) => apt.status === "Confirmed").length);
         setPendingCount(response.data.filter((apt) => apt.status === "Pending").length);
@@ -58,10 +69,14 @@ const Appointments = () => {
         );
       } catch (error) {
         toast.error("Error fetching appointments.");
+        console.error("Error fetching appointments:", error);
       }
     };
-    fetchAppointments();
-  }, [selectedDate]);
+
+    if (selectedDate) {
+      fetchAppointments(); // Fetch appointments when the selected date changes
+    }
+  }, [selectedDate, isAuthenticated]); // Re-run when selectedDate or authentication state changes
 
   const handleNewAppointmentChange = (field, value) => {
     setNewAppointment((prev) => ({
@@ -88,7 +103,14 @@ const Appointments = () => {
         time: new Date(newAppointment.time),
         durationMinutes: Number(newAppointment.durationMinutes),
       };
-      const response = await api.post("/appointments", payload);
+
+      // Add the JWT token to the Authorization header for posting
+      const response = await api.post("/appointments", payload, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`, // Send JWT token to backend for authorization
+        },
+      });
+
       setAppointments((prev) => [response.data, ...prev]);
       setIsAddAppointmentOpen(false);
       setNewAppointment({
@@ -102,8 +124,18 @@ const Appointments = () => {
       toast.success("Appointment added successfully!");
     } catch (error) {
       toast.error("Error adding appointment.");
+      console.error("Error adding appointment:", error);
     }
   };
+
+  if (loading) {
+    return <div>Loading...</div>; // Optionally, show loading state until authentication is verified
+  }
+
+  if (!isAuthenticated) {
+    return <div>Please log in to manage your appointments.</div>;
+  }
+
 
   const timeSlots = [
     "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",

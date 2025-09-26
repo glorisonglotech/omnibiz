@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { toast } from "sonner"; // Import Sonner's toast functionality
+import { toast } from "sonner"; 
 import {
   Card,
   CardContent,
@@ -31,8 +31,10 @@ import {
 } from "@/components/ui/dialog";
 import { ShoppingCart,Package, CreditCard, TrendingUp, Eye, Plus, Send } from "lucide-react";
 import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 const ECommerce = () => {
+   const { user, isAuthenticated, loading } = useAuth();
   const [orders, setOrders] = useState([]);
   const [isAddOrderOpen, setIsAddOrderOpen] = useState(false);
   const [newOrder, setNewOrder] = useState({
@@ -51,11 +53,21 @@ const ECommerce = () => {
   const [viewOrder, setViewOrder] = useState(null);
 
 
-  useEffect(() => {
+ useEffect(() => {
+    // Fetch orders only if the user is authenticated
     const fetchOrders = async () => {
+      if (!isAuthenticated) {
+        toast.error("Please log in to view your orders.");
+        return;
+      }
+
       try {
-        const response = await api.get("/orders"); 
-        setOrders(response.data);
+        const response = await api.get("/orders", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // Use the token from localStorage for auth
+          },
+        });
+        setOrders(response.data); // Set fetched orders
       } catch (error) {
         toast.error("Error fetching orders.");
         console.error("Error fetching orders:", error);
@@ -63,7 +75,7 @@ const ECommerce = () => {
     };
 
     fetchOrders();
-  }, []); 
+  }, [isAuthenticated]); // Re-fetch when authentication state changes
 
   const handleNewOrderChange = (field, value) => {
     setNewOrder((prev) => ({

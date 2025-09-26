@@ -15,9 +15,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext"; // Import useAuth to get user info
 
 const navigationItems = [
- { name: "Overview", href: "/dashboard", icon: BarChart3 },
+  { name: "Overview", href: "/dashboard", icon: BarChart3 },
   { name: "Inventory", href: "/dashboard/inventory", icon: Package },
   { name: "E-Commerce", href: "/dashboard/ecommerce", icon: ShoppingCart },
   { name: "Appointments", href: "/dashboard/appointments", icon: Calendar },
@@ -28,8 +29,13 @@ const navigationItems = [
 ];
 
 function DashboardSidebar() {
+  const { user, isAuthenticated } = useAuth(); // Use AuthContext to get user details
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Fallback user data if the user is not authenticated
+  const userName = isAuthenticated ? user?.name : "Guest";
+  const userInitials = isAuthenticated ? user?.name.split(" ").map((n) => n[0]).join("") : "G";
 
   return (
     <div
@@ -43,8 +49,13 @@ function DashboardSidebar() {
         <div className="flex items-center justify-between p-4 border-b border-green-100">
           {!isCollapsed && (
             <Link to="/dashboard" className="flex items-center space-x-2">
-               <img src="https://2aa832b0f010801d3551c6c63b116063.cdn.bubble.io/cdn-cgi/image/w=48,h=48,f=auto,dpr=1,fit=contain/f1758225569468x933635082935872100/logo.webp" alt="" />
-              <span className="text-xl font-bold text-green-700">Omin<span className="text-green-500">Biz</span></span>
+              <img
+                src="https://2aa832b0f010801d3551c6c63b116063.cdn.bubble.io/cdn-cgi/image/w=48,h=48,f=auto,dpr=1,fit=contain/f1758225569468x933635082935872100/logo.webp"
+                alt=""
+              />
+              <span className="text-xl font-bold text-green-700">
+                Omin<span className="text-green-500">Biz</span>
+              </span>
             </Link>
           )}
           <Button
@@ -86,11 +97,11 @@ function DashboardSidebar() {
           <div className="p-4 border-t border-green-100">
             <div className="flex items-center space-x-3">
               <div className="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center">
-                <span className="text-sm font-medium text-white">JD</span>
+                <span className="text-sm font-medium text-white">{userInitials}</span> {/* Show user initials */}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-green-800 truncate">
-                  John Doe
+                  {userName} {/* Display the user's name */}
                 </p>
                 <p className="text-xs text-green-500 truncate">Admin</p>
               </div>

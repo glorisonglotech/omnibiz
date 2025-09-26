@@ -75,6 +75,7 @@ export function Signup({ className, ...props }) {
 
       toast.success("Signup successful! Redirecting...");
       navigate("/dashboard");
+      window.location.reload(); 
     } catch (error) {
       const message =
         error.response?.data?.message || "Signup failed. Try again.";

@@ -18,7 +18,15 @@ import { useAuth } from "@/context/AuthContext";
 
 
 const Dashboard = () => {
-  const {user} = useAuth();
+ const { user, isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>; // Show loading state while authentication is being checked
+  }
+
+  if (!isAuthenticated) {
+    return <div>Please log in to view your dashboard.</div>; // Show login prompt if not authenticated
+  }
   const stats = [
     {
       title: "Total Revenue",

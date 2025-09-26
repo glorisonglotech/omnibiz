@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { toast } from "sonner"; // Import Sonner's toast functionality
+import { toast } from "sonner"; 
 import {
   Card,
   CardContent,
@@ -67,57 +67,40 @@ const Inventory = () => {
   const [isEditProductOpen, setIsEditProductOpen] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
 
-  // Fetch products when the component mounts
-  useEffect(() => {
+   useEffect(() => {
     const fetchProducts = async () => {
+      const token = localStorage.getItem("token");
+
+    
+      if (!token) {
+        toast.error("Please log in to view your products.");
+        return;
+      }
+
       try {
-        // Get token from localStorage
-        const token = localStorage.getItem("token");
-
-        // If no token is available, we could show an error or redirect to login
-        if (!token) {
-          toast.error("Please log in to view your products."); // Display error notification
-          return;
-        }
-
-        // Send the request with the token in the Authorization header
+      
         const response = await api.get("/products", {
           headers: {
-            Authorization: `Bearer ${token}`, // Send JWT token to backend for authorization
+            Authorization: `Bearer ${token}`, // Send the token in the header
           },
         });
 
-        setProducts(response.data); // Update the state with the fetched products
+        // Update the state with the fetched products
+        setProducts(response.data);
       } catch (error) {
-        if (error.response) {
-          // The request was made, and the server responded with an error
-          const status = error.response.status;
-          const message =
-            error.response.data?.message || "Error fetching products";
-
-          if (status === 401) {
-            toast.error("Unauthorized: Please log in again."); // Handle unauthorized error (e.g., expired token)
-          } else if (status === 500) {
-            toast.error("Server error: Please try again later."); // Handle server error
-          } else {
-            toast.error(message); // Display specific error message from server
-          }
-
-          console.error("Error fetching products:", error.response); // Log detailed response error for debugging
-        } else if (error.request) {
-          // The request was made but no response was received
-          toast.error("Network error: Please check your internet connection.");
-          console.error("Error request:", error.request);
+        // Handle errors like expired tokens or network issues
+        if (error.response && error.response.status === 401) {
+          toast.error("Unauthorized: Please log in again.");
+          // Optionally, you could redirect to the login page here.
         } else {
-          // Something happened in setting up the request
-          toast.error("Unexpected error occurred: Please try again.");
-          console.error("Error:", error.message);
+          toast.error("Error fetching products. Please try again later.");
         }
+        console.error("Error fetching products:", error);
       }
     };
 
     fetchProducts();
-  }, []); // Empty dependency array ensures it runs only once when the component mounts
+  }, []);
 
   const handleNewProductChange = (field, value) => {
     setNewProduct((prev) => ({

@@ -38,10 +38,12 @@ import {
   FileText,
   Receipt
 } from "lucide-react";
-import api from "@/lib/api"; // Import the api instance for API calls
-import { toast } from "sonner"; // For notifications
+import api from "@/lib/api"; 
+import { toast } from "sonner"; 
+import { useAuth } from "@/context/AuthContext";
 
 const Finances = () => {
+    const { user, isAuthenticated, loading } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
@@ -57,63 +59,107 @@ const Finances = () => {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [invoices, setInvoices] = useState([]);
 
-  // Fetch data from the backend when the component mounts
   useEffect(() => {
     const fetchData = async () => {
+      if (!isAuthenticated) {
+        toast.error("Please log in to view financial data.");
+        return;
+      }
+
       try {
+        const token = localStorage.getItem("token"); // Get the token from localStorage
+
         // Fetch financial summary data
-        const summaryResponse = await api.get("/financial-summary");
+        const summaryResponse = await api.get("/financial-summary", {
+          headers: {
+            Authorization: `Bearer ${token}`, // Send the JWT token
+          },
+        });
         setFinancialSummary(summaryResponse.data);
 
         // Fetch recent transactions
-        const transactionsResponse = await api.get("/transactions");
+        const transactionsResponse = await api.get("/transactions", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setRecentTransactions(transactionsResponse.data);
 
         // Fetch invoices
-        const invoicesResponse = await api.get("/invoices");
+        const invoicesResponse = await api.get("/invoices", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setInvoices(invoicesResponse.data);
       } catch (error) {
         toast.error("Error fetching financial data.");
+        console.error("Error fetching financial data:", error);
       }
     };
-    fetchData();
-  }, []);
 
-  // Add Expense Dialog Handler
+    fetchData(); // Run the function when the component mounts or when `isAuthenticated` changes
+  }, [isAuthenticated]);
+
+  // Add Expense Handler
   const handleExpenseSubmit = async () => {
-    // Here you would send data to the backend for adding the expense
-    // For example:
     try {
+      const token = localStorage.getItem("token"); // Get the token from localStorage
+
+      // Send data to the backend for adding the expense
       const response = await api.post("/expenses", {
         description: "New expense",
         amount: 1000,
         category: "office",
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`, // Send the JWT token
+        },
       });
+
       toast.success("Expense added successfully!");
       setIsExpenseDialogOpen(false);
       // Fetch updated data if needed
     } catch (error) {
       toast.error("Error adding expense.");
+      console.error("Error adding expense:", error);
     }
   };
 
-  // Create Invoice Dialog Handler
+  // Create Invoice Handler
   const handleInvoiceSubmit = async () => {
-    // Here you would send data to the backend for creating the invoice
     try {
+      const token = localStorage.getItem("token"); // Get the token from localStorage
+
+      // Send data to the backend for creating the invoice
       const response = await api.post("/invoices", {
         client: "New Client",
         amount: 2000,
         dueDate: "2024-02-15",
         description: "Invoice description",
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`, // Send the JWT token
+        },
       });
+
       toast.success("Invoice created successfully!");
       setIsInvoiceDialogOpen(false);
       // Fetch updated data if needed
     } catch (error) {
       toast.error("Error creating invoice.");
+      console.error("Error creating invoice:", error);
     }
   };
+
+  if (loading) {
+    return <div>Loading...</div>; // Show loading state while checking authentication
+  }
+
+  if (!isAuthenticated) {
+    return <div>Please log in to manage financial data.</div>;
+  }
+
 
   const getStatusColor = (status) => {
     switch (status) {

@@ -3,7 +3,11 @@ const Invoice = require("../models/invoice");
 // Create a new invoice
 exports.createInvoice = async (req, res) => {
   try {
-    const invoice = new Invoice(req.body);
+    const invoice = new Invoice({
+      ...req.body,
+      userId: req.user._id // ✅ Inject from token
+    });
+
     await invoice.save();
     res.status(201).json(invoice);
   } catch (error) {
@@ -11,15 +15,17 @@ exports.createInvoice = async (req, res) => {
   }
 };
 
+
 // Get all invoices
 exports.getAllInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find().populate("userId");
+    const invoices = await Invoice.find({ userId: req.user._id }).populate("userId");
     res.json(invoices);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Get a single invoice by ID
 exports.getInvoiceById = async (req, res) => {

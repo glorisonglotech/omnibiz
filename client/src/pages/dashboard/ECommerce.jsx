@@ -37,15 +37,19 @@ const ECommerce = () => {
    const { user, isAuthenticated, loading } = useAuth();
   const [orders, setOrders] = useState([]);
   const [isAddOrderOpen, setIsAddOrderOpen] = useState(false);
-  const [newOrder, setNewOrder] = useState({
-    customer: "",
-    email: "",
-    date: "",
-    total: "",
-    status: "Pending",
-    items: "",
-    notes: "",
-  });
+ const [newOrder, setNewOrder] = useState({
+  orderId: `ORD-${Date.now()}`,
+  customer: {
+    name: "",
+    email: ""
+  },
+  date: "",
+  total: "",
+  status: "Pending",
+  items: [],
+  notes: ""
+});
+
 
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
@@ -77,38 +81,60 @@ const ECommerce = () => {
     fetchOrders();
   }, [isAuthenticated]); // Re-fetch when authentication state changes
 
-  const handleNewOrderChange = (field, value) => {
+ const handleNewOrderChange = (field, value) => {
+  if (field === "customerName" || field === "customerEmail") {
+    setNewOrder((prev) => ({
+      ...prev,
+      customer: {
+        ...prev.customer,
+        [field === "customerName" ? "name" : "email"]: value
+      }
+    }));
+  } else {
     setNewOrder((prev) => ({
       ...prev,
       [field]: value,
     }));
-  };
+  }
+};
+
 
   const handleAddOrder = async () => {
-    if (!newOrder.customer || !newOrder.email || !newOrder.date || !newOrder.total || !newOrder.items) {
-      toast.error("Please fill in all required fields."); // Show validation error
-      return;
-    }
+  if (!newOrder.customer || !newOrder.email || !newOrder.date || !newOrder.total || !newOrder.items) {
+    toast.error("Please fill in all required fields.");
+    return;
+  }
 
-    try {
-      const response = await api.post("/orders", newOrder); // POST request to add new order
-      setOrders((prev) => [response.data, ...prev]); // Update the orders with the new one
-      setNewOrder({
-        customer: "",
-        email: "",
-        date: "",
-        total: "",
-        status: "Pending",
-        items: "",
-        notes: "",
-      });
-      setIsAddOrderOpen(false); // Close the dialog after adding the order
-      toast.success("Order added successfully!"); // Success notification
-    } catch (error) {
-      toast.error("Error adding order.");
-      console.error("Error adding order:", error);
-    }
-  };
+  try {
+    const token = localStorage.getItem("token");
+    const response = await api.post("/orders", newOrder, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    setOrders((prev) => [response.data, ...prev]);
+    setNewOrder({
+      customer: "",
+      email: "",
+      date: "",
+      total: "",
+      status: "Pending",
+      items: "",
+      notes: "",
+    });
+    setIsAddOrderOpen(false);
+    toast.success("Order added successfully!");
+  } catch (error) {
+    // toast.error(error.response?.data?.error || "Error adding order.");
+    // console.error("Error adding order:", error);
+    const errorMessage = error.response?.data?.error || "Error adding order.";
+  toast.error(errorMessage);
+  console.error("Error adding order:", errorMessage);
+  }
+};
+
 
   const handleEditClick = (order) => {
     setEditOrder({ ...order });

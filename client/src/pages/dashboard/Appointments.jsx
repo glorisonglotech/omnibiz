@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,7 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Calendar, Clock, User, Phone, Plus, Filter, Send } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  User,
+  Phone,
+  Plus,
+  Filter,
+  Send,
+  Trash2,
+} from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -22,7 +37,7 @@ import { useAuth } from "@/context/AuthContext";
 const statusOptions = ["Confirmed", "Pending", "Cancelled"];
 
 const Appointments = () => {
-    const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [selectedDate, setSelectedDate] = useState("2024-01-15");
   const [appointments, setAppointments] = useState([]);
   const [totalAppointments, setTotalAppointments] = useState(0);
@@ -32,6 +47,10 @@ const Appointments = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [cancelledCount, setCancelledCount] = useState(0);
   const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false);
+
+  const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false);
+  const [editAppointment, setEditAppointment] = useState(null);
+
   const [newAppointment, setNewAppointment] = useState({
     customerName: "",
     service: "",
@@ -42,41 +61,43 @@ const Appointments = () => {
   });
 
   // Fetch appointments and stats from the API
-   useEffect(() => {
+  useEffect(() => {
     const fetchAppointments = async () => {
       if (!isAuthenticated) {
         toast.error("Please log in to view appointments.");
         return;
       }
-
       try {
-        const response = await api.get(`/appointments?date=${selectedDate}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`, // Send JWT token to backend for authorization
-          },
+        const { data } = await api.get(`/appointments?date=${selectedDate}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-
-        setAppointments(response.data);
-        setTotalAppointments(response.data.length);
-        setConfirmedCount(response.data.filter((apt) => apt.status === "Confirmed").length);
-        setPendingCount(response.data.filter((apt) => apt.status === "Pending").length);
-        setCancelledCount(response.data.filter((apt) => apt.status === "Cancelled").length);
-        setNoShows(response.data.filter((apt) => apt.status === "Cancelled").length);
-        setTotalRevenue(
-          response.data
-            .filter((apt) => apt.status === "Confirmed")
-            .reduce((sum, apt) => sum + (Number(apt.total) || 0), 0)
-        );
+        setAppointments(data); // triggers the recalc effect
       } catch (error) {
         toast.error("Error fetching appointments.");
         console.error("Error fetching appointments:", error);
       }
     };
 
-    if (selectedDate) {
-      fetchAppointments(); // Fetch appointments when the selected date changes
-    }
-  }, [selectedDate, isAuthenticated]); // Re-run when selectedDate or authentication state changes
+    if (selectedDate) fetchAppointments();
+  }, [selectedDate, isAuthenticated]);
+
+  const recalcStats = (list) => {
+    const norm = (s = "") => s.trim().toLowerCase();
+    const confirmed = list.filter((a) => norm(a.status) === "confirmed").length;
+    const pending = list.filter((a) => norm(a.status) === "pending").length;
+    const cancelled = list.filter((a) => norm(a.status) === "cancelled").length;
+
+    setTotalAppointments(list.length);
+    setConfirmedCount(confirmed);
+    setPendingCount(pending);
+    setCancelledCount(cancelled);
+    // If you track no-shows separately, adjust this; otherwise keep cancelled:
+    setNoShows(cancelled);
+  };
+
+  useEffect(() => {
+    recalcStats(appointments);
+  }, [appointments]);
 
   const handleNewAppointmentChange = (field, value) => {
     setNewAppointment((prev) => ({
@@ -97,17 +118,29 @@ const Appointments = () => {
       return;
     }
 
+    const isValidDate = !isNaN(new Date(newAppointment.time).getTime());
+    const duration = Number(newAppointment.durationMinutes);
+
+    if (!isValidDate || isNaN(duration) || duration <= 0) {
+      toast.error("Invalid time or duration.");
+      return;
+    }
+
     try {
       const payload = {
-        ...newAppointment,
+        customerName: newAppointment.customerName,
+        service: newAppointment.service,
         time: new Date(newAppointment.time),
-        durationMinutes: Number(newAppointment.durationMinutes),
+        durationMinutes: duration,
+        status: newAppointment.status || "Pending",
+        notes: newAppointment.notes,
       };
 
-      // Add the JWT token to the Authorization header for posting
+      const token = localStorage.getItem("token");
       const response = await api.post("/appointments", payload, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`, // Send JWT token to backend for authorization
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
 
@@ -123,8 +156,95 @@ const Appointments = () => {
       });
       toast.success("Appointment added successfully!");
     } catch (error) {
-      toast.error("Error adding appointment.");
-      console.error("Error adding appointment:", error);
+      const errorMessage =
+        error.response?.data?.error || "Error adding appointment.";
+      toast.error(errorMessage);
+      console.error("Error adding appointment:", errorMessage);
+    }
+  };
+  // Open edit dialog with a copy
+  const handleEditClick = (appointment) => {
+    setEditAppointment({
+      ...appointment,
+      time: formatForDatetimeLocal(appointment.time),
+      durationMinutes: String(appointment.durationMinutes ?? ""),
+    });
+    setIsEditAppointmentOpen(true);
+  };
+   
+  // Format Date -> "YYYY-MM-DDTHH:mm" for <input type="datetime-local" />
+const formatForDatetimeLocal = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return ""; // guard bad dates
+  const pad = (n) => n.toString().padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+};
+
+
+  // Controlled edit form changes
+  const handleEditAppointmentChange = (field, value) => {
+    setEditAppointment((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Update appointment via API and refresh list locally
+  const handleUpdateAppointment = async () => {
+    try {
+      if (!editAppointment?._id) return;
+
+      const token = localStorage.getItem("token");
+
+      // Prepare payload (convert string fields to expected types)
+      const payload = {
+        ...editAppointment,
+        time: new Date(editAppointment.time),
+        durationMinutes: Number(editAppointment.durationMinutes),
+      };
+
+      const { data } = await api.put(
+        `/appointments/${editAppointment._id}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setAppointments((prev) =>
+        prev.map((apt) => (apt._id === data._id ? data : apt))
+      );
+
+      setIsEditAppointmentOpen(false);
+      setEditAppointment(null);
+      toast.success("Appointment updated successfully!");
+    } catch (error) {
+      toast.error("Error updating appointment.");
+      console.error("Error updating appointment:", error);
+    }
+  };
+
+  // Delete appointment
+  const handleDeleteAppointment = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await api.delete(`/appointments/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAppointments((prev) => prev.filter((apt) => apt._id !== id));
+      toast.success("Appointment deleted successfully!");
+    } catch (error) {
+      toast.error("Error deleting appointment.");
+      console.error("Error deleting appointment:", error);
     }
   };
 
@@ -136,35 +256,67 @@ const Appointments = () => {
     return <div>Please log in to manage your appointments.</div>;
   }
 
-
   const timeSlots = [
-    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-    "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-    "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"
+    "09:00",
+    "09:30",
+    "10:00",
+    "10:30",
+    "11:00",
+    "11:30",
+    "12:00",
+    "12:30",
+    "13:00",
+    "13:30",
+    "14:00",
+    "14:30",
+    "15:00",
+    "15:30",
+    "16:00",
+    "16:30",
+    "17:00",
+    "17:30",
   ];
 
   const isSlotBooked = (time) => {
-    return appointments.some(apt => {
+    return appointments.some((apt) => {
       const aptTime = new Date(apt.time);
-      const slotTime = `${aptTime.getHours().toString().padStart(2, "0")}:${aptTime.getMinutes().toString().padStart(2, "0")}`;
+      const slotTime = `${aptTime
+        .getHours()
+        .toString()
+        .padStart(2, "0")}:${aptTime.getMinutes().toString().padStart(2, "0")}`;
       return slotTime === time;
     });
   };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      "Confirmed": { variant: "default", className: "bg-green-100 text-green-800" },
-      "Pending": { variant: "secondary", className: "bg-yellow-100 text-yellow-800" },
-      "Cancelled": { variant: "destructive", className: "bg-red-100 text-red-800" }
+      Confirmed: {
+        variant: "default",
+        className: "bg-green-100 text-green-800",
+      },
+      Pending: {
+        variant: "secondary",
+        className: "bg-yellow-100 text-yellow-800",
+      },
+      Cancelled: {
+        variant: "destructive",
+        className: "bg-red-100 text-red-800",
+      },
     };
-    return <Badge variant={statusConfig[status]?.variant || "default"}>{status}</Badge>;
+    return (
+      <Badge variant={statusConfig[status]?.variant || "default"}>
+        {status}
+      </Badge>
+    );
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Appointment Scheduling</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Appointment Scheduling
+          </h1>
           <p className="text-muted-foreground">Manage bookings and calendar</p>
         </div>
         <div className="flex space-x-2">
@@ -172,9 +324,12 @@ const Appointments = () => {
             <Filter className="mr-2 h-4 w-4" />
             Filter
           </Button>
-          <Dialog open={isAddAppointmentOpen} onOpenChange={setIsAddAppointmentOpen}>
+          <Dialog
+            open={isAddAppointmentOpen}
+            onOpenChange={setIsAddAppointmentOpen}
+          >
             <DialogTrigger asChild>
-              <Button className='bg-green-500 cursor-pointer hover:bg-green-400'>
+              <Button className="bg-green-500 cursor-pointer hover:bg-green-400">
                 <Plus className="mr-2 h-4 w-4" />
                 New Appointment
               </Button>
@@ -193,7 +348,9 @@ const Appointments = () => {
                     id="customerName"
                     placeholder="Enter customer name"
                     value={newAppointment.customerName}
-                    onChange={(e) => handleNewAppointmentChange("customerName", e.target.value)}
+                    onChange={(e) =>
+                      handleNewAppointmentChange("customerName", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid gap-2">
@@ -202,7 +359,9 @@ const Appointments = () => {
                     id="service"
                     placeholder="e.g. Hair Cut"
                     value={newAppointment.service}
-                    onChange={(e) => handleNewAppointmentChange("service", e.target.value)}
+                    onChange={(e) =>
+                      handleNewAppointmentChange("service", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid gap-2">
@@ -211,7 +370,9 @@ const Appointments = () => {
                     id="time"
                     type="datetime-local"
                     value={newAppointment.time}
-                    onChange={(e) => handleNewAppointmentChange("time", e.target.value)}
+                    onChange={(e) =>
+                      handleNewAppointmentChange("time", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid gap-2">
@@ -223,7 +384,12 @@ const Appointments = () => {
                     step="15"
                     placeholder="e.g. 30"
                     value={newAppointment.durationMinutes}
-                    onChange={(e) => handleNewAppointmentChange("durationMinutes", e.target.value)}
+                    onChange={(e) =>
+                      handleNewAppointmentChange(
+                        "durationMinutes",
+                        e.target.value
+                      )
+                    }
                   />
                 </div>
                 <div className="grid gap-2">
@@ -232,10 +398,14 @@ const Appointments = () => {
                     id="status"
                     className="border rounded px-2 py-1"
                     value={newAppointment.status}
-                    onChange={(e) => handleNewAppointmentChange("status", e.target.value)}
+                    onChange={(e) =>
+                      handleNewAppointmentChange("status", e.target.value)
+                    }
                   >
                     {statusOptions.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -245,16 +415,25 @@ const Appointments = () => {
                     id="notes"
                     placeholder="Appointment notes"
                     value={newAppointment.notes}
-                    onChange={(e) => handleNewAppointmentChange("notes", e.target.value)}
+                    onChange={(e) =>
+                      handleNewAppointmentChange("notes", e.target.value)
+                    }
                     className="resize-none"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" className="text-red-500" onClick={() => setIsAddAppointmentOpen(false)}>
+                <Button
+                  variant="outline"
+                  className="text-red-500"
+                  onClick={() => setIsAddAppointmentOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button className="bg-green-500 hover:bg-green-400" onClick={handleAddAppointment}>
+                <Button
+                  className="bg-green-500 hover:bg-green-400"
+                  onClick={handleAddAppointment}
+                >
                   <Send className="mr-2 h-4 w-4" />
                   Add Appointment
                 </Button>
@@ -266,12 +445,14 @@ const Appointments = () => {
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Appointments</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Today's Appointments
+            </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalAppointments}</div>
-            <p className="text-xs text-green-600">From database</p>
+            <p className="text-xs text-green-600">appointments</p>
           </CardContent>
         </Card>
 
@@ -282,7 +463,7 @@ const Appointments = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{confirmedCount}</div>
-            <p className="text-xs text-green-600">From database</p>
+            <p className="text-xs text-green-600">status: confirmed</p>
           </CardContent>
         </Card>
 
@@ -293,18 +474,7 @@ const Appointments = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{noShows}</div>
-            <p className="text-xs text-muted-foreground">From database</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue Today</CardTitle>
-            <Phone className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
-            <p className="text-xs text-green-600">From database</p>
+            <p className="text-xs text-muted-foreground">Cancelled appointments</p>
           </CardContent>
         </Card>
       </div>
@@ -313,16 +483,24 @@ const Appointments = () => {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Today's Schedule - January 15, 2024</CardTitle>
-            <CardDescription>View and manage daily appointments</CardDescription>
+            <CardDescription>
+              View and manage daily appointments
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {appointments.map((appointment) => (
-                <div key={appointment._id || appointment.id} className="flex items-center space-x-4 p-4 border rounded-lg">
+                <div
+                  key={appointment._id || appointment.id}
+                  className="flex items-center space-x-4 p-4 border rounded-lg"
+                >
                   <div className="text-center min-w-[80px]">
                     <p className="font-semibold text-foreground">
                       {appointment.time
-                        ? new Date(appointment.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                        ? new Date(appointment.time).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                         : ""}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -332,17 +510,35 @@ const Appointments = () => {
 
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-foreground">{appointment.customerName}</p>
+                      <p className="font-medium text-foreground">
+                        {appointment.customerName}
+                      </p>
                       {getStatusBadge(appointment.status)}
                     </div>
-                    <p className="text-sm text-muted-foreground">{appointment.service}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {appointment.service}
+                    </p>
                   </div>
 
                   <div className="flex space-x-2">
                     <Button variant="outline" size="sm">
                       <Phone className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm">Edit</Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditClick(appointment)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-600"
+                      onClick={() => handleDeleteAppointment(appointment._id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -364,7 +560,12 @@ const Appointments = () => {
                   size="sm"
                   disabled={isSlotBooked(slot)}
                   className="text-xs"
-                  onClick={() => handleNewAppointmentChange("time", `${selectedDate}T${slot}`)}
+                  onClick={() =>
+                    handleNewAppointmentChange(
+                      "time",
+                      `${selectedDate}T${slot}`
+                    )
+                  }
                 >
                   {slot}
                 </Button>
@@ -373,6 +574,125 @@ const Appointments = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {isEditAppointmentOpen && editAppointment && (
+        <Dialog
+          open={isEditAppointmentOpen}
+          onOpenChange={setIsEditAppointmentOpen}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Appointment</DialogTitle>
+              <DialogDescription>Update appointment details</DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-customerName">Customer Name</Label>
+                <Input
+                  id="edit-customerName"
+                  placeholder="Enter customer name"
+                  value={editAppointment.customerName || ""}
+                  onChange={(e) =>
+                    handleEditAppointmentChange("customerName", e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-service">Service</Label>
+                <Input
+                  id="edit-service"
+                  placeholder="e.g. Hair Cut"
+                  value={editAppointment.service || ""}
+                  onChange={(e) =>
+                    handleEditAppointmentChange("service", e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-time">Date & Time</Label>
+                <Input
+                  id="edit-time"
+                  type="datetime-local"
+                  value={editAppointment.time || ""}
+                  onChange={(e) =>
+                    handleEditAppointmentChange("time", e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-durationMinutes">Duration (minutes)</Label>
+                <Input
+                  id="edit-durationMinutes"
+                  type="number"
+                  min="15"
+                  step="15"
+                  placeholder="e.g. 30"
+                  value={editAppointment.durationMinutes || ""}
+                  onChange={(e) =>
+                    handleEditAppointmentChange(
+                      "durationMinutes",
+                      e.target.value
+                    )
+                  }
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <select
+                  id="edit-status"
+                  className="border rounded px-2 py-1"
+                  value={editAppointment.status || "Pending"}
+                  onChange={(e) =>
+                    handleEditAppointmentChange("status", e.target.value)
+                  }
+                >
+                  {statusOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-notes">Notes (Optional)</Label>
+                <Textarea
+                  id="edit-notes"
+                  placeholder="Appointment notes"
+                  className="resize-none"
+                  value={editAppointment.notes || ""}
+                  onChange={(e) =>
+                    handleEditAppointmentChange("notes", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                className="text-red-500"
+                onClick={() => setIsEditAppointmentOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-green-500 hover:bg-green-400"
+                onClick={handleUpdateAppointment}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader>

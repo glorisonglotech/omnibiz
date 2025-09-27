@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -36,14 +42,14 @@ import {
   Download,
   Search,
   FileText,
-  Receipt
+  Receipt,
 } from "lucide-react";
-import api from "@/lib/api"; 
-import { toast } from "sonner"; 
+import api from "@/lib/api";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
 const Finances = () => {
-    const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
@@ -58,6 +64,26 @@ const Finances = () => {
 
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [newInvoice, setNewInvoice] = useState({
+    clientName: "",
+    clientEmail: "",
+    amount: "",
+    dueDate: "",
+    description: "",
+  });
+  // Put these near the top:
+  const extractInvoices = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    return payload?.invoices || payload?.items || payload?.data || [];
+  };
+
+  const normalizeInvoice = (inv) => ({
+    id: inv._id || inv.id,
+    customerName:
+      inv.customerName ?? inv.clientName ?? inv.customer?.name ?? "",
+    totalAmount: Number(inv.totalAmount ?? inv.amount ?? 0),
+    paymentStatus: inv.paymentStatus ?? inv.status ?? "pending",
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,11 +113,12 @@ const Finances = () => {
 
         // Fetch invoices
         const invoicesResponse = await api.get("/invoices", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setInvoices(invoicesResponse.data);
+        const list = extractInvoices(invoicesResponse.data).map(
+          normalizeInvoice
+        );
+        setInvoices(list);
       } catch (error) {
         toast.error("Error fetching financial data.");
         console.error("Error fetching financial data:", error);
@@ -107,15 +134,19 @@ const Finances = () => {
       const token = localStorage.getItem("token"); // Get the token from localStorage
 
       // Send data to the backend for adding the expense
-      const response = await api.post("/expenses", {
-        description: "New expense",
-        amount: 1000,
-        category: "office",
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`, // Send the JWT token
+      const response = await api.post(
+        "/expenses",
+        {
+          description: "New expense",
+          amount: 1000,
+          category: "office",
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Send the JWT token
+          },
+        }
+      );
 
       toast.success("Expense added successfully!");
       setIsExpenseDialogOpen(false);
@@ -126,28 +157,45 @@ const Finances = () => {
     }
   };
 
-  // Create Invoice Handler
   const handleInvoiceSubmit = async () => {
-    try {
-      const token = localStorage.getItem("token"); // Get the token from localStorage
+    const token = localStorage.getItem("token");
+    if (!token) return toast.error("Please log in first.");
 
-      // Send data to the backend for creating the invoice
-      const response = await api.post("/invoices", {
-        client: "New Client",
-        amount: 2000,
-        dueDate: "2024-02-15",
-        description: "Invoice description",
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`, // Send the JWT token
+    const { clientName, clientEmail, amount, dueDate, description } =
+      newInvoice;
+
+    if (!clientName || !clientEmail || !amount || !dueDate) {
+      return toast.error("Please fill in all required fields.");
+    }
+
+    try {
+      const response = await api.post(
+        "/invoices",
+        {
+          customerName: clientName,
+          clientEmail,
+          totalAmount: Number(amount),
+          dueDate,
+          description,
         },
-      });
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       toast.success("Invoice created successfully!");
       setIsInvoiceDialogOpen(false);
-      // Fetch updated data if needed
+      setNewInvoice({
+        clientName: "",
+        clientEmail: "",
+        amount: "",
+        dueDate: "",
+        description: "",
+      });
+      const created = normalizeInvoice(response.data);
+      setInvoices((prev) => [created, ...prev]);
     } catch (error) {
-      toast.error("Error creating invoice.");
+      toast.error(error.response?.data?.error || "Error creating invoice.");
       console.error("Error creating invoice:", error);
     }
   };
@@ -159,7 +207,6 @@ const Finances = () => {
   if (!isAuthenticated) {
     return <div>Please log in to manage financial data.</div>;
   }
-
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -180,13 +227,18 @@ const Finances = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Financial Management</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Financial Management
+          </h1>
           <p className="text-muted-foreground">
             Track income, expenses, and manage invoices
           </p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+          <Dialog
+            open={isExpenseDialogOpen}
+            onOpenChange={setIsExpenseDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Receipt className="h-4 w-4" />
@@ -200,7 +252,10 @@ const Finances = () => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="expense-description">Description</Label>
-                  <Input id="expense-description" placeholder="Enter expense description" />
+                  <Input
+                    id="expense-description"
+                    placeholder="Enter expense description"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="expense-amount">Amount (KES)</Label>
@@ -223,7 +278,10 @@ const Finances = () => {
                 </div>
                 <div>
                   <Label htmlFor="expense-notes">Notes</Label>
-                  <Textarea id="expense-notes" placeholder="Additional notes (optional)" />
+                  <Textarea
+                    id="expense-notes"
+                    placeholder="Additional notes (optional)"
+                  />
                 </div>
                 <Button className="w-full" onClick={handleExpenseSubmit}>
                   Record Expense
@@ -231,8 +289,11 @@ const Finances = () => {
               </div>
             </DialogContent>
           </Dialog>
-          
-          <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
+
+          <Dialog
+            open={isInvoiceDialogOpen}
+            onOpenChange={setIsInvoiceDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -246,24 +307,75 @@ const Finances = () => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="client-name">Client Name</Label>
-                  <Input id="client-name" placeholder="Enter client name" />
+                  <Input
+                    id="client-name"
+                    placeholder="Enter client name"
+                    value={newInvoice.clientName}
+                    onChange={(e) =>
+                      setNewInvoice({
+                        ...newInvoice,
+                        clientName: e.target.value,
+                      })
+                    }
+                  />
                 </div>
+
                 <div>
                   <Label htmlFor="client-email">Client Email</Label>
-                  <Input id="client-email" type="email" placeholder="client@example.com" />
+                  <Input
+                    id="client-email"
+                    type="email"
+                    placeholder="client@example.com"
+                    value={newInvoice.clientEmail}
+                    onChange={(e) =>
+                      setNewInvoice({
+                        ...newInvoice,
+                        clientEmail: e.target.value,
+                      })
+                    }
+                  />
                 </div>
+
                 <div>
                   <Label htmlFor="invoice-amount">Amount (KES)</Label>
-                  <Input id="invoice-amount" type="number" placeholder="0.00" />
+                  <Input
+                    id="invoice-amount"
+                    type="number"
+                    placeholder="0.00"
+                    value={newInvoice.amount}
+                    onChange={(e) =>
+                      setNewInvoice({ ...newInvoice, amount: e.target.value })
+                    }
+                  />
                 </div>
+
                 <div>
                   <Label htmlFor="due-date">Due Date</Label>
-                  <Input id="due-date" type="date" />
+                  <Input
+                    id="due-date"
+                    type="date"
+                    value={newInvoice.dueDate}
+                    onChange={(e) =>
+                      setNewInvoice({ ...newInvoice, dueDate: e.target.value })
+                    }
+                  />
                 </div>
+
                 <div>
                   <Label htmlFor="invoice-description">Description</Label>
-                  <Textarea id="invoice-description" placeholder="Invoice description or items" />
+                  <Textarea
+                    id="invoice-description"
+                    placeholder="Invoice description or items"
+                    value={newInvoice.description}
+                    onChange={(e) =>
+                      setNewInvoice({
+                        ...newInvoice,
+                        description: e.target.value,
+                      })
+                    }
+                  />
                 </div>
+
                 <Button className="w-full" onClick={handleInvoiceSubmit}>
                   Create Invoice
                 </Button>
@@ -281,7 +393,9 @@ const Finances = () => {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">{financialSummary.totalRevenue}</div>
+            <div className="text-2xl font-bold text-success">
+              {financialSummary.totalRevenue}
+            </div>
             <p className="text-xs text-muted-foreground">
               +12% from last month
             </p>
@@ -290,14 +404,16 @@ const Finances = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Expenses
+            </CardTitle>
             <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{financialSummary.totalExpenses}</div>
-            <p className="text-xs text-muted-foreground">
-              +5% from last month
-            </p>
+            <div className="text-2xl font-bold text-destructive">
+              {financialSummary.totalExpenses}
+            </div>
+            <p className="text-xs text-muted-foreground">+5% from last month</p>
           </CardContent>
         </Card>
 
@@ -307,7 +423,9 @@ const Finances = () => {
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{financialSummary.netProfit}</div>
+            <div className="text-2xl font-bold text-primary">
+              {financialSummary.netProfit}
+            </div>
             <p className="text-xs text-muted-foreground">
               +18% from last month
             </p>
@@ -316,14 +434,16 @@ const Finances = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Invoices</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pending Invoices
+            </CardTitle>
             <CreditCard className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{financialSummary.pendingInvoices}</div>
-            <p className="text-xs text-muted-foreground">
-              5 invoices pending
-            </p>
+            <div className="text-2xl font-bold text-warning">
+              {financialSummary.pendingInvoices}
+            </div>
+            <p className="text-xs text-muted-foreground">5 invoices pending</p>
           </CardContent>
         </Card>
       </div>
@@ -341,16 +461,28 @@ const Finances = () => {
           <CardContent>
             <div className="space-y-4">
               {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
                   <div className="flex-1">
-                    <p className="font-medium text-foreground">{transaction.description}</p>
-                    <p className="text-sm text-muted-foreground">{transaction.date}</p>
+                    <p className="font-medium text-foreground">
+                      {transaction.description}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {transaction.date}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className={`font-semibold ${
-                      transaction.type === 'income' ? 'text-success' : 'text-destructive'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'}{transaction.amount}
+                    <p
+                      className={`font-semibold ${
+                        transaction.type === "income"
+                          ? "text-success"
+                          : "text-destructive"
+                      }`}
+                    >
+                      {transaction.type === "income" ? "+" : "-"}
+                      {transaction.amount}
                     </p>
                     <Badge className={getStatusColor(transaction.status)}>
                       {transaction.status}
@@ -398,18 +530,35 @@ const Finances = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invoices.map((invoice) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">{invoice.id}</TableCell>
-                      <TableCell>{invoice.client}</TableCell>
-                      <TableCell>{invoice.amount}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(invoice.status)}>
-                          {invoice.status}
-                        </Badge>
+                  {invoices.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="text-center text-muted-foreground"
+                      >
+                        No invoices found.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    invoices.map((invoice) => (
+                      <TableRow key={invoice.id}>
+                        <TableCell className="font-medium">
+                          {invoice.id}
+                        </TableCell>
+                        <TableCell>{invoice.customerName}</TableCell>
+                        <TableCell>{`KES ${Number(
+                          invoice.totalAmount
+                        ).toLocaleString()}`}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={getStatusColor(invoice.paymentStatus)}
+                          >
+                            {invoice.paymentStatus}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>

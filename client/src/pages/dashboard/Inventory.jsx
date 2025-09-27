@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { toast } from "sonner"; 
+import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -57,41 +58,44 @@ const Inventory = () => {
     name: "",
     sku: "",
     category: "",
-    stock: "",
+    stockQuantity: "",
     reorderLevel: "",
     price: "",
-    supplier: "",
+    supplierName: "",
     description: "",
   });
+  const defaultProduct = {
+    name: "",
+    sku: "",
+    category: "",
+    stockQuantity: "",
+    reorderLevel: "",
+    price: "",
+    supplierName: "",
+    description: "",
+  };
 
   const [isEditProductOpen, setIsEditProductOpen] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
 
-   useEffect(() => {
+  useEffect(() => {
     const fetchProducts = async () => {
       const token = localStorage.getItem("token");
-
-    
       if (!token) {
         toast.error("Please log in to view your products.");
         return;
       }
 
       try {
-      
         const response = await api.get("/products", {
           headers: {
-            Authorization: `Bearer ${token}`, // Send the token in the header
+            Authorization: `Bearer ${token}`,
           },
         });
-
-        // Update the state with the fetched products
         setProducts(response.data);
       } catch (error) {
-        // Handle errors like expired tokens or network issues
-        if (error.response && error.response.status === 401) {
+        if (error.response?.status === 401) {
           toast.error("Unauthorized: Please log in again.");
-          // Optionally, you could redirect to the login page here.
         } else {
           toast.error("Error fetching products. Please try again later.");
         }
@@ -109,49 +113,50 @@ const Inventory = () => {
     }));
   };
 
-  // Add product to the backend
   const handleAddProduct = async () => {
-    if (
-      !newProduct.name ||
-      !newProduct.sku ||
-      !newProduct.category ||
-      !newProduct.stock ||
-      !newProduct.price ||
-      !newProduct.supplier
-    ) {
-      toast.error("Please fill in all required fields."); // Show validation error
+    const requiredFields = [
+      "name",
+      "sku",
+      "category",
+      "stockQuantity",
+      "price",
+      "supplierName",
+    ];
+    const hasEmptyField = requiredFields.some(
+      (field) => !newProduct[field]?.toString().trim()
+    );
+
+    if (hasEmptyField) {
+      toast.error("Please fill in all required fields.");
       return;
     }
 
-    try {
-      // Get token from localStorage
-      const token = localStorage.getItem("token");
+    const sanitizedProduct = {
+      ...newProduct,
+      stock: Number(newProduct.stockQuantity),
+      reorderLevel: Number(newProduct.reorderLevel),
+      price: Number(newProduct.price),
+    };
 
-      const response = await api.post("/products", newProduct, {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await api.post("/products", sanitizedProduct, {
         headers: {
-          Authorization: `Bearer ${token}`, // Send JWT token to backend for authorization
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
-      setProducts((prev) => [...prev, response.data]); // Update the state with the new product
-      setNewProduct({
-        name: "",
-        sku: "",
-        category: "",
-        stock: "",
-        reorderLevel: "",
-        price: "",
-        supplier: "",
-        description: "",
-      });
-      setIsAddProductOpen(false); // Close the dialog after adding the product
-      toast.success("Product added successfully!"); // Success notification
+
+      setProducts((prev) => [...prev, response.data]);
+      setNewProduct(defaultProduct);
+      setIsAddProductOpen(false);
+      toast.success("Product added successfully!");
     } catch (error) {
-      toast.error("Error adding product."); // Show an error notification
+      toast.error(error.response?.data?.error || "Error adding product.");
       console.error("Error adding product:", error);
     }
   };
 
-  // Edit product handlers
   const handleEditClick = (product) => {
     setEditProduct({ ...product });
     setIsEditProductOpen(true);
@@ -165,29 +170,60 @@ const Inventory = () => {
   };
 
   const handleUpdateProduct = async () => {
-    try {
-      // Get token from localStorage
-      const token = localStorage.getItem("token");
+    if (!editProduct) return;
 
+    const sanitizedEdit = {
+      ...editProduct,
+      stockQuantity: Number(editProduct.stockQuantity),
+      reorderLevel: Number(editProduct.reorderLevel),
+      price: Number(editProduct.price),
+    };
+
+    try {
+      const token = localStorage.getItem("token");
       const response = await api.put(
-        `/products/${editProduct.id}`,
-        editProduct,
+        `/products/${editProduct._id}`,
+        sanitizedEdit,
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Send JWT token to backend for authorization
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }
       );
-      setProducts(
-        (prev) =>
-          prev.map((p) => (p.id === response.data.id ? response.data : p)) // Update the state with the updated product
+
+      setProducts((prev) =>
+        prev.map((p) => (p._id === response.data._id ? response.data : p))
       );
       setIsEditProductOpen(false);
       setEditProduct(null);
-      toast.success("Product updated successfully!"); // Success notification
+      toast.success("Product updated successfully!");
     } catch (error) {
-      toast.error("Error updating product."); // Show an error notification
+      toast.error(error.response?.data?.error || "Error updating product.");
       console.error("Error updating product:", error);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this product?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await api.delete(`/products/${productId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      setProducts((prev) => prev.filter((p) => p._id !== productId));
+      toast.success("Product deleted successfully!");
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Error deleting product.");
+      console.error("Error deleting product:", error);
     }
   };
 
@@ -213,11 +249,11 @@ const Inventory = () => {
   // Card Calculations (Total Products, Low Stock, Out of Stock, Total Value)
   const totalProducts = products.length;
   const lowStockItems = products.filter(
-    (p) => p.stock <= p.reorderLevel && p.stock > 0
+    (p) => p.stockQuantity <= p.reorderLevel && p.stockQuantity > 0
   ).length;
-  const outOfStockItems = products.filter((p) => p.stock === 0).length;
+  const outOfStockItems = products.filter((p) => p.stockQuantity === 0).length;
   const totalValue = products
-    .reduce((sum, p) => sum + p.price * p.stock, 0)
+    .reduce((sum, p) => sum + p.price * p.stockQuantity, 0)
     .toLocaleString();
 
   return (
@@ -293,9 +329,9 @@ const Inventory = () => {
                       type="number"
                       min="0"
                       placeholder="e.g. 25"
-                      value={newProduct.stock}
+                      value={newProduct.stockQuantity}
                       onChange={(e) =>
-                        handleNewProductChange("stock", e.target.value)
+                        handleNewProductChange("stockQuantity", e.target.value)
                       }
                     />
                   </div>
@@ -333,9 +369,9 @@ const Inventory = () => {
                     <Input
                       id="supplier"
                       placeholder="Supplier name"
-                      value={newProduct.supplier}
+                      value={newProduct.supplierName}
                       onChange={(e) =>
-                        handleNewProductChange("supplier", e.target.value)
+                        handleNewProductChange("supplierName", e.target.value)
                       }
                     />
                   </div>
@@ -484,9 +520,9 @@ const Inventory = () => {
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.sku}</TableCell>
                   <TableCell>{product.category}</TableCell>
-                  <TableCell>{product.stock}</TableCell>
+                  <TableCell>{product.stockQuantity}</TableCell>
                   <TableCell>${product.price}</TableCell>
-                  <TableCell>{product.supplier}</TableCell>
+                  <TableCell>{product.supplierName}</TableCell>
                   <TableCell>
                     {getStatusBadge(
                       product.status,
@@ -502,6 +538,13 @@ const Inventory = () => {
                         onClick={() => handleEditClick(product)}
                       >
                         Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteProduct(product._id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -521,8 +564,113 @@ const Inventory = () => {
               <DialogDescription>Update product details</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              {/* Add input fields for editing products here */}
+              <div className="grid gap-2">
+                <Label htmlFor="edit-product-name">Product Name</Label>
+                <Input
+                  id="edit-product-name"
+                  placeholder="Enter product name"
+                  value={editProduct?.name ?? ""}
+                  onChange={(e) =>
+                    handleEditProductChange("name", e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-sku">SKU</Label>
+                <Input
+                  id="edit-sku"
+                  placeholder="Product SKU"
+                  value={editProduct?.sku ?? ""}
+                  onChange={(e) =>
+                    handleEditProductChange("sku", e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-category">Category</Label>
+                <Input
+                  id="edit-category"
+                  placeholder="Enter category"
+                  value={editProduct?.category ?? ""}
+                  onChange={(e) =>
+                    handleEditProductChange("category", e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-stock">Stock Quantity</Label>
+                  <Input
+                    id="edit-stock"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 25"
+                    value={editProduct?.stockQuantity ?? ""}
+                    onChange={(e) =>
+                      handleEditProductChange("stockQuantity", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-reorderLevel">Reorder Level</Label>
+                  <Input
+                    id="edit-reorderLevel"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 10"
+                    value={editProduct?.reorderLevel ?? ""}
+                    onChange={(e) =>
+                      handleEditProductChange("reorderLevel", e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-price">Price ($)</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 29.99"
+                    value={editProduct?.price ?? ""}
+                    onChange={(e) =>
+                      handleEditProductChange("price", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-supplier">Supplier</Label>
+                  <Input
+                    id="edit-supplier"
+                    placeholder="Supplier name"
+                    value={editProduct?.supplierName ?? ""}
+                    onChange={(e) =>
+                      handleEditProductChange("supplierName", e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-description">Description (Optional)</Label>
+                <Textarea
+                  id="edit-description"
+                  placeholder="Product description"
+                  value={editProduct?.description ?? ""}
+                  onChange={(e) =>
+                    handleEditProductChange("description", e.target.value)
+                  }
+                  className="resize-none"
+                />
+              </div>
             </div>
+
             <DialogFooter>
               <Button
                 variant="outline"

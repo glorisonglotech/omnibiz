@@ -1,22 +1,33 @@
 const Expense = require("../models/expense");
+const { createTransactionFromExpense } = require("./transactionController");
 
 // Create a new expense
 exports.createExpense = async (req, res) => {
   try {
-    const expense = new Expense(req.body);
+    const userId = req.user.id;
+    const expenseData = { ...req.body, userId };
+
+    const expense = new Expense(expenseData);
     await expense.save();
-    res.status(201).json(expense);
+
+    // Create corresponding transaction
+    await createTransactionFromExpense(expense._id, userId);
+
+    res.status(201).json({ message: 'Expense created successfully', expense });
   } catch (error) {
+    console.error('Error creating expense:', error);
     res.status(400).json({ error: error.message });
   }
 };
 
-// Get all expenses
+// Get all expenses for the authenticated user
 exports.getAllExpenses = async (req, res) => {
   try {
-    const expenses = await Expense.find().populate("userId");
+    const userId = req.user.id;
+    const expenses = await Expense.find({ userId }).populate("userId", "name email");
     res.json(expenses);
   } catch (error) {
+    console.error('Error fetching expenses:', error);
     res.status(500).json({ error: error.message });
   }
 };

@@ -47,6 +47,9 @@ import {
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import PaymentOptions from "@/components/payments/PaymentOptions";
+import MpesaPayment from "@/components/payments/MpesaPayment";
+import PayPalPayment from "@/components/payments/PayPalPayment";
 
 const Finances = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -109,7 +112,19 @@ const Finances = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        setRecentTransactions(transactionsResponse.data);
+
+        // Handle different response formats
+        const transactionsData = transactionsResponse.data;
+        if (Array.isArray(transactionsData)) {
+          setRecentTransactions(transactionsData);
+        } else if (transactionsData && Array.isArray(transactionsData.transactions)) {
+          setRecentTransactions(transactionsData.transactions);
+        } else if (transactionsData && Array.isArray(transactionsData.recentTransactions)) {
+          setRecentTransactions(transactionsData.recentTransactions);
+        } else {
+          console.warn('Unexpected transactions data format:', transactionsData);
+          setRecentTransactions([]);
+        }
 
         // Fetch invoices
         const invoicesResponse = await api.get("/invoices", {
@@ -448,6 +463,95 @@ const Finances = () => {
         </Card>
       </div>
 
+      {/* Payment Integration Demo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Payment Integration Demo
+          </CardTitle>
+          <CardDescription>
+            Test the integrated M-Pesa and PayPal payment systems
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-4">
+              <h3 className="font-semibold">Sample Payment - KES 1,000</h3>
+              <p className="text-sm text-muted-foreground">
+                Test M-Pesa payment integration with a sample amount
+              </p>
+              <MpesaPayment
+                amount={1000}
+                description="Test payment for OmniBiz services"
+                onSuccess={(data) => {
+                  toast.success("M-Pesa payment successful!");
+                  console.log("Payment data:", data);
+                }}
+                onError={(error) => {
+                  toast.error("M-Pesa payment failed");
+                  console.error("Payment error:", error);
+                }}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-semibold">Sample Payment - $10 USD</h3>
+              <p className="text-sm text-muted-foreground">
+                Test PayPal payment integration with a sample amount
+              </p>
+              <PayPalPayment
+                amount={10}
+                description="Test payment for OmniBiz services"
+                currency="USD"
+                onSuccess={(data) => {
+                  toast.success("PayPal payment successful!");
+                  console.log("Payment data:", data);
+                }}
+                onError={(error) => {
+                  toast.error("PayPal payment failed");
+                  console.error("Payment error:", error);
+                }}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-semibold">Combined Payment Options</h3>
+              <p className="text-sm text-muted-foreground">
+                Show both payment methods in a single dialog
+              </p>
+              <PaymentOptions
+                amount={2500}
+                description="Premium service subscription"
+                currency="KES"
+                triggerText="Pay KES 2,500"
+                onSuccess={(data) => {
+                  toast.success("Payment completed successfully!");
+                  console.log("Payment data:", data);
+                }}
+                onError={(error) => {
+                  toast.error("Payment failed");
+                  console.error("Payment error:", error);
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Integration Status</p>
+                <p className="text-xs text-muted-foreground">
+                  Payment integrations are configured for sandbox/testing.
+                  To process real payments, update the environment variables with production credentials.
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Recent Transactions and Invoices */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
@@ -460,7 +564,8 @@ const Finances = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentTransactions.map((transaction) => (
+              {Array.isArray(recentTransactions) && recentTransactions.length > 0 ? (
+                recentTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
                   className="flex items-center justify-between p-3 border rounded-lg"
@@ -489,7 +594,12 @@ const Finances = () => {
                     </Badge>
                   </div>
                 </div>
-              ))}
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No recent transactions found</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

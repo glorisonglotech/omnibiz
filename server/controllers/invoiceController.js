@@ -1,16 +1,18 @@
 const Invoice = require("../models/invoice");
+const { createTransactionFromInvoice } = require("./transactionController");
 
 // Create a new invoice
 exports.createInvoice = async (req, res) => {
   try {
     const invoice = new Invoice({
       ...req.body,
-      userId: req.user._id // ✅ Inject from token
+      userId: req.user.id // ✅ Inject from token
     });
 
     await invoice.save();
-    res.status(201).json(invoice);
+    res.status(201).json({ message: 'Invoice created successfully', invoice });
   } catch (error) {
+    console.error('Error creating invoice:', error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -19,9 +21,10 @@ exports.createInvoice = async (req, res) => {
 // Get all invoices
 exports.getAllInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find({ userId: req.user._id }).populate("userId");
+    const invoices = await Invoice.find({ userId: req.user.id }).populate("userId", "name email");
     res.json(invoices);
   } catch (error) {
+    console.error('Error fetching invoices:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -43,17 +46,52 @@ exports.getInvoiceById = async (req, res) => {
 // Update an invoice
 exports.updateInvoice = async (req, res) => {
   try {
+    const userId = req.user.id;
+    const oldInvoice = await Invoice.findOne({ _id: req.params.id, userId });
+
+    if (!oldInvoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+
     const invoice = await Invoice.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate("userId");
+    ).populate("userId", "name email");
+
+    // If payment status changed to Paid, create a transaction
+    if (oldInvoice.paymentStatus !== 'Paid' && req.body.paymentStatus === 'Paid') {
+      await createTransactionFromInvoice(invoice._id, userId);
+    }
+
+    res.json({ message: 'Invoice updated successfully', invoice });
+  } catch (error) {
+    console.error('Error updating invoice:', error);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// Mark invoice as paid
+exports.markInvoiceAsPaid = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const invoice = await Invoice.findOneAndUpdate(
+      { _id: req.params.id, userId },
+      { paymentStatus: 'Paid' },
+      { new: true }
+    );
+
     if (!invoice) {
       return res.status(404).json({ error: "Invoice not found" });
     }
-    res.json(invoice);
+
+    // Create transaction for the payment
+    await createTransactionFromInvoice(invoice._id, userId);
+
+    res.json({ message: 'Invoice marked as paid successfully', invoice });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Error marking invoice as paid:', error);
+    res.status(500).json({ error: error.message });
   }
 };
 

@@ -9,6 +9,9 @@ const orderRouter = require('./routes/orderRoutes');
 const invoiceRouter = require('./routes/invoiceRoutes');
 const expenseRouter = require('./routes/expenseRoutes');
 const appointmentRouter = require('./routes/appointmentRoutes');
+const financialRouter = require('./routes/financialRoutes');
+const userRouter = require('./routes/userRoutes');
+const paymentRouter = require('./routes/paymentRoutes');
 
 
 dotenv.config();
@@ -23,6 +26,9 @@ app.use('/api/orders', orderRouter);
 app.use('/api/invoices', invoiceRouter);
 app.use('/api/expenses', expenseRouter);
 app.use('/api/appointments', appointmentRouter);
+app.use('/api', financialRouter);
+app.use('/api/user', userRouter);
+app.use('/api/payments', paymentRouter);
 
 const port = process.env.PORT || 5000;
 

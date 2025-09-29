@@ -103,7 +103,7 @@ function SplashScreen({ onComplete }) {
 
         {/* Footer */}
         <div className="text-xs text-muted-foreground">
-          <p>© 2024 OmniBiz. All rights reserved.</p>
+          <p>© 2025 OmniBiz. All rights reserved.</p>
         </div>
       </div>
     </div>

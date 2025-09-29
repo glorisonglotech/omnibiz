@@ -29,6 +29,10 @@ export const AuthProvider = ({ children }) => {
         })
         .catch((err) => {
           console.error('Error checking authentication:', err);
+          // Only remove token if it's actually invalid (401), not on connection errors
+          if (err.response && err.response.status === 401) {
+            localStorage.removeItem('token');
+          }
           setIsAuthenticated(false);
         })
         .finally(() => {

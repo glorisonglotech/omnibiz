@@ -12,6 +12,8 @@ import {
   BarChart3,
   Menu,
   X,
+  Settings,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,12 +22,13 @@ import { useAuth } from "@/context/AuthContext"; // Import useAuth to get user i
 const navigationItems = [
   { name: "Overview", href: "/dashboard", icon: BarChart3 },
   { name: "Inventory", href: "/dashboard/inventory", icon: Package },
+  { name: "Products", href: "/dashboard/products", icon: Package },
   { name: "E-Commerce", href: "/dashboard/ecommerce", icon: ShoppingCart },
   { name: "Appointments", href: "/dashboard/appointments", icon: Calendar },
   { name: "Finances", href: "/dashboard/finances", icon: DollarSign },
   { name: "Team", href: "/dashboard/team", icon: Users },
-  { name: "AI Insights", href: "", icon: Brain },
-  { name: "Locations", href: "", icon: MapPin },
+  { name: "AI Insights", href: "/dashboard/ai-insights", icon: Brain },
+  { name: "Locations", href: "/dashboard/locations", icon: MapPin },
 ];
 
 function DashboardSidebar() {
@@ -92,22 +95,57 @@ function DashboardSidebar() {
           })}
         </nav>
 
-        {/* User info */}
-        {!isCollapsed && (
-          <div className="p-4 border-t border-green-100">
-            <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center">
-                <span className="text-sm font-medium text-white">{userInitials}</span> {/* Show user initials */}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-green-800 truncate">
-                  {userName} {/* Display the user's name */}
-                </p>
-                <p className="text-xs text-green-500 truncate">Admin</p>
+        {/* User info and settings */}
+        <div className="border-t border-green-100">
+          {/* Settings and Profile Links */}
+          <div className="p-2 space-y-1">
+            <Link
+              to="/dashboard/settings"
+              className={cn(
+                "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                location.pathname === "/dashboard/settings"
+                  ? "bg-green-600 text-white"
+                  : "text-green-700 hover:bg-green-100 hover:text-green-800"
+              )}
+            >
+              <Settings
+                className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "mr-3")}
+              />
+              {!isCollapsed && <span>Settings</span>}
+            </Link>
+            <Link
+              to="/dashboard/profile"
+              className={cn(
+                "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                location.pathname === "/dashboard/profile"
+                  ? "bg-green-600 text-white"
+                  : "text-green-700 hover:bg-green-100 hover:text-green-800"
+              )}
+            >
+              <User
+                className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "mr-3")}
+              />
+              {!isCollapsed && <span>Profile</span>}
+            </Link>
+          </div>
+
+          {/* User info */}
+          {!isCollapsed && (
+            <div className="p-4 border-t border-green-100">
+              <div className="flex items-center space-x-3">
+                <div className="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center">
+                  <span className="text-sm font-medium text-white">{userInitials}</span> {/* Show user initials */}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-green-800 truncate">
+                    {userName} {/* Display the user's name */}
+                  </p>
+                  <p className="text-xs text-green-500 truncate">Admin</p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

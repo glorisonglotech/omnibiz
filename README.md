@@ -41,15 +41,15 @@ OmniBiz is a full-stack web application designed to streamline business operatio
 
    * Navigate to the `frontend` directory:
 
-     ```bash
+     
      cd client
    * Install dependencies:
 
-     ```bash
+     
      pnpm install
    * Run the frontend application:
 
-     ```bash
+     
      pnpm run dev
    * The app should now be running at `http://localhost:3000`.
 
@@ -57,23 +57,23 @@ OmniBiz is a full-stack web application designed to streamline business operatio
 
    * Navigate to the `server` directory:
 
-     ```bash
+     
      cd server
-     ```
+     
 
    * Install dependencies:
 
-     ```bash
+     
      pnpm install
-     ```
+     
 
    * Set up environment variables in a `.env` file (you can refer to `.env.example` for the required variables).
 
    * Run the backend server:
 
-     ```bash
+     
      pnpm run dev
-     ```
+     
 
    * The backend API should now be running at `http://localhost:5000`.
 
@@ -95,10 +95,10 @@ OmniBiz is a full-stack web application designed to streamline business operatio
 
 For frontend testing, you can run:
 
-```bash
+
 cd frontend
 npm test
-```
+
 
 For backend testing, you can use tools like [Jest](https://jestjs.io/) or [Mocha](https://mochajs.org/), and run the tests from the `backend` directory.
 
@@ -117,7 +117,7 @@ Contributions are welcome! To contribute, please follow these steps:
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
 
----
+
 
 ## Project Overview
 
@@ -153,5 +153,5 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 For detailed API documentation, refer to the backend's `README.md` file.
 
----
+
 

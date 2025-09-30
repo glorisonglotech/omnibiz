@@ -12,7 +12,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
-import api from "@/lib/api";
 import { toast } from "sonner";
 
 export function LoginForm({ className, ...props }) {
@@ -24,28 +23,20 @@ export function LoginForm({ className, ...props }) {
 const handleLogin = async (e) => {
   e.preventDefault();
 
-  try {
-    // Use the login function from AuthContext
-    await login(email, password);
+  if (!email || !password) {
+    toast.error("Please enter both email and password.");
+    return;
+  }
 
-    toast.success("Login successful");
+  // Use the login function from AuthContext
+  const result = await login(email, password);
 
+  if (result.success) {
+    toast.success("Login successful! Welcome to OmniBiz Pro.");
     // Navigate to the dashboard after successful login
     navigate('/dashboard');
-  } catch (error) {
-    // Handle specific error based on status code
-    if (error.response) {
-      // Specific error message based on status code
-      if (error.response.status === 401) {
-        toast.error("Invalid credentials. Please try again.");
-      } else if (error.response.status === 404) {
-        toast.error("User not found. Please check your email.");
-      } else {
-        toast.error("An error occurred. Please try again later.");
-      }
-    } else {
-      toast.error("Network error. Please check your internet connection.");
-    }
+  } else {
+    toast.error(result.error || "Login failed. Please try again.");
   }
 };
 
@@ -103,28 +94,7 @@ const handleLogin = async (e) => {
               </div>
             </div>
 
-            {/* Test Credentials */}
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm font-medium text-green-800 mb-2">Test Credentials:</p>
-              <div className="text-xs text-green-700 space-y-1">
-                <p><strong>Email:</strong> test@omnibiz.com</p>
-                <p><strong>Password:</strong> password123</p>
-              </div>
-              <div className="mt-2 flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-xs border-green-300 text-green-700 hover:bg-green-100"
-                  onClick={() => {
-                    setEmail('test@omnibiz.com');
-                    setPassword('password123');
-                  }}
-                >
-                  Use Test Credentials
-                </Button>
-              </div>
-            </div>
+
 
             <div className="mt-4 text-center text-sm text-green-700">
               Don’t have an account?{" "}

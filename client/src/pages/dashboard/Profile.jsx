@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import ProfilePicture from "@/components/ProfilePicture";
+import LocationPicker from "@/components/LocationPicker";
 import {
   Card,
   CardContent,
@@ -222,30 +224,18 @@ const Profile = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                    {profileData.avatar ? (
-                      <img
-                        src={profileData.avatar}
-                        alt="Profile"
-                        className="w-20 h-20 rounded-full object-cover"
-                      />
-                    ) : (
-                      <User className="h-10 w-10 text-green-600" />
-                    )}
-                  </div>
-                  {isEditing && (
-                    <label className="absolute bottom-0 right-0 bg-green-500 rounded-full p-1 cursor-pointer">
-                      <Camera className="h-4 w-4 text-white" />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
+                <ProfilePicture
+                  user={{
+                    ...profileData,
+                    name: `${profileData.firstName} ${profileData.lastName}`,
+                    profilePicture: profileData.avatar
+                  }}
+                  size="xl"
+                  editable={isEditing}
+                  onUpdate={(newAvatarUrl) => {
+                    setProfileData({ ...profileData, avatar: newAvatarUrl });
+                  }}
+                />
                 <div>
                   <h3 className="text-lg font-semibold">
                     {profileData.firstName} {profileData.lastName}
@@ -402,7 +392,23 @@ const Profile = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="location">Primary Location</Label>
+                <LocationPicker
+                  value={profileData.location}
+                  onChange={(location) => {
+                    setProfileData({
+                      ...profileData,
+                      location,
+                      city: location?.name || profileData.city,
+                      country: location?.country || profileData.country
+                    });
+                  }}
+                  placeholder="Select your primary location"
+                  disabled={!isEditing}
+                />
+              </div>
+              <div>
+                <Label htmlFor="address">Street Address</Label>
                 <Input
                   id="address"
                   value={profileData.address}
@@ -410,6 +416,7 @@ const Profile = () => {
                     setProfileData({ ...profileData, address: e.target.value })
                   }
                   disabled={!isEditing}
+                  placeholder="Enter your street address"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -422,6 +429,7 @@ const Profile = () => {
                       setProfileData({ ...profileData, city: e.target.value })
                     }
                     disabled={!isEditing}
+                    placeholder="City"
                   />
                 </div>
                 <div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -6,9 +6,23 @@ import {
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/solid";
+import { useAuth } from "@/context/AuthContext";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, user } = useAuth();
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isMenuOpen && !event.target.closest('nav')) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isMenuOpen]);
 
   return (
     <nav className="bg-background border-b border-border sticky top-0 z-50">
@@ -35,12 +49,27 @@ const Navbar = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/loginpage">
-              <Button variant="ghost">Login</Button>
-            </Link>
-            <Link to="/signup">
-              <Button className='bg-green-500 py-6 px-8 cursor-pointer hover:bg-green-400'>Start Free Trial</Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <span className="text-sm text-green-600">Welcome, {user?.name}</span>
+                <Link to="/dashboard">
+                  <Button className='bg-green-500 py-6 px-8 cursor-pointer hover:bg-green-400'>
+                    Dashboard
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/loginpage">
+                  <Button variant="ghost">Login</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button className='bg-green-500 py-6 px-8 cursor-pointer hover:bg-green-400'>
+                    Start Free Trial
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -92,16 +121,31 @@ const Navbar = () => {
                 Contact
               </Link>
               <div className="pt-4 space-y-2">
-                <Link to="/loginpage" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full">
-                    Login
-                  </Button>
-                </Link>
-                <Link to="/signup" onClick={() => setIsMenuOpen(false)}>
-                  <Button className='bg-green-500 py-6 px-8 cursor-pointer w-full'>
-                    Start Free Trial
-                  </Button>
-                </Link>
+                {isAuthenticated ? (
+                  <>
+                    <div className="px-3 py-2 text-sm text-green-600">
+                      Welcome, {user?.name}
+                    </div>
+                    <Link to="/dashboard" onClick={() => setIsMenuOpen(false)}>
+                      <Button className='bg-green-500 py-6 px-8 cursor-pointer w-full'>
+                        Dashboard
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/loginpage" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full">
+                        Login
+                      </Button>
+                    </Link>
+                    <Link to="/signup" onClick={() => setIsMenuOpen(false)}>
+                      <Button className='bg-green-500 py-6 px-8 cursor-pointer w-full'>
+                        Start Free Trial
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

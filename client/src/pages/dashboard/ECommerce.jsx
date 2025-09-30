@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -32,9 +33,11 @@ import {
 import { ShoppingCart,Package, CreditCard, TrendingUp, Eye, Plus, Send } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useFinancial } from "@/context/FinancialContext";
 
 const ECommerce = () => {
    const { user, isAuthenticated, loading } = useAuth();
+   const { refreshFinancialData } = useFinancial();
   const [orders, setOrders] = useState([]);
   const [isAddOrderOpen, setIsAddOrderOpen] = useState(false);
  const [newOrder, setNewOrder] = useState({
@@ -100,14 +103,24 @@ const ECommerce = () => {
 
 
   const handleAddOrder = async () => {
-  if (!newOrder.customer || !newOrder.email || !newOrder.date || !newOrder.total || !newOrder.items) {
+  console.log("Current newOrder state:", newOrder);
+  if (!newOrder.customer.name || !newOrder.date || !newOrder.total || !newOrder.items.length) {
     toast.error("Please fill in all required fields.");
     return;
   }
 
   try {
     const token = localStorage.getItem("token");
-    const response = await api.post("/orders", newOrder, {
+    // Prepare order data with proper structure
+    const orderData = {
+      ...newOrder,
+      total: parseFloat(newOrder.total),
+      date: new Date(newOrder.date).toISOString(),
+    };
+
+    console.log("Sending order data:", orderData);
+
+    const response = await api.post("/orders", orderData, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -116,16 +129,25 @@ const ECommerce = () => {
 
     setOrders((prev) => [response.data, ...prev]);
     setNewOrder({
-      customer: "",
-      email: "",
+      orderId: `ORD-${Date.now()}`,
+      customer: {
+        name: "",
+        email: ""
+      },
       date: "",
       total: "",
       status: "Pending",
-      items: "",
-      notes: "",
+      items: [],
+      notes: ""
     });
     setIsAddOrderOpen(false);
     toast.success("Order added successfully!");
+
+    // Refresh financial data if order is paid
+    if (response.data.status === 'Paid' || response.data.paymentStatus === 'Paid') {
+      console.log('Order is paid, refreshing financial data...');
+      refreshFinancialData();
+    }
   } catch (error) {
     // toast.error(error.response?.data?.error || "Error adding order.");
     // console.error("Error adding order:", error);
@@ -174,6 +196,8 @@ const ECommerce = () => {
       Processing: { variant: "default", color: "bg-blue-100 text-blue-800" },
       Shipped: { variant: "default", color: "bg-purple-100 text-purple-800" },
       Delivered: { variant: "default", color: "bg-green-100 text-green-800" },
+      Paid: { variant: "default", color: "bg-emerald-100 text-emerald-800" },
+      Cancelled: { variant: "destructive", color: "bg-red-100 text-red-800" },
     };
     return <Badge variant={statusConfig[status]?.variant || "default"}>{status}</Badge>;
   };
@@ -211,8 +235,8 @@ const ECommerce = () => {
                   <Input
                     id="customer"
                     placeholder="Enter customer name"
-                    value={newOrder.customer}
-                    onChange={(e) => handleNewOrderChange("customer", e.target.value)}
+                    value={newOrder.customer.name}
+                    onChange={(e) => handleNewOrderChange("customerName", e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -220,8 +244,8 @@ const ECommerce = () => {
                   <Input
                     id="email"
                     placeholder="Enter customer email"
-                    value={newOrder.email}
-                    onChange={(e) => handleNewOrderChange("email", e.target.value)}
+                    value={newOrder.customer.email}
+                    onChange={(e) => handleNewOrderChange("customerEmail", e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -229,7 +253,7 @@ const ECommerce = () => {
                   <Input
                     id="date"
                     type="date"
-                    value={newOrder.date}
+                    value={newOrder.date || ""}
                     onChange={(e) => handleNewOrderChange("date", e.target.value)}
                   />
                 </div>
@@ -242,37 +266,54 @@ const ECommerce = () => {
                       min="0"
                       step="0.01"
                       placeholder="e.g. 125.50"
-                      value={newOrder.total}
+                      value={newOrder.total || ""}
                       onChange={(e) => handleNewOrderChange("total", e.target.value)}
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="items">Items</Label>
+                    <Label htmlFor="items">Number of Items</Label>
                     <Input
                       id="items"
                       type="number"
                       min="1"
                       placeholder="e.g. 3"
-                      value={newOrder.items}
-                      onChange={(e) => handleNewOrderChange("items", e.target.value)}
+                      value={newOrder.items.length || ""}
+                      onChange={(e) => {
+                        const count = parseInt(e.target.value) || 0;
+                        // Create an array of generic items based on the count
+                        const itemsArray = Array.from({ length: count }, (_, index) => ({
+                          id: index + 1,
+                          name: `Item ${index + 1}`,
+                          quantity: 1,
+                          price: parseFloat(newOrder.total) / count || 0
+                        }));
+                        handleNewOrderChange("items", itemsArray);
+                      }}
                     />
                   </div>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="status">Status</Label>
-                  <Input
-                    id="status"
-                    placeholder="Pending, Processing, Shipped, Delivered"
-                    value={newOrder.status}
-                    onChange={(e) => handleNewOrderChange("status", e.target.value)}
-                  />
+                  <Select value={newOrder.status || "Pending"} onValueChange={(value) => handleNewOrderChange("status", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Processing">Processing</SelectItem>
+                      <SelectItem value="Shipped">Shipped</SelectItem>
+                      <SelectItem value="Delivered">Delivered</SelectItem>
+                      <SelectItem value="Paid">Paid</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="notes">Notes (Optional)</Label>
                   <Textarea
                     id="notes"
                     placeholder="Order notes"
-                    value={newOrder.notes}
+                    value={newOrder.notes || ""}
                     onChange={(e) => handleNewOrderChange("notes", e.target.value)}
                     className="resize-none"
                   />
@@ -363,13 +404,13 @@ const ECommerce = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
+                {orders.map((order, index) => (
+                  <TableRow key={order._id || `order-${index}`}>
+                    <TableCell className="font-medium">{order.orderId}</TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{order.customer}</p>
-                        <p className="text-sm text-muted-foreground">{order.email}</p>
+                        <p className="font-medium">{order.customer?.name}</p>
+                        <p className="text-sm text-muted-foreground">{order.customer?.email}</p>
                       </div>
                     </TableCell>
                     <TableCell>{order.date}</TableCell>
@@ -473,7 +514,11 @@ const ECommerce = () => {
               </div>
               <div>
                 <Label>Items</Label>
-                <div>{viewOrder.items}</div>
+                <div>
+                  {Array.isArray(viewOrder.items)
+                    ? `${viewOrder.items.length} items`
+                    : viewOrder.items}
+                </div>
               </div>
               <div>
                 <Label>Notes</Label>
@@ -536,23 +581,41 @@ const ECommerce = () => {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-items">Items</Label>
+                  <Label htmlFor="edit-items">Number of Items</Label>
                   <Input
                     id="edit-items"
                     type="number"
                     min="1"
-                    value={editOrder.items}
-                    onChange={e => handleEditOrderChange("items", e.target.value)}
+                    value={Array.isArray(editOrder.items) ? editOrder.items.length : editOrder.items}
+                    onChange={e => {
+                      const count = parseInt(e.target.value) || 0;
+                      // Create an array of generic items based on the count
+                      const itemsArray = Array.from({ length: count }, (_, index) => ({
+                        id: index + 1,
+                        name: `Item ${index + 1}`,
+                        quantity: 1,
+                        price: parseFloat(editOrder.total) / count || 0
+                      }));
+                      handleEditOrderChange("items", itemsArray);
+                    }}
                   />
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-status">Status</Label>
-                <Input
-                  id="edit-status"
-                  value={editOrder.status}
-                  onChange={e => handleEditOrderChange("status", e.target.value)}
-                />
+                <Select value={editOrder.status || "Pending"} onValueChange={(value) => handleEditOrderChange("status", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Processing">Processing</SelectItem>
+                    <SelectItem value="Shipped">Shipped</SelectItem>
+                    <SelectItem value="Delivered">Delivered</SelectItem>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-notes">Notes (Optional)</Label>

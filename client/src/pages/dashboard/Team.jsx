@@ -94,6 +94,7 @@ const Team = () => {
     phone: "",
     role: "",
     salary: "",
+    profilePhoto: "",
     notifications: { sms: false, email: false },
   });
 
@@ -140,6 +141,17 @@ const Team = () => {
       return toast.error("Name, email and role are required.");
     }
 
+    // Check for duplicate email
+    const existingEmployee = employees.find(emp => emp.contactEmail?.toLowerCase() === email.toLowerCase());
+    if (existingEmployee) {
+      return toast.error("An employee with this email already exists.");
+    }
+
+    // Check for duplicate phone if provided
+    if (phone && employees.find(emp => emp.phoneNumber === phone)) {
+      return toast.error("An employee with this phone number already exists.");
+    }
+
     try {
       const res = await api.post(
         "/team",
@@ -149,6 +161,7 @@ const Team = () => {
           phoneNumber: phone,
           role,
           salary: Number(salary) || 0,
+          profilePhoto: newEmployee.profilePhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=10b981&color=fff`,
           notifyBySMS: notifications.sms,
           notifyByEmail: notifications.email,
         },
@@ -163,6 +176,7 @@ const Team = () => {
         phone: "",
         role: "",
         salary: "",
+        profilePhoto: "",
         notifications: { sms: false, email: false },
       });
       toast.success("Employee added successfully!");
@@ -228,32 +242,54 @@ const Team = () => {
     }
   };
 
-  // Payroll handler
+  // Payroll handler with M-Pesa integration
   const handleSendPayroll = async () => {
-    try {
-      await api.post("/expenses", {
-        employeeId: payroll.employeeId,
-        amount: Number(payroll.amount),
-        phone: payroll.phone,
-        message: payroll.message,
-        smsReceipt: payroll.smsReceipt,
-      });
-      setIsPayrollOpen(false);
-      setPayroll({
-        employeeId: "",
-        amount: "",
-        phone: "",
-        message: "",
-        smsReceipt: false,
-      });
-      // Optionally refetch payment history
-      api.get("/expenses").then((res) => setPaymentHistory(res.data));
+    if (!payroll.employeeId || !payroll.amount || !payroll.phone) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
 
-      // Display success notification
-      toast.success("Payroll payment sent successfully!");
+    try {
+      // First, initiate M-Pesa payment
+      const mpesaResponse = await api.post("/payments/mpesa/initiate", {
+        phoneNumber: payroll.phone,
+        amount: Number(payroll.amount),
+        description: `Payroll payment for ${employees.find(emp => emp._id === payroll.employeeId)?.fullName || 'Employee'}`
+      });
+
+      if (mpesaResponse.data.success) {
+        // Create expense record for payroll
+        await api.post("/expenses", {
+          employeeId: payroll.employeeId,
+          amount: Number(payroll.amount),
+          phone: payroll.phone,
+          message: payroll.message,
+          smsReceipt: payroll.smsReceipt,
+          paymentMethod: "M-Pesa",
+          transactionId: mpesaResponse.data.transactionId,
+          category: "Payroll",
+          description: `Payroll payment via M-Pesa for ${employees.find(emp => emp._id === payroll.employeeId)?.fullName || 'Employee'}`
+        });
+
+        setIsPayrollOpen(false);
+        setPayroll({
+          employeeId: "",
+          amount: "",
+          phone: "",
+          message: "",
+          smsReceipt: false,
+        });
+
+        // Refetch payment history
+        api.get("/expenses").then((res) => setPaymentHistory(res.data));
+
+        toast.success("M-Pesa payment initiated successfully! Employee will receive payment prompt.");
+      } else {
+        throw new Error(mpesaResponse.data.message || "M-Pesa payment failed");
+      }
     } catch (err) {
-      // Display error notification
-      toast.error("Error sending payroll. Please try again.");
+      console.error("Payroll payment error:", err);
+      toast.error(err.response?.data?.message || "Error sending payroll payment. Please try again.");
     }
   };
 
@@ -524,6 +560,23 @@ const Team = () => {
                       }))
                     }
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="profilePhoto">Profile Photo URL (Optional)</Label>
+                  <Input
+                    id="profilePhoto"
+                    placeholder="https://example.com/photo.jpg"
+                    value={newEmployee.profilePhoto}
+                    onChange={(e) =>
+                      setNewEmployee((emp) => ({
+                        ...emp,
+                        profilePhoto: e.target.value,
+                      }))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty to auto-generate an avatar based on the name
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">

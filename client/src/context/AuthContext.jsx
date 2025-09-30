@@ -51,8 +51,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token); // Save token to localStorage
       setUser(user); // Set user details in state immediately
       setIsAuthenticated(true); // Set authentication state to true immediately
+      return { success: true };
     } catch (error) {
       console.error('Login failed', error);
+      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+      return { success: false, error: errorMessage };
     }
   };
 

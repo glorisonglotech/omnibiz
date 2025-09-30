@@ -515,8 +515,8 @@ const Inventory = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product) => (
-                <TableRow key={product.id}>
+              {filteredProducts.map((product, index) => (
+                <TableRow key={product._id || `product-${index}`}>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.sku}</TableCell>
                   <TableCell>{product.category}</TableCell>

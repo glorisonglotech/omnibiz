@@ -14,11 +14,15 @@ import {
   Plus
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/components/RoleBasedAccess";
+import AdminDashboard from "@/pages/dashboard/AdminDashboard";
+import ClientDashboard from "@/pages/dashboard/ClientDashboard";
 
 
 
 const Dashboard = () => {
- const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  const { isAdmin, isClient } = usePermissions();
 
   if (loading) {
     return <div>Loading...</div>; // Show loading state while authentication is being checked
@@ -27,6 +31,17 @@ const Dashboard = () => {
   if (!isAuthenticated) {
     return <div>Please log in to view your dashboard.</div>; // Show login prompt if not authenticated
   }
+
+  // Show role-specific dashboards
+  if (isAdmin()) {
+    return <AdminDashboard />;
+  }
+
+  if (isClient()) {
+    return <ClientDashboard />;
+  }
+
+  // Fallback to default dashboard for other roles or staff
   const stats = [
     {
       title: "Total Revenue",
@@ -90,11 +105,14 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Here's what's happening with your business today.</p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => navigate('/dashboard/analytics')}>
             <Eye className="mr-2 h-4 w-4" />
             View Reports
           </Button>
-          <Button className='bg-green-500 cursor-pointer hover:bg-green-400'>
+          <Button
+            className='bg-green-500 cursor-pointer hover:bg-green-400'
+            onClick={() => navigate('/dashboard/products')}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Quick Action
           </Button>
@@ -216,19 +234,35 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="h-auto flex-col py-4">
+              <Button
+                variant="outline"
+                className="h-auto flex-col py-4"
+                onClick={() => navigate('/dashboard/products')}
+              >
                 <Package className="h-6 w-6 mb-2" />
                 <span className="text-xs">Add Product</span>
               </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
+              <Button
+                variant="outline"
+                className="h-auto flex-col py-4"
+                onClick={() => navigate('/dashboard/appointments')}
+              >
                 <Calendar className="h-6 w-6 mb-2" />
                 <span className="text-xs">Book Appointment</span>
               </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
+              <Button
+                variant="outline"
+                className="h-auto flex-col py-4"
+                onClick={() => navigate('/dashboard/finances')}
+              >
                 <DollarSign className="h-6 w-6 mb-2" />
                 <span className="text-xs">Create Invoice</span>
               </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
+              <Button
+                variant="outline"
+                className="h-auto flex-col py-4"
+                onClick={() => navigate('/dashboard/team')}
+              >
                 <Users className="h-6 w-6 mb-2" />
                 <span className="text-xs">Add Customer</span>
               </Button>

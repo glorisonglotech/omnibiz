@@ -47,25 +47,34 @@ import {
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { useFinancial } from "@/context/FinancialContext";
 import PaymentOptions from "@/components/payments/PaymentOptions";
 import MpesaPayment from "@/components/payments/MpesaPayment";
 import PayPalPayment from "@/components/payments/PayPalPayment";
 
 const Finances = () => {
   const { user, isAuthenticated, loading } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
-  const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
+  const {
+    summary: financialSummaryData,
+    transactions: recentTransactions,
+    loading: financialLoading,
+    refreshFinancialData
+  } = useFinancial();
 
-  // State to hold dynamic data from the backend
-  const [financialSummary, setFinancialSummary] = useState({
+  // Provide fallback values if data is null
+  const financialSummary = financialSummaryData || {
     totalRevenue: "KES 0",
     totalExpenses: "KES 0",
     netProfit: "KES 0",
     pendingInvoices: "KES 0",
-  });
+  };
 
-  const [recentTransactions, setRecentTransactions] = useState([]);
+  // Ensure transactions is always an array
+  const safeTransactions = recentTransactions || [];
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
+  const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [newInvoice, setNewInvoice] = useState({
     clientName: "",
@@ -89,44 +98,15 @@ const Finances = () => {
   });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchInvoices = async () => {
       if (!isAuthenticated) {
-        toast.error("Please log in to view financial data.");
         return;
       }
 
       try {
-        const token = localStorage.getItem("token"); // Get the token from localStorage
+        const token = localStorage.getItem("token");
 
-        // Fetch financial summary data
-        const summaryResponse = await api.get("/financial-summary", {
-          headers: {
-            Authorization: `Bearer ${token}`, // Send the JWT token
-          },
-        });
-        setFinancialSummary(summaryResponse.data);
-
-        // Fetch recent transactions
-        const transactionsResponse = await api.get("/transactions", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        // Handle different response formats
-        const transactionsData = transactionsResponse.data;
-        if (Array.isArray(transactionsData)) {
-          setRecentTransactions(transactionsData);
-        } else if (transactionsData && Array.isArray(transactionsData.transactions)) {
-          setRecentTransactions(transactionsData.transactions);
-        } else if (transactionsData && Array.isArray(transactionsData.recentTransactions)) {
-          setRecentTransactions(transactionsData.recentTransactions);
-        } else {
-          console.warn('Unexpected transactions data format:', transactionsData);
-          setRecentTransactions([]);
-        }
-
-        // Fetch invoices
+        // Fetch invoices (financial summary and transactions are handled by FinancialContext)
         const invoicesResponse = await api.get("/invoices", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -135,12 +115,12 @@ const Finances = () => {
         );
         setInvoices(list);
       } catch (error) {
-        toast.error("Error fetching financial data.");
-        console.error("Error fetching financial data:", error);
+        toast.error("Error fetching invoices.");
+        console.error("Error fetching invoices:", error);
       }
     };
 
-    fetchData(); // Run the function when the component mounts or when `isAuthenticated` changes
+    fetchInvoices(); // Run the function when the component mounts or when `isAuthenticated` changes
   }, [isAuthenticated]);
 
   // Add Expense Handler
@@ -215,8 +195,8 @@ const Finances = () => {
     }
   };
 
-  if (loading) {
-    return <div>Loading...</div>; // Show loading state while checking authentication
+  if (loading || financialLoading) {
+    return <div>Loading...</div>; // Show loading state while checking authentication or loading financial data
   }
 
   if (!isAuthenticated) {
@@ -564,8 +544,8 @@ const Finances = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {Array.isArray(recentTransactions) && recentTransactions.length > 0 ? (
-                recentTransactions.map((transaction) => (
+              {Array.isArray(safeTransactions) && safeTransactions.length > 0 ? (
+                safeTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
                   className="flex items-center justify-between p-3 border rounded-lg"

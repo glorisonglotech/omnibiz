@@ -26,8 +26,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
 
 const Products = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,6 +38,9 @@ const Products = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [cart, setCart] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isProductDetailOpen, setIsProductDetailOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
@@ -43,7 +48,8 @@ const Products = () => {
     category: '',
     stock: '',
     image: '',
-    featured: false
+    featured: false,
+    supplierName: ''
   });
 
   // Sample product data with images
@@ -119,13 +125,122 @@ const Products = () => {
       featured: false,
       rating: 4.4,
       reviews: 91
+    },
+    {
+      id: 7,
+      name: 'Organic Honey',
+      description: 'Pure organic honey harvested from local beekeepers. Rich in antioxidants and natural enzymes.',
+      price: 2200,
+      category: 'Food',
+      stock: 25,
+      image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&h=300&fit=crop',
+      featured: true,
+      rating: 4.9,
+      reviews: 78
+    },
+    {
+      id: 8,
+      name: 'Bluetooth Speaker',
+      description: 'Portable wireless speaker with premium sound quality and 12-hour battery life.',
+      price: 8500,
+      category: 'Electronics',
+      stock: 18,
+      image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400&h=300&fit=crop',
+      featured: false,
+      rating: 4.6,
+      reviews: 142
+    },
+    {
+      id: 9,
+      name: 'Cotton T-Shirt',
+      description: 'Premium 100% cotton t-shirt with comfortable fit and durable fabric. Available in multiple colors.',
+      price: 1800,
+      category: 'Clothing',
+      stock: 60,
+      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=300&fit=crop',
+      featured: false,
+      rating: 4.3,
+      reviews: 95
+    },
+    {
+      id: 10,
+      name: 'Notebook Set',
+      description: 'Set of 3 premium notebooks with lined pages, perfect for journaling and note-taking.',
+      price: 1200,
+      category: 'Stationery',
+      stock: 35,
+      image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=300&fit=crop',
+      featured: false,
+      rating: 4.5,
+      reviews: 67
+    },
+    {
+      id: 11,
+      name: 'Fitness Tracker',
+      description: 'Smart fitness tracker with heart rate monitoring, sleep tracking, and 7-day battery life.',
+      price: 12000,
+      category: 'Electronics',
+      stock: 12,
+      image: 'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=400&h=300&fit=crop',
+      featured: true,
+      rating: 4.7,
+      reviews: 189
+    },
+    {
+      id: 12,
+      name: 'Ceramic Mug',
+      description: 'Handcrafted ceramic mug with unique design. Perfect for coffee, tea, or hot chocolate.',
+      price: 800,
+      category: 'Home & Kitchen',
+      stock: 45,
+      image: 'https://images.unsplash.com/photo-1514228742587-6b1558fcf93a?w=400&h=300&fit=crop',
+      featured: false,
+      rating: 4.4,
+      reviews: 56
     }
   ];
 
+  // Fetch products from database
+  const fetchProducts = async () => {
+    try {
+      const response = await api.get('/products');
+      const dbProducts = response.data;
+
+      // If no products in database, use sample data
+      if (dbProducts.length === 0) {
+        setProducts(sampleProducts);
+        setFilteredProducts(sampleProducts);
+        toast.info('No products found. Showing sample data.');
+      } else {
+        // Transform database products to match frontend format
+        const transformedProducts = dbProducts.map(product => ({
+          id: product._id,
+          name: product.name,
+          description: product.description || '',
+          price: product.price,
+          category: product.category,
+          stock: product.stockQuantity || 0,
+          image: product.image || `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop`,
+          featured: false,
+          rating: 4.5,
+          reviews: Math.floor(Math.random() * 100),
+          sku: product.sku,
+          supplierName: product.supplierName,
+          status: product.status
+        }));
+        setProducts(transformedProducts);
+        setFilteredProducts(transformedProducts);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to load products. Showing sample data.');
+      setProducts(sampleProducts);
+      setFilteredProducts(sampleProducts);
+    }
+  };
+
   useEffect(() => {
-    // Initialize with sample data
-    setProducts(sampleProducts);
-    setFilteredProducts(sampleProducts);
+    fetchProducts();
   }, []);
 
   useEffect(() => {
@@ -160,8 +275,8 @@ const Products = () => {
   const addToCart = (product) => {
     const existingItem = cart.find(item => item.id === product.id);
     if (existingItem) {
-      setCart(cart.map(item => 
-        item.id === product.id 
+      setCart(cart.map(item =>
+        item.id === product.id
           ? { ...item, quantity: item.quantity + 1 }
           : item
       ));
@@ -169,6 +284,21 @@ const Products = () => {
       setCart([...cart, { ...product, quantity: 1 }]);
     }
     toast.success(`${product.name} added to cart!`);
+  };
+
+  const toggleWishlist = (product) => {
+    const isInWishlist = wishlist.find(item => item.id === product.id);
+    if (isInWishlist) {
+      setWishlist(wishlist.filter(item => item.id !== product.id));
+      toast.success(`${product.name} removed from wishlist`);
+    } else {
+      setWishlist([...wishlist, product]);
+      toast.success(`${product.name} added to wishlist!`);
+    }
+  };
+
+  const isInWishlist = (productId) => {
+    return wishlist.some(item => item.id === productId);
   };
 
   const removeFromCart = (productId) => {
@@ -198,27 +328,53 @@ const Products = () => {
       return;
     }
 
-    const product = {
-      id: Date.now(),
-      ...newProduct,
-      price: parseFloat(newProduct.price),
-      stock: parseInt(newProduct.stock) || 0,
-      rating: 0,
-      reviews: 0
-    };
+    try {
+      // Prepare product data for API
+      const productData = {
+        name: newProduct.name,
+        description: newProduct.description,
+        price: parseFloat(newProduct.price),
+        category: newProduct.category,
+        stockQuantity: parseInt(newProduct.stock) || 0,
+        sku: `SKU-${Date.now()}`, // Generate unique SKU
+        supplierName: newProduct.supplierName || 'Default Supplier',
+        image: newProduct.image || `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop`
+      };
 
-    setProducts([...products, product]);
-    setNewProduct({
-      name: '',
-      description: '',
-      price: '',
-      category: '',
-      stock: '',
-      image: '',
-      featured: false
-    });
-    setIsAddDialogOpen(false);
-    toast.success('Product added successfully!');
+      // Save to database
+      const response = await api.post('/products', productData);
+
+      // Refresh products list
+      await fetchProducts();
+
+      // Reset form
+      setNewProduct({
+        name: '',
+        description: '',
+        price: '',
+        category: '',
+        stock: '',
+        image: '',
+        featured: false,
+        supplierName: ''
+      });
+      setIsAddDialogOpen(false);
+      toast.success('Product added successfully!');
+    } catch (error) {
+      console.error('Error adding product:', error);
+      toast.error('Failed to add product. Please try again.');
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    try {
+      await api.delete(`/products/${productId}`);
+      await fetchProducts(); // Refresh the list
+      toast.success('Product deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('Failed to delete product. Please try again.');
+    }
   };
 
   const ProductCard = ({ product }) => (
@@ -235,11 +391,26 @@ const Products = () => {
           </Badge>
         )}
         <div className="absolute top-2 right-2 flex gap-1">
-          <Button size="sm" variant="secondary" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Heart className="h-4 w-4" />
+          <Button
+            size="sm"
+            variant="secondary"
+            className={`h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity ${
+              isInWishlist(product.id) ? 'bg-red-100 text-red-600' : ''
+            }`}
+            onClick={() => toggleWishlist(product)}
+          >
+            <Heart className={`h-4 w-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
           </Button>
-          <Button size="sm" variant="secondary" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Share2 className="h-4 w-4" />
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => {
+              setSelectedProduct(product);
+              setIsProductDetailOpen(true);
+            }}
+          >
+            <Eye className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -282,14 +453,22 @@ const Products = () => {
             </div>
             
             <div className="flex gap-2">
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="outline"
                 onClick={() => addToCart(product)}
                 disabled={product.stock === 0}
               >
                 <ShoppingCart className="h-4 w-4 mr-1" />
                 Add to Cart
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleDeleteProduct(product.id)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -390,6 +569,15 @@ const Products = () => {
                     placeholder="https://example.com/image.jpg"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="supplierName">Supplier Name</Label>
+                  <Input
+                    id="supplierName"
+                    value={newProduct.supplierName}
+                    onChange={(e) => setNewProduct({...newProduct, supplierName: e.target.value})}
+                    placeholder="Enter supplier name"
+                  />
+                </div>
                 <Button onClick={handleAddProduct} className="w-full">
                   Add Product
                 </Button>
@@ -462,6 +650,76 @@ const Products = () => {
         </Card>
       )}
 
+      {/* Product Detail Modal */}
+      {selectedProduct && (
+        <Dialog open={isProductDetailOpen} onOpenChange={setIsProductDetailOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{selectedProduct.name}</DialogTitle>
+              <DialogDescription>
+                Product details and specifications
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <img
+                  src={selectedProduct.image}
+                  alt={selectedProduct.name}
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <Badge variant="outline">{selectedProduct.category}</Badge>
+                  {selectedProduct.featured && (
+                    <Badge className="ml-2">Featured</Badge>
+                  )}
+                </div>
+                <p className="text-muted-foreground">{selectedProduct.description}</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-4 w-4 ${i < Math.floor(selectedProduct.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedProduct.rating} ({selectedProduct.reviews} reviews)
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-3xl font-bold text-primary">
+                    KES {selectedProduct.price.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Stock: {selectedProduct.stock} available
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => addToCart(selectedProduct)}
+                    disabled={selectedProduct.stock === 0}
+                    className="flex-1"
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Add to Cart
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => toggleWishlist(selectedProduct)}
+                    className={isInWishlist(selectedProduct.id) ? 'bg-red-50 text-red-600' : ''}
+                  >
+                    <Heart className={`w-4 h-4 ${isInWishlist(selectedProduct.id) ? 'fill-current' : ''}`} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Shopping Cart Summary */}
       {cart.length > 0 && (
         <Card className="fixed bottom-4 right-4 w-80 bg-card border-border shadow-lg z-50">
@@ -504,8 +762,7 @@ const Products = () => {
                 <span>KES {getTotalCartValue().toLocaleString()}</span>
               </div>
               <Button className="w-full mt-2" onClick={() => {
-                toast.success('Redirecting to E-Commerce checkout...');
-                // Here you would navigate to the e-commerce page
+                navigate('/dashboard/checkout');
               }}>
                 Proceed to Checkout
               </Button>

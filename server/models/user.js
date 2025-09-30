@@ -60,7 +60,85 @@ const userSchema = new mongoose.Schema(
     // Account Status
     isActive: { type: Boolean, default: true },
     lastLogin: Date,
-    role: { type: String, enum: ['admin', 'manager', 'user'], default: 'admin' }
+    role: {
+      type: String,
+      enum: ['super_admin', 'admin', 'manager', 'staff', 'client'],
+      default: 'client'
+    },
+
+    // Role-based Permissions
+    permissions: {
+      canCreateOrders: { type: Boolean, default: true },
+      canViewAllOrders: { type: Boolean, default: false },
+      canApproveOrders: { type: Boolean, default: false },
+      canManageInventory: { type: Boolean, default: false },
+      canManageUsers: { type: Boolean, default: false },
+      canViewReports: { type: Boolean, default: false },
+      canManageSettings: { type: Boolean, default: false },
+      canManageServices: { type: Boolean, default: false },
+      canVerifyOrders: { type: Boolean, default: false },
+      canDeleteOrders: { type: Boolean, default: false },
+      canManageRoles: { type: Boolean, default: false },
+      canViewAllClients: { type: Boolean, default: false },
+      canAssignAdmins: { type: Boolean, default: false }
+    },
+
+    // Client-specific Information
+    clientType: {
+      type: String,
+      enum: ['individual', 'business', 'wholesale', 'retail'],
+      default: 'individual'
+    },
+    creditLimit: { type: Number, default: 0 },
+    paymentTerms: { type: String, default: 'immediate' }, // immediate, net30, net60
+
+    // Admin Assignment (for clients)
+    assignedAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+
+    // Service Preferences (for clients)
+    servicePreferences: {
+      preferredContactMethod: {
+        type: String,
+        enum: ['email', 'phone', 'sms', 'app'],
+        default: 'email'
+      },
+      serviceCategories: [String], // Categories of services they're interested in
+      maxOrderValue: { type: Number, default: 0 }, // Maximum order value without approval
+      autoApproveOrders: { type: Boolean, default: false }
+    },
+
+    // Admin Capabilities (for admin users)
+    adminCapabilities: {
+      maxClientsManaged: { type: Number, default: 0 }, // 0 = unlimited
+      serviceAreas: [String], // Geographic or service areas they manage
+      specializations: [String], // Areas of expertise
+      workingHours: {
+        start: { type: String, default: '09:00' },
+        end: { type: String, default: '17:00' },
+        timezone: { type: String, default: 'Africa/Nairobi' }
+      }
+    },
+
+    // Client Management (for tracking client relationships)
+    managedClients: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+
+    // Status tracking
+    accountStatus: {
+      type: String,
+      enum: ['active', 'inactive', 'suspended', 'pending_verification'],
+      default: 'active'
+    },
+    verificationStatus: {
+      email: { type: Boolean, default: false },
+      phone: { type: Boolean, default: false },
+      business: { type: Boolean, default: false }
+    }
   },
   { timestamps: true }
 );

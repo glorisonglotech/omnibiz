@@ -45,6 +45,10 @@ const teamMemberSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    profilePhoto: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

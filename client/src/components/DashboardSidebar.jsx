@@ -14,10 +14,13 @@ import {
   X,
   Settings,
   User,
+  LogOut,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext"; // Import useAuth to get user info
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const navigationItems = [
   { name: "Overview", href: "/dashboard", icon: BarChart3 },
@@ -32,13 +35,19 @@ const navigationItems = [
 ];
 
 function DashboardSidebar() {
-  const { user, isAuthenticated } = useAuth(); // Use AuthContext to get user details
+  const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Fallback user data if the user is not authenticated
   const userName = isAuthenticated ? user?.name : "Guest";
   const userInitials = isAuthenticated ? user?.name.split(" ").map((n) => n[0]).join("") : "G";
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
     <div
@@ -127,6 +136,37 @@ function DashboardSidebar() {
               />
               {!isCollapsed && <span>Profile</span>}
             </Link>
+
+            {/* Help Link */}
+            <Link
+              to="/dashboard/help"
+              className={cn(
+                "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                location.pathname === "/dashboard/help"
+                  ? "bg-green-600 text-white"
+                  : "text-green-700 hover:bg-green-100 hover:text-green-800"
+              )}
+            >
+              <HelpCircle
+                className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "mr-3")}
+              />
+              {!isCollapsed && <span>Help & Support</span>}
+            </Link>
+
+            {/* Logout Button */}
+            <Button
+              onClick={handleLogout}
+              variant="ghost"
+              className={cn(
+                "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full justify-start",
+                "text-red-600 hover:bg-red-50 hover:text-red-700"
+              )}
+            >
+              <LogOut
+                className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "mr-3")}
+              />
+              {!isCollapsed && <span>Logout</span>}
+            </Button>
           </div>
 
           {/* User info */}

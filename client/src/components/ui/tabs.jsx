@@ -1,60 +1,76 @@
-import * as React from "react"
-import * as TabsPrimitive from "@radix-ui/react-tabs"
+import React, { useState, createContext, useContext } from "react";
+import { cn } from "@/lib/utils";
 
-import { cn } from "@/lib/utils"
+const TabsContext = createContext();
 
-function Tabs({
-  className,
-  ...props
-}) {
+function Tabs({ defaultValue, value, onValueChange, className, children, ...props }) {
+  const [activeTab, setActiveTab] = useState(value || defaultValue);
+
+  const handleTabChange = (newValue) => {
+    if (value === undefined) {
+      setActiveTab(newValue);
+    }
+    onValueChange?.(newValue);
+  };
+
+  const currentValue = value !== undefined ? value : activeTab;
+
   return (
-    <TabsPrimitive.Root
-      data-slot="tabs"
-      className={cn("flex flex-col gap-2", className)}
-      {...props} />
+    <TabsContext.Provider value={{ value: currentValue, onValueChange: handleTabChange }}>
+      <div className={cn("flex flex-col gap-2", className)} {...props}>
+        {children}
+      </div>
+    </TabsContext.Provider>
   );
 }
 
-function TabsList({
-  className,
-  ...props
-}) {
+function TabsList({ className, children, ...props }) {
   return (
-    <TabsPrimitive.List
-      data-slot="tabs-list"
+    <div
       className={cn(
-        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
+        "inline-flex h-9 w-fit items-center justify-center rounded-lg bg-gray-100 p-1 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
         className
       )}
-      {...props} />
+      {...props}
+    >
+      {children}
+    </div>
   );
 }
 
-function TabsTrigger({
-  className,
-  ...props
-}) {
+function TabsTrigger({ value, className, children, ...props }) {
+  const { value: activeValue, onValueChange } = useContext(TabsContext);
+  const isActive = activeValue === value;
+
   return (
-    <TabsPrimitive.Trigger
-      data-slot="tabs-trigger"
+    <button
       className={cn(
-        "data-[state=active]:bg-background dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-1 text-sm font-medium whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        isActive
+          ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100"
+          : "hover:bg-white/50 hover:text-gray-700 dark:hover:bg-gray-700/50 dark:hover:text-gray-300",
         className
       )}
-      {...props} />
+      onClick={() => onValueChange(value)}
+      {...props}
+    >
+      {children}
+    </button>
   );
 }
 
-function TabsContent({
-  className,
-  ...props
-}) {
+function TabsContent({ value, className, children, ...props }) {
+  const { value: activeValue } = useContext(TabsContext);
+
+  if (activeValue !== value) {
+    return null;
+  }
+
   return (
-    <TabsPrimitive.Content
-      data-slot="tabs-content"
-      className={cn("flex-1 outline-none", className)}
-      {...props} />
+    <div className={cn("flex-1 outline-none", className)} {...props}>
+      {children}
+    </div>
   );
 }
 
-export { Tabs, TabsList, TabsTrigger, TabsContent }
+export { Tabs, TabsList, TabsTrigger, TabsContent };

@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ThemeProvider as NextThemeProvider } from 'next-themes';
 
 const ThemeContext = createContext();
 
@@ -168,17 +167,8 @@ export const ThemeProvider = ({ children }) => {
   };
 
   return (
-    <NextThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange={!animations || reducedMotion}
-      themes={Object.keys(AVAILABLE_THEMES)}
-      storageKey="omnibiz-theme"
-    >
-      <ThemeContext.Provider value={themeContextValue}>
-        {children}
-      </ThemeContext.Provider>
-    </NextThemeProvider>
+    <ThemeContext.Provider value={themeContextValue}>
+      {children}
+    </ThemeContext.Provider>
   );
 };

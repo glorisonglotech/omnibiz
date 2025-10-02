@@ -15,109 +15,155 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermissions } from "@/components/RoleBasedAccess";
-import AdminDashboard from "@/pages/dashboard/AdminDashboard";
-import ClientDashboard from "@/pages/dashboard/ClientDashboard";
+import { useState, useEffect } from "react";
+import * as XLSX from 'xlsx'; // Import XLSX to handle Excel file generation
 
-
+// Placeholder for fetching dynamic data
+const fetchDashboardData = async () => {
+  // Replace with actual API requests to fetch dynamic data
+  return {
+    stats: [
+      {
+        title: "Total Revenue",
+        value: "$24,589",
+        change: "+12.3%",
+        trend: "up",
+        icon: DollarSign,
+        description: "from last month"
+      },
+      {
+        title: "Total Orders",
+        value: "1,234",
+        change: "+8.1%",
+        trend: "up",
+        icon: ShoppingCart,
+        description: "from last month"
+      },
+      {
+        title: "Active Customers",
+        value: "856",
+        change: "+5.2%",
+        trend: "up",
+        icon: Users,
+        description: "from last month"
+      },
+      {
+        title: "Appointments Today",
+        value: "12",
+        change: "-2.4%",
+        trend: "down",
+        icon: Calendar,
+        description: "from yesterday"
+      }
+    ]
+  };
+};
 
 const Dashboard = () => {
   const { user, isAuthenticated, loading } = useAuth();
   const { isAdmin, isClient } = usePermissions();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [showReport, setShowReport] = useState(false);  // To toggle the report view
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDashboardData().then(setDashboardData);
+    }
+  }, [isAuthenticated]);
 
   if (loading) {
-    return <div>Loading...</div>; // Show loading state while authentication is being checked
+    return <div>Loading...</div>;
   }
 
   if (!isAuthenticated) {
-    return <div>Please log in to view your dashboard.</div>; // Show login prompt if not authenticated
+    return <div>Please log in to view your dashboard.</div>;
   }
 
-  // Show role-specific dashboards
-  if (isAdmin()) {
-    return <AdminDashboard />;
+  if (!dashboardData) {
+    return <div>Loading dashboard data...</div>;
   }
 
-  if (isClient()) {
-    return <ClientDashboard />;
-  }
+  const { stats } = dashboardData;
 
-  // Fallback to default dashboard for other roles or staff
-  const stats = [
-    {
-      title: "Total Revenue",
-      value: "$24,589",
-      change: "+12.3%",
-      trend: "up",
-      icon: DollarSign,
-      description: "from last month"
-    },
-    {
-      title: "Total Orders",
-      value: "1,234",
-      change: "+8.1%",
-      trend: "up",
-      icon: ShoppingCart,
-      description: "from last month"
-    },
-    {
-      title: "Active Customers",
-      value: "856",
-      change: "+5.2%",
-      trend: "up",
-      icon: Users,
-      description: "from last month"
-    },
-    {
-      title: "Appointments Today",
-      value: "12",
-      change: "-2.4%",
-      trend: "down",
-      icon: Calendar,
-      description: "from yesterday"
-    }
-  ];
+  // Function to handle Excel file generation
+  const handleDownloadReport = () => {
+    // Create a worksheet from the stats data
+    const ws = XLSX.utils.json_to_sheet(
+      stats.map((stat) => ({
+        Title: stat.title,
+        Value: stat.value,
+        Change: stat.change,
+        Trend: stat.trend,
+        Description: stat.description
+      }))
+    );
 
-  const recentActivities = [
-    { id: 1, action: "New order received", details: "Order #1234 from John Smith", time: "2 minutes ago", type: "order" },
-    { id: 2, action: "Appointment booked", details: "Hair styling with Sarah Johnson", time: "15 minutes ago", type: "appointment" },
-    { id: 3, action: "Payment processed", details: "Invoice #5678 - $299.99", time: "1 hour ago", type: "payment" },
-    { id: 4, action: "Low stock alert", details: "Shampoo bottles running low", time: "2 hours ago", type: "alert" },
-  ];
+    // Create a workbook and append the worksheet
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Stats Report');
 
-  const lowStockItems = [
-    { name: "Premium Shampoo", stock: 5, reorder: 50 },
-    { name: "Hair Conditioner", stock: 8, reorder: 30 },
-    { name: "Styling Gel", stock: 3, reorder: 25 },
-  ];
-
-  const upcomingAppointments = [
-    { id: 1, client: "Emma Wilson", service: "Hair Cut & Style", time: "10:00 AM", duration: "1h 30m" },
-    { id: 2, client: "Michael Brown", service: "Beard Trim", time: "11:30 AM", duration: "45m" },
-    { id: 3, client: "Lisa Davis", service: "Hair Coloring", time: "2:00 PM", duration: "2h 30m" },
-  ];
+    // Export the workbook to Excel file
+    XLSX.writeFile(wb, 'dashboard_report.xlsx');
+  };
 
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Welcome back, <span className="text-green-500">{user ? user.name : "Guest"}</span></h1>
+          <h1 className="text-3xl font-bold text-foreground">Welcome back, <span className="text-green-500">{user ? user.name : "Guest"}</span>!</h1>
           <p className="text-muted-foreground">Here's what's happening with your business today.</p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={() => navigate('/dashboard/analytics')}>
+          <Button variant="outline" onClick={() => setShowReport(!showReport)}>
             <Eye className="mr-2 h-4 w-4" />
             View Reports
           </Button>
-          <Button
-            className='bg-green-500 cursor-pointer hover:bg-green-400'
-            onClick={() => navigate('/dashboard/products')}
-          >
+          <Button>
             <Plus className="mr-2 h-4 w-4" />
             Quick Action
           </Button>
         </div>
       </div>
+
+      {/* Show report table if "View Reports" is clicked */}
+      {showReport && (
+        <div className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Stats Report</CardTitle>
+              <CardDescription>Generated Report of Business Stats</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <table className="min-w-full table-auto">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 text-left">Title</th>
+                    <th className="px-4 py-2 text-left">Value</th>
+                    <th className="px-4 py-2 text-left">Change</th>
+                    <th className="px-4 py-2 text-left">Trend</th>
+                    <th className="px-4 py-2 text-left">Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.map((stat) => (
+                    <tr key={stat.title}>
+                      <td className="px-4 py-2">{stat.title}</td>
+                      <td className="px-4 py-2">{stat.value}</td>
+                      <td className="px-4 py-2">{stat.change}</td>
+                      <td className="px-4 py-2">{stat.trend === 'up' ? '📈' : '📉'}</td>
+                      <td className="px-4 py-2">{stat.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+          <Button className="mt-4" onClick={handleDownloadReport}>
+            Download Report (Excel)
+          </Button>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -148,85 +194,7 @@ const Dashboard = () => {
         })}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recent Activities */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Recent Activities</CardTitle>
-            <CardDescription>Latest updates across all modules</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <div className={`mt-1 h-2 w-2 rounded-full ${
-                    activity.type === 'order' ? 'bg-blue-500' :
-                    activity.type === 'appointment' ? 'bg-green-500' :
-                    activity.type === 'payment' ? 'bg-purple-500' :
-                    'bg-orange-500'
-                  }`} />
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-foreground">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">{activity.details}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Low Stock Alerts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <AlertTriangle className="mr-2 h-4 w-4 text-orange-500" />
-              Low Stock Alerts
-            </CardTitle>
-            <CardDescription>Items that need restocking</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {lowStockItems.map((item, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">Stock: {item.stock}</p>
-                  </div>
-                  <Badge variant="destructive">Reorder {item.reorder}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Upcoming Appointments */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Today's Appointments</CardTitle>
-            <CardDescription>Scheduled appointments for today</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {upcomingAppointments.map((appointment) => (
-                <div key={appointment.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{appointment.client}</p>
-                    <p className="text-xs text-muted-foreground">{appointment.service}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">{appointment.time}</p>
-                    <p className="text-xs text-muted-foreground">{appointment.duration}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
+      {/* Quick Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -234,35 +202,19 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                className="h-auto flex-col py-4"
-                onClick={() => navigate('/dashboard/products')}
-              >
+              <Button variant="outline" className="h-auto flex-col py-4">
                 <Package className="h-6 w-6 mb-2" />
                 <span className="text-xs">Add Product</span>
               </Button>
-              <Button
-                variant="outline"
-                className="h-auto flex-col py-4"
-                onClick={() => navigate('/dashboard/appointments')}
-              >
+              <Button variant="outline" className="h-auto flex-col py-4">
                 <Calendar className="h-6 w-6 mb-2" />
                 <span className="text-xs">Book Appointment</span>
               </Button>
-              <Button
-                variant="outline"
-                className="h-auto flex-col py-4"
-                onClick={() => navigate('/dashboard/finances')}
-              >
+              <Button variant="outline" className="h-auto flex-col py-4">
                 <DollarSign className="h-6 w-6 mb-2" />
                 <span className="text-xs">Create Invoice</span>
               </Button>
-              <Button
-                variant="outline"
-                className="h-auto flex-col py-4"
-                onClick={() => navigate('/dashboard/team')}
-              >
+              <Button variant="outline" className="h-auto flex-col py-4">
                 <Users className="h-6 w-6 mb-2" />
                 <span className="text-xs">Add Customer</span>
               </Button>
@@ -270,7 +222,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
   );
 };
 

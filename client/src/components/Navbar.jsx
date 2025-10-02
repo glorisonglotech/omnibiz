@@ -6,11 +6,9 @@ import {
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/solid";
-import { useAuth } from "@/context/AuthContext";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAuthenticated, user } = useAuth();
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -29,9 +27,16 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
-            <img src="https://2aa832b0f010801d3551c6c63b116063.cdn.bubble.io/cdn-cgi/image/w=48,h=48,f=auto,dpr=1,fit=contain/f1758225569468x933635082935872100/logo.webp" alt="" />
-            <span className="text-xl font-bold text-foreground">Omin<span className="text-green-500">BIZ</span></span>
+            <img
+              src="https://2aa832b0f010801d3551c6c63b116063.cdn.bubble.io/cdn-cgi/image/w=48,h=48,f=auto,dpr=1,fit=contain/f1758225569468x933635082935872100/logo.webp"
+              alt="OmniBizHub Logo"
+            />
+            <span className="text-xl font-bold text-foreground">
+              Omin<span className="text-green-500">BIZ</span>
+            </span>
           </Link>
+
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <Link to="/features" className="text-foreground hover:text-primary transition-colors">
               Features
@@ -49,30 +54,17 @@ const Navbar = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-green-600">Welcome, {user?.name}</span>
-                <Link to="/dashboard">
-                  <Button className='bg-green-500 py-6 px-8 cursor-pointer hover:bg-green-400'>
-                    Dashboard
-                  </Button>
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link to="/loginpage">
-                  <Button variant="ghost">Login</Button>
-                </Link>
-                <Link to="/signup">
-                  <Button className='bg-green-500 py-6 px-8 cursor-pointer hover:bg-green-400'>
-                    Start Free Trial
-                  </Button>
-                </Link>
-              </>
-            )}
+            <Link to="/loginpage">
+              <Button variant="ghost">Login</Button>
+            </Link>
+            <Link to="/signup">
+              <Button className="bg-green-500 py-6 px-8 cursor-pointer hover:bg-green-400">
+                Start Free Trial
+              </Button>
+            </Link>
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile Menu Toggle */}
           <div className="md:hidden">
             <Button
               variant="ghost"
@@ -120,32 +112,19 @@ const Navbar = () => {
               >
                 Contact
               </Link>
+
+              {/* Mobile Auth Buttons */}
               <div className="pt-4 space-y-2">
-                {isAuthenticated ? (
-                  <>
-                    <div className="px-3 py-2 text-sm text-green-600">
-                      Welcome, {user?.name}
-                    </div>
-                    <Link to="/dashboard" onClick={() => setIsMenuOpen(false)}>
-                      <Button className='bg-green-500 py-6 px-8 cursor-pointer w-full'>
-                        Dashboard
-                      </Button>
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Link to="/loginpage" onClick={() => setIsMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full">
-                        Login
-                      </Button>
-                    </Link>
-                    <Link to="/signup" onClick={() => setIsMenuOpen(false)}>
-                      <Button className='bg-green-500 py-6 px-8 cursor-pointer w-full'>
-                        Start Free Trial
-                      </Button>
-                    </Link>
-                  </>
-                )}
+                <Link to="/loginpage" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/signup" onClick={() => setIsMenuOpen(false)}>
+                  <Button className="bg-green-500 py-6 px-8 cursor-pointer w-full">
+                    Start Free Trial
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

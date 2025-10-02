@@ -36,6 +36,11 @@ import { Toaster } from "@/components/ui/sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import PWAUpdateNotification from "@/components/PWAUpdateNotification";
+import ClientSignup from "@/pages/client/ClientSignup";
+import ClientStorefront from "@/pages/client/ClientStorefront";
+import ProductCatalog from "@/pages/client/ ProductCatalog";
+import BookAppointment from "@/pages/client/BookAppointment";
+import MyBookings from "@/pages/client/MyBookings";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -71,39 +76,54 @@ function App() {
           <AuthProvider>
             <SocketProvider>
               <FinancialProvider>
-              <BrowserRouter>
-                <Toaster richColors position="top-center" />
-                <PWAInstallPrompt />
-                <PWAUpdateNotification />
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/features" element={<FeaturesPage />} />
-                  <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/loginpage" element={<LoginPage />} />
-                  <Route path="/signup" element={<SignupPage />} />
-                  <Route path="/dashboard" element={<DashboardLayout />}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="inventory" element={<Inventory />} />
-                    <Route path="ecommerce" element={<ECommerce />} />
-                    <Route path="appointments" element={<Appointments />} />
-                    <Route path="finances" element={<Finances />} />
-                    <Route path="team" element={<Team />} />
-                    <Route path="ai-insights" element={<AIInsights />} />
-                    <Route path="locations" element={<Locations />} />
-                    <Route path="settings" element={<Settings />} />
-                    <Route path="profile" element={<Profile />} />
-                    <Route path="products" element={<Products />} />
-                    <Route path="checkout" element={<Checkout />} />
-                    <Route path="help" element={<Help />} />
-                    <Route path="analytics" element={<Analytics />} />
-                    <Route path="maps" element={<Maps />} />
-                    <Route path="purchasing" element={<Purchasing />} />
-                  </Route>
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
+                <BrowserRouter>
+                  <Toaster richColors position="top-center" />
+                  <PWAInstallPrompt />
+                  <PWAUpdateNotification />
+                  <Routes>
+                    {/* Public Routes */}
+                    <Route path="/" element={<Index />} />
+                    <Route path="/features" element={<FeaturesPage />} />
+                    <Route path="/pricing" element={<Pricing />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/loginpage" element={<LoginPage />} />
+                    <Route path="/signup" element={<SignupPage />} />
+                    
+                    {/* Client Routes */}
+                    <Route path="/client/signup/:inviteCode" element={<ClientSignup />} />
+                    <Route path="/client/store/:inviteCode" element={<ClientStorefront />} />
+                    <Route path="/client/catalog" element={<ProductCatalog />} />
+                    <Route path="/client/book" element={<BookAppointment />} />
+                    <Route path="/client/my-bookings" element={<MyBookings />} />
+
+                    {/* Dashboard Routes */}
+                    <Route path="/dashboard" element={<DashboardLayout />}>
+                      {/* Dashboard Main Route */}
+                      <Route index element={<Dashboard />} />
+
+                      {/* Dashboard Sub-Routes */}
+                      <Route path="inventory" element={<Inventory />} />
+                      <Route path="ecommerce" element={<ECommerce />} />
+                      <Route path="appointments" element={<Appointments />} />
+                      <Route path="finances" element={<Finances />} />
+                      <Route path="team" element={<Team />} />
+                      <Route path="ai-insights" element={<AIInsights />} />
+                      <Route path="locations" element={<Locations />} />
+                      <Route path="settings" element={<Settings />} />
+                      <Route path="profile" element={<Profile />} />
+                      <Route path="products" element={<Products />} />
+                      <Route path="checkout" element={<Checkout />} />
+                      <Route path="help" element={<Help />} />
+                      <Route path="analytics" element={<Analytics />} />
+                      <Route path="maps" element={<Maps />} />
+                      <Route path="purchasing" element={<Purchasing />} />
+                    </Route>
+
+                    {/* Catch-all Route for 404 */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
               </FinancialProvider>
             </SocketProvider>
           </AuthProvider>

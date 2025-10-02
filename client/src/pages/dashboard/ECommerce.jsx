@@ -1,18 +1,12 @@
 import { useState, useEffect } from "react";
-import { toast } from "sonner"; 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { toast } from "sonner";
+import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { useFinancial } from "@/context/FinancialContext";
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -22,167 +16,91 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  ShoppingCart,
+  Package,
+  CreditCard,
+  TrendingUp,
+  Eye,
+  Plus,
+  Link2,
+  Copy,
+  Share2,
+  Send,
+} from "lucide-react";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { ShoppingCart,Package, CreditCard, TrendingUp, Eye, Plus, Send } from "lucide-react";
-import api from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
-import { useFinancial } from "@/context/FinancialContext";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const defaultProduct = {
+  name: "",
+  sku: "",
+  category: "",
+  stockQuantity: "",
+  reorderLevel: "",
+  price: "",
+  supplierName: "",
+  description: "",
+};
 
 const ECommerce = () => {
-   const { user, isAuthenticated, loading } = useAuth();
-   const { refreshFinancialData } = useFinancial();
+  const { isAuthenticated } = useAuth();
+  const { refreshFinancialData } = useFinancial();
+
   const [orders, setOrders] = useState([]);
-  const [isAddOrderOpen, setIsAddOrderOpen] = useState(false);
- const [newOrder, setNewOrder] = useState({
-  orderId: `ORD-${Date.now()}`,
-  customer: {
-    name: "",
-    email: ""
-  },
-  date: "",
-  total: "",
-  status: "Pending",
-  items: [],
-  notes: ""
-});
-
-
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false);
   const [viewOrder, setViewOrder] = useState(null);
 
+  // Add Product Dialog State
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [newProduct, setNewProduct] = useState(defaultProduct);
 
- useEffect(() => {
-    // Fetch orders only if the user is authenticated
+  // Invite Link State
+  const [inviteLink, setInviteLink] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
     const fetchOrders = async () => {
       if (!isAuthenticated) {
         toast.error("Please log in to view your orders.");
         return;
       }
-
       try {
         const response = await api.get("/orders", {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`, // Use the token from localStorage for auth
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        setOrders(response.data); // Set fetched orders
+        setOrders(response.data || []);
       } catch (error) {
-        toast.error("Error fetching orders.");
+        toast.error("We couldn't load your orders right now.");
+        // eslint-disable-next-line no-console
         console.error("Error fetching orders:", error);
       }
     };
-
     fetchOrders();
-  }, [isAuthenticated]); // Re-fetch when authentication state changes
-
- const handleNewOrderChange = (field, value) => {
-  if (field === "customerName" || field === "customerEmail") {
-    setNewOrder((prev) => ({
-      ...prev,
-      customer: {
-        ...prev.customer,
-        [field === "customerName" ? "name" : "email"]: value
-      }
-    }));
-  } else {
-    setNewOrder((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  }
-};
-
-
-  const handleAddOrder = async () => {
-  console.log("Current newOrder state:", newOrder);
-  if (!newOrder.customer.name || !newOrder.date || !newOrder.total || !newOrder.items.length) {
-    toast.error("Please fill in all required fields.");
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("token");
-    // Prepare order data with proper structure
-    const orderData = {
-      ...newOrder,
-      total: parseFloat(newOrder.total),
-      date: new Date(newOrder.date).toISOString(),
-    };
-
-    console.log("Sending order data:", orderData);
-
-    const response = await api.post("/orders", orderData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    setOrders((prev) => [response.data, ...prev]);
-    setNewOrder({
-      orderId: `ORD-${Date.now()}`,
-      customer: {
-        name: "",
-        email: ""
-      },
-      date: "",
-      total: "",
-      status: "Pending",
-      items: [],
-      notes: ""
-    });
-    setIsAddOrderOpen(false);
-    toast.success("Order added successfully!");
-
-    // Refresh financial data if order is paid
-    if (response.data.status === 'Paid' || response.data.paymentStatus === 'Paid') {
-      console.log('Order is paid, refreshing financial data...');
-      refreshFinancialData();
-    }
-  } catch (error) {
-    // toast.error(error.response?.data?.error || "Error adding order.");
-    // console.error("Error adding order:", error);
-    const errorMessage = error.response?.data?.error || "Error adding order.";
-  toast.error(errorMessage);
-  console.error("Error adding order:", errorMessage);
-  }
-};
-
+  }, [isAuthenticated]);
 
   const handleEditClick = (order) => {
     setEditOrder({ ...order });
     setIsEditOrderOpen(true);
-  };
-
-  const handleEditOrderChange = (field, value) => {
-    setEditOrder((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleUpdateOrder = async () => {
-    try {
-      const response = await api.put(`/orders/${editOrder.id}`, editOrder); // PUT request to update order
-      setOrders((prev) =>
-        prev.map((o) => (o.id === response.data.id ? response.data : o)) // Update the orders
-      );
-      setIsEditOrderOpen(false);
-      setEditOrder(null);
-      toast.success("Order updated successfully!");
-    } catch (error) {
-      toast.error("Error updating order.");
-      console.error("Error updating order:", error);
-    }
   };
 
   const handleViewClick = (order) => {
@@ -190,142 +108,333 @@ const ECommerce = () => {
     setIsViewOrderOpen(true);
   };
 
+  const handleEditOrderChange = (field, value) => {
+    if (field === "customerName" || field === "customerEmail") {
+      setEditOrder((prev) => ({
+        ...prev,
+        customer: {
+          ...(prev?.customer || {}),
+          [field === "customerName" ? "name" : "email"]: value,
+        },
+      }));
+    } else {
+      setEditOrder((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
+  };
+
+  const handleUpdateOrder = async () => {
+    try {
+      const id = editOrder.id || editOrder._id;
+      const response = await api.put(`/orders/${id}`, editOrder, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === response.data.id || o._id === response.data.id ? response.data : o))
+      );
+      setIsEditOrderOpen(false);
+      setEditOrder(null);
+      toast.success("The order has been updated successfully.");
+
+      if (response.data.status === "Paid" || response.data.paymentStatus === "Paid") {
+        refreshFinancialData?.();
+      }
+    } catch (error) {
+      toast.error("We couldn't update this order.");
+      // eslint-disable-next-line no-console
+      console.error("Error updating order:", error);
+    }
+  };
+
+  // Add Product Handlers
+  const handleNewProductChange = (field, value) => {
+    setNewProduct((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleAddProduct = async () => {
+    const requiredFields = [
+      "name",
+      "sku",
+      "category",
+      "stockQuantity",
+      "price",
+      "supplierName",
+    ];
+    const hasEmptyField = requiredFields.some(
+      (field) => !newProduct[field]?.toString().trim()
+    );
+    if (hasEmptyField) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+    const sanitizedProduct = {
+      ...newProduct,
+      stockQuantity: Number(newProduct.stockQuantity),
+      reorderLevel: Number(newProduct.reorderLevel),
+      price: Number(newProduct.price),
+    };
+    try {
+      const token = localStorage.getItem("token");
+      await api.post("/products", sanitizedProduct, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      setNewProduct(defaultProduct);
+      setIsAddProductOpen(false);
+      toast.success("Product added successfully!");
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Error adding product.");
+      // eslint-disable-next-line no-console
+      console.error("Error adding product:", error);
+    }
+  };
+
+  // Invite Link Handlers
+  const generateInviteLink = () => {
+    setIsGenerating(true);
+    setTimeout(() => {
+      const uniqueCode = Math.random().toString(36).substring(2, 15);
+      const link = `${window.location.origin}/client/signup/${uniqueCode}`;
+      setInviteLink(link);
+      setIsGenerating(false);
+      toast.success("Invite link generated. Share this link with your clients.");
+    }, 1000);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(inviteLink);
+    toast.success("Invite link copied to clipboard.");
+  };
+
+  const shareLink = () => {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: "Join My Store",
+          text: "You've been invited to access my exclusive online store!",
+          url: inviteLink,
+        })
+        .catch(() => {});
+    } else {
+      copyToClipboard();
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
-      Pending: { variant: "secondary", color: "bg-yellow-100 text-yellow-800" },
-      Processing: { variant: "default", color: "bg-blue-100 text-blue-800" },
-      Shipped: { variant: "default", color: "bg-purple-100 text-purple-800" },
-      Delivered: { variant: "default", color: "bg-green-100 text-green-800" },
-      Paid: { variant: "default", color: "bg-emerald-100 text-emerald-800" },
-      Cancelled: { variant: "destructive", color: "bg-red-100 text-red-800" },
+      Pending: { variant: "secondary" },
+      Processing: { variant: "default" },
+      Shipped: { variant: "default" },
+      Delivered: { variant: "default" },
+      Paid: { variant: "default" },
+      Cancelled: { variant: "destructive" },
     };
     return <Badge variant={statusConfig[status]?.variant || "default"}>{status}</Badge>;
   };
 
+  // Derived values from orders for stats
+  const totalOrders = orders.length;
+  const revenue = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  const avgOrderValue = totalOrders ? (revenue / totalOrders).toFixed(2) : "0.00";
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">E-Commerce Dashboard</h1>
           <p className="text-muted-foreground">Manage your online store and orders</p>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline">
-            <Eye className="mr-2 h-4 w-4" />
+        <div className="flex flex-wrap gap-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Link2 className="h-4 w-4" />
+                Generate Invite Link
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Invite Clients to Your Store</DialogTitle>
+                <DialogDescription>
+                  Generate a unique invite link and share it with your clients. They'll sign up and get
+                  access to your exclusive store.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                {!inviteLink ? (
+                  <Button onClick={generateInviteLink} disabled={isGenerating} className="w-full">
+                    <Link2 className="mr-2 h-4 w-4" />
+                    {isGenerating ? "Generating..." : "Generate Invite Link"}
+                  </Button>
+                ) : (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <Input readOnly value={inviteLink} className="flex-1 bg-muted" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={copyToClipboard} variant="outline" className="flex-1 gap-2">
+                        <Copy className="h-4 w-4" />
+                        Copy Link
+                      </Button>
+                      <Button onClick={shareLink} className="flex-1 gap-2">
+                        <Share2 className="h-4 w-4" />
+                        Share
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      💡 Tip: This link is unique to your store. Clients who use it will only see your
+                      products.
+                    </p>
+                  </>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline" className="gap-2">
+            <Eye className="h-4 w-4" />
             View Store
           </Button>
-          <Dialog open={isAddOrderOpen} onOpenChange={setIsAddOrderOpen}>
+          <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
             <DialogTrigger asChild>
-              <Button className='bg-green-500 cursor-pointer hover:bg-green-400'>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Order
+              <Button className="gap-2 bg-green-500 hover:bg-green-400">
+                <Plus className="h-4 w-4" />
+                Add Product
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Order</DialogTitle>
+                <DialogTitle>Add New Product</DialogTitle>
                 <DialogDescription>
-                  Create a new order for your store
+                  Register a new product to your inventory
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="customer">Customer Name</Label>
+                  <Label htmlFor="product-name">Product Name</Label>
                   <Input
-                    id="customer"
-                    placeholder="Enter customer name"
-                    value={newOrder.customer.name}
-                    onChange={(e) => handleNewOrderChange("customerName", e.target.value)}
+                    id="product-name"
+                    placeholder="Enter product name"
+                    value={newProduct.name}
+                    onChange={(e) =>
+                      handleNewProductChange("name", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="email">Customer Email</Label>
+                  <Label htmlFor="sku">SKU</Label>
                   <Input
-                    id="email"
-                    placeholder="Enter customer email"
-                    value={newOrder.customer.email}
-                    onChange={(e) => handleNewOrderChange("customerEmail", e.target.value)}
+                    id="sku"
+                    placeholder="Product SKU"
+                    value={newProduct.sku}
+                    onChange={(e) =>
+                      handleNewProductChange("sku", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="date">Order Date</Label>
+                  <Label htmlFor="category">Category</Label>
                   <Input
-                    id="date"
-                    type="date"
-                    value={newOrder.date || ""}
-                    onChange={(e) => handleNewOrderChange("date", e.target.value)}
+                    id="category"
+                    placeholder="Enter category"
+                    value={newProduct.category}
+                    onChange={(e) =>
+                      handleNewProductChange("category", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="total">Total Amount ($)</Label>
+                    <Label htmlFor="stock">Stock Quantity</Label>
                     <Input
-                      id="total"
+                      id="stock"
                       type="number"
                       min="0"
-                      step="0.01"
-                      placeholder="e.g. 125.50"
-                      value={newOrder.total || ""}
-                      onChange={(e) => handleNewOrderChange("total", e.target.value)}
+                      placeholder="e.g. 25"
+                      value={newProduct.stockQuantity}
+                      onChange={(e) =>
+                        handleNewProductChange("stockQuantity", e.target.value)
+                      }
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="items">Number of Items</Label>
+                    <Label htmlFor="reorderLevel">Reorder Level</Label>
                     <Input
-                      id="items"
+                      id="reorderLevel"
                       type="number"
-                      min="1"
-                      placeholder="e.g. 3"
-                      value={newOrder.items.length || ""}
-                      onChange={(e) => {
-                        const count = parseInt(e.target.value) || 0;
-                        // Create an array of generic items based on the count
-                        const itemsArray = Array.from({ length: count }, (_, index) => ({
-                          id: index + 1,
-                          name: `Item ${index + 1}`,
-                          quantity: 1,
-                          price: parseFloat(newOrder.total) / count || 0
-                        }));
-                        handleNewOrderChange("items", itemsArray);
-                      }}
+                      min="0"
+                      placeholder="e.g. 10"
+                      value={newProduct.reorderLevel}
+                      onChange={(e) =>
+                        handleNewProductChange("reorderLevel", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="price">Price ($)</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="e.g. 29.99"
+                      value={newProduct.price}
+                      onChange={(e) =>
+                        handleNewProductChange("price", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="supplier">Supplier</Label>
+                    <Input
+                      id="supplier"
+                      placeholder="Supplier name"
+                      value={newProduct.supplierName}
+                      onChange={(e) =>
+                        handleNewProductChange("supplierName", e.target.value)
+                      }
                     />
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={newOrder.status || "Pending"} onValueChange={(value) => handleNewOrderChange("status", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Processing">Processing</SelectItem>
-                      <SelectItem value="Shipped">Shipped</SelectItem>
-                      <SelectItem value="Delivered">Delivered</SelectItem>
-                      <SelectItem value="Paid">Paid</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Label htmlFor="description">Description (Optional)</Label>
                   <Textarea
-                    id="notes"
-                    placeholder="Order notes"
-                    value={newOrder.notes || ""}
-                    onChange={(e) => handleNewOrderChange("notes", e.target.value)}
+                    id="description"
+                    placeholder="Product description"
+                    value={newProduct.description}
+                    onChange={(e) =>
+                      handleNewProductChange("description", e.target.value)
+                    }
                     className="resize-none"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" className="text-red-500 cursor-pointer hover:text-red-400" onClick={() => setIsAddOrderOpen(false)}>
+                <Button
+                  variant="outline"
+                  className="text-red-500 cursor-pointer hover:text-red-400"
+                  onClick={() => setIsAddProductOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button className="bg-green-500 cursor-pointer hover:bg-green-400" onClick={handleAddOrder}>
+                <Button
+                  className="bg-green-500 cursor-pointer hover:bg-green-400"
+                  onClick={handleAddProduct}
+                >
                   <Send className="mr-2 h-4 w-4" />
-                  Add Order
+                  Add Product
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -341,24 +450,20 @@ const ECommerce = () => {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orders.length}</div>
+            <div className="text-2xl font-bold">{totalOrders}</div>
             <p className="text-xs text-green-600">+8.1% from last month</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Revenue</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${orders.reduce((sum, o) => sum + o.total, 0).toLocaleString()}
-            </div>
+            <div className="text-2xl font-bold">${revenue.toLocaleString()}</div>
             <p className="text-xs text-green-600">+12.3% from last month</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
@@ -369,16 +474,13 @@ const ECommerce = () => {
             <p className="text-xs text-green-600">+0.5% from last month</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg. Order Value</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${orders.length ? (orders.reduce((sum, o) => sum + o.total, 0) / orders.length).toFixed(2) : "0.00"}
-            </div>
+            <div className="text-2xl font-bold">${avgOrderValue}</div>
             <p className="text-xs text-green-600">+4.2% from last month</p>
           </CardContent>
         </Card>
@@ -405,74 +507,115 @@ const ECommerce = () => {
               </TableHeader>
               <TableBody>
                 {orders.map((order, index) => (
-                  <TableRow key={order._id || `order-${index}`}>
-                    <TableCell className="font-medium">{order.orderId}</TableCell>
+                  <TableRow key={order._id || order.id || `order-${index}`}>
+                    <TableCell className="font-medium">{order.orderId || order.id}</TableCell>
                     <TableCell>
                       <div>
                         <p className="font-medium">{order.customer?.name}</p>
                         <p className="text-sm text-muted-foreground">{order.customer?.email}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{order.date}</TableCell>
-                    <TableCell>${order.total}</TableCell>
+                    <TableCell>
+                      {order.date
+                        ? new Date(order.date).toLocaleDateString()
+                        : ""}
+                    </TableCell>
+                    <TableCell>${Number(order.total || 0).toFixed(2)}</TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => handleViewClick(order)}>View</Button>
-                        <Button variant="outline" size="sm" onClick={() => handleEditClick(order)}>Edit</Button>
+                        <Button variant="outline" size="sm" onClick={() => handleViewClick(order)}>
+                          View
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleEditClick(order)}>
+                          Edit
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
+                {orders.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                      No orders yet.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
+        {/* Top Products (static content preserved) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Products</CardTitle>
+            <CardDescription>Best selling items this month</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[
+                { name: "Premium Hair Shampoo", sales: 156, revenue: "$4,680" },
+                { name: "Hair Styling Gel", sales: 142, revenue: "$2,268" },
+                { name: "Organic Face Mask", sales: 98, revenue: "$4,410" },
+                { name: "Professional Hair Dryer", sales: 67, revenue: "$13,393" },
+              ].map((product, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{product.name}</p>
+                    <p className="text-xs text-muted-foreground">{product.sales} sales</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-foreground">{product.revenue}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Order Status Overview */}
+      {/* Order Status Overview */}
+      <div className="grid gap-6 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Pending Orders</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {orders.filter(o => o.status === "Pending").length}
+              {orders.filter((o) => o.status === "Pending").length}
             </div>
             <p className="text-xs text-muted-foreground">Need processing</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Processing</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {orders.filter(o => o.status === "Processing").length}
+              {orders.filter((o) => o.status === "Processing").length}
             </div>
             <p className="text-xs text-muted-foreground">Being prepared</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Shipped</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
-              {orders.filter(o => o.status === "Shipped").length}
+              {orders.filter((o) => o.status === "Shipped").length}
             </div>
             <p className="text-xs text-muted-foreground">In transit</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Delivered</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {orders.filter(o => o.status === "Delivered").length}
+              {orders.filter((o) => o.status === "Delivered").length}
             </div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
@@ -490,23 +633,25 @@ const ECommerce = () => {
             <div className="grid gap-4 py-4">
               <div>
                 <Label>Order ID</Label>
-                <div className="font-medium">{viewOrder.id}</div>
+                <div className="font-medium">{viewOrder.orderId || viewOrder.id}</div>
               </div>
               <div>
                 <Label>Customer</Label>
-                <div>{viewOrder.customer}</div>
+                <div>{viewOrder.customer?.name}</div>
               </div>
               <div>
                 <Label>Email</Label>
-                <div>{viewOrder.email}</div>
+                <div>{viewOrder.customer?.email}</div>
               </div>
               <div>
                 <Label>Date</Label>
-                <div>{viewOrder.date}</div>
+                <div>
+                  {viewOrder.date ? new Date(viewOrder.date).toLocaleString() : ""}
+                </div>
               </div>
               <div>
                 <Label>Total</Label>
-                <div>${viewOrder.total}</div>
+                <div>${Number(viewOrder.total || 0).toFixed(2)}</div>
               </div>
               <div>
                 <Label>Status</Label>
@@ -547,16 +692,16 @@ const ECommerce = () => {
                 <Label htmlFor="edit-customer">Customer Name</Label>
                 <Input
                   id="edit-customer"
-                  value={editOrder.customer}
-                  onChange={e => handleEditOrderChange("customer", e.target.value)}
+                  value={editOrder.customer?.name || ""}
+                  onChange={(e) => handleEditOrderChange("customerName", e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-email">Customer Email</Label>
                 <Input
                   id="edit-email"
-                  value={editOrder.email}
-                  onChange={e => handleEditOrderChange("email", e.target.value)}
+                  value={editOrder.customer?.email || ""}
+                  onChange={(e) => handleEditOrderChange("customerEmail", e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
@@ -564,8 +709,12 @@ const ECommerce = () => {
                 <Input
                   id="edit-date"
                   type="date"
-                  value={editOrder.date}
-                  onChange={e => handleEditOrderChange("date", e.target.value)}
+                  value={
+                    editOrder.date
+                      ? new Date(editOrder.date).toISOString().slice(0, 10)
+                      : ""
+                  }
+                  onChange={(e) => handleEditOrderChange("date", e.target.value)}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -576,8 +725,8 @@ const ECommerce = () => {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={editOrder.total}
-                    onChange={e => handleEditOrderChange("total", e.target.value)}
+                    value={editOrder.total || ""}
+                    onChange={(e) => handleEditOrderChange("total", e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -585,16 +734,16 @@ const ECommerce = () => {
                   <Input
                     id="edit-items"
                     type="number"
-                    min="1"
-                    value={Array.isArray(editOrder.items) ? editOrder.items.length : editOrder.items}
-                    onChange={e => {
+                    min="0"
+                    value={Array.isArray(editOrder.items) ? editOrder.items.length : (editOrder.items || 0)}
+                    onChange={(e) => {
                       const count = parseInt(e.target.value) || 0;
-                      // Create an array of generic items based on the count
                       const itemsArray = Array.from({ length: count }, (_, index) => ({
                         id: index + 1,
                         name: `Item ${index + 1}`,
                         quantity: 1,
-                        price: parseFloat(editOrder.total) / count || 0
+                        price:
+                          count > 0 ? Number(editOrder.total || 0) / count : 0,
                       }));
                       handleEditOrderChange("items", itemsArray);
                     }}
@@ -603,7 +752,10 @@ const ECommerce = () => {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-status">Status</Label>
-                <Select value={editOrder.status || "Pending"} onValueChange={(value) => handleEditOrderChange("status", value)}>
+                <Select
+                  value={editOrder.status || "Pending"}
+                  onValueChange={(value) => handleEditOrderChange("status", value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -621,20 +773,17 @@ const ECommerce = () => {
                 <Label htmlFor="edit-notes">Notes (Optional)</Label>
                 <Textarea
                   id="edit-notes"
-                  value={editOrder.notes}
-                  onChange={e => handleEditOrderChange("notes", e.target.value)}
+                  value={editOrder.notes || ""}
+                  onChange={(e) => handleEditOrderChange("notes", e.target.value)}
                   className="resize-none"
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" className='text-red-500 cursor-pointer hover:text-red-400' onClick={() => setIsEditOrderOpen(false)}>
+              <Button variant="outline" onClick={() => setIsEditOrderOpen(false)}>
                 Cancel
               </Button>
-              <Button className='bg-green-500 cursor-pointer hover:bg-green-400' onClick={handleUpdateOrder}>
-                <Send className="mr-2 h-4 w-4" />
-                Save Changes
-              </Button>
+              <Button onClick={handleUpdateOrder}>Save Changes</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

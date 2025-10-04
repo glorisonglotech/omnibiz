@@ -26,9 +26,18 @@ import Help from "./pages/Help";
 import Analytics from "./pages/dashboard/Analytics";
 import Maps from "./pages/dashboard/Maps";
 import Purchasing from "./pages/dashboard/Purchasing";
+import History from "./pages/dashboard/History";
+import Search from "./pages/dashboard/Search";
+import GraphsShowcase from "./pages/dashboard/GraphsShowcase";
+import Reports from "./pages/dashboard/Reports";
+import HelpSupport from "./pages/dashboard/HelpSupport";
+import GUIImplementation from "./components/GUIImplementation";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import updateService from "@/services/updateService";
 import Logo from "@/components/ui/logo";
+import { useThemeSync } from "@/hooks/useThemeSync";
+import ThemeSync from "@/components/ThemeSync";
 import { FinancialProvider } from "@/context/FinancialContext";
 import { PWAProvider } from "@/context/PWAContext";
 import { SocketProvider } from "@/context/SocketContext";
@@ -51,9 +60,15 @@ function App() {
     const timer = setTimeout(() => {
       setShowSplash(false);
       setAppReady(true);
+
+      // Initialize update service when app is ready
+      updateService.start();
     }, 3000); // Show splash for 3 seconds
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      updateService.stop();
+    };
   }, []);
 
   const handleSplashComplete = () => {
@@ -77,6 +92,7 @@ function App() {
             <SocketProvider>
               <FinancialProvider>
                 <BrowserRouter>
+                  <ThemeSync />
                   <Toaster richColors position="top-center" />
                   <PWAInstallPrompt />
                   <PWAUpdateNotification />
@@ -115,9 +131,15 @@ function App() {
                       <Route path="products" element={<Products />} />
                       <Route path="checkout" element={<Checkout />} />
                       <Route path="help" element={<Help />} />
+                      <Route path="support" element={<HelpSupport />} />
                       <Route path="analytics" element={<Analytics />} />
                       <Route path="maps" element={<Maps />} />
                       <Route path="purchasing" element={<Purchasing />} />
+                      <Route path="history" element={<History />} />
+                      <Route path="search" element={<Search />} />
+                      <Route path="graphs" element={<GraphsShowcase />} />
+                      <Route path="reports" element={<Reports />} />
+                      <Route path="gui" element={<GUIImplementation />} />
                     </Route>
 
                     {/* Catch-all Route for 404 */}

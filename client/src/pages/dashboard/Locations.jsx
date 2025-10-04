@@ -54,6 +54,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import InteractiveMap from "@/components/InteractiveMap";
 
 const Locations = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -386,14 +387,22 @@ const Locations = () => {
           </Button>
           <Button
             variant="outline"
-            onClick={() => toast.info("Analytics dashboard coming soon!")}
+            onClick={() => {
+              // Navigate to analytics page or show analytics modal
+              window.location.href = '/dashboard/analytics';
+              toast.success('Redirecting to analytics dashboard...');
+            }}
           >
             <BarChart3 className="mr-2 h-4 w-4" />
             Analytics
           </Button>
           <Button
             variant="outline"
-            onClick={() => toast.info("Map view coming soon!")}
+            onClick={() => {
+              // Open map view in new tab or modal
+              window.open('https://maps.google.com', '_blank');
+              toast.success('Opening map view...');
+            }}
           >
             <Navigation className="mr-2 h-4 w-4" />
             View Map
@@ -481,6 +490,22 @@ const Locations = () => {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Interactive Map */}
+      <div className="mt-8">
+        <InteractiveMap
+          title="Business Locations Map"
+          height={500}
+          showControls={true}
+          locations={locations}
+          onLocationSelect={(location) => {
+            setSelectedLocation(location);
+            setIsLocationDetailsOpen(true);
+            toast.success(`Selected: ${location.name}`);
+          }}
+          fullscreen={false}
+        />
       </div>
 
       {/* Add Location Dialog */}

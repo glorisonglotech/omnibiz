@@ -51,6 +51,7 @@ import { useFinancial } from "@/context/FinancialContext";
 import PaymentOptions from "@/components/payments/PaymentOptions";
 import MpesaPayment from "@/components/payments/MpesaPayment";
 import PayPalPayment from "@/components/payments/PayPalPayment";
+import ComprehensiveGraphs from "@/components/ComprehensiveGraphs";
 
 const Finances = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -654,6 +655,58 @@ const Finances = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Financial Analytics Graphs */}
+      <div className="mt-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Financial Analytics</h2>
+          <Badge variant="secondary">Live Data</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ComprehensiveGraphs
+            title="Revenue vs Expenses"
+            defaultType="bar"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={30000}
+          />
+          <ComprehensiveGraphs
+            title="Profit Trends"
+            defaultType="line"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={30000}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ComprehensiveGraphs
+            title="Expense Categories"
+            defaultType="pie"
+            height={350}
+            autoRefresh={false}
+            refreshInterval={60000}
+          />
+          <ComprehensiveGraphs
+            title="Cash Flow Analysis"
+            defaultType="area"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={45000}
+          />
+        </div>
+
+        <div className="w-full">
+          <ComprehensiveGraphs
+            title="Invoice Status Overview"
+            defaultType="composed"
+            height={400}
+            autoRefresh={true}
+            refreshInterval={20000}
+          />
+        </div>
       </div>
     </div>
   );

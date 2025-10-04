@@ -37,9 +37,9 @@ const OrderHistory = ({ userId = null, showFilters = true, limit = 20 }) => {
 
   // Filters
   const [filters, setFilters] = useState({
-    status: '',
-    orderType: '',
-    priority: '',
+    status: 'all',
+    orderType: 'all',
+    priority: 'all',
     search: '',
     dateRange: null,
     minAmount: '',
@@ -65,9 +65,9 @@ const OrderHistory = ({ userId = null, showFilters = true, limit = 20 }) => {
       setLoading(true);
       const params = new URLSearchParams();
       
-      if (filters.status) params.append('status', filters.status);
-      if (filters.orderType) params.append('orderType', filters.orderType);
-      if (filters.priority) params.append('priority', filters.priority);
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+      if (filters.orderType && filters.orderType !== 'all') params.append('orderType', filters.orderType);
+      if (filters.priority && filters.priority !== 'all') params.append('priority', filters.priority);
       if (filters.search) params.append('search', filters.search);
       if (filters.dateRange?.from) params.append('startDate', filters.dateRange.from.toISOString());
       if (filters.dateRange?.to) params.append('endDate', filters.dateRange.to.toISOString());
@@ -201,7 +201,7 @@ const OrderHistory = ({ userId = null, showFilters = true, limit = 20 }) => {
   };
 
   const statusOptions = [
-    { value: '', label: 'All Statuses' },
+    { value: 'all', label: 'All Statuses' },
     { value: 'Draft', label: 'Draft' },
     { value: 'Submitted', label: 'Submitted' },
     { value: 'Under_Review', label: 'Under Review' },
@@ -212,7 +212,7 @@ const OrderHistory = ({ userId = null, showFilters = true, limit = 20 }) => {
   ];
 
   const orderTypeOptions = [
-    { value: '', label: 'All Types' },
+    { value: 'all', label: 'All Types' },
     { value: 'standard', label: 'Standard' },
     { value: 'bulk', label: 'Bulk' },
     { value: 'custom', label: 'Custom' },
@@ -220,7 +220,7 @@ const OrderHistory = ({ userId = null, showFilters = true, limit = 20 }) => {
   ];
 
   const priorityOptions = [
-    { value: '', label: 'All Priorities' },
+    { value: 'all', label: 'All Priorities' },
     { value: 'low', label: 'Low' },
     { value: 'normal', label: 'Normal' },
     { value: 'high', label: 'High' },

@@ -25,6 +25,8 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import ComprehensiveGraphs from "@/components/ComprehensiveGraphs";
+import RealTimeAIInsights from "@/components/RealTimeAIInsights";
 
 const AIInsights = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -322,6 +324,68 @@ const AIInsights = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Real-time AI Insights Component */}
+      <div className="mt-8">
+        <RealTimeAIInsights
+          title="Advanced AI Business Intelligence"
+          autoStart={true}
+          showNotifications={true}
+          updateInterval={20000}
+        />
+      </div>
+
+      {/* AI-Powered Analytics Graphs */}
+      <div className="mt-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">AI-Powered Analytics</h2>
+          <Badge variant="secondary">Predictive Insights</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ComprehensiveGraphs
+            title="Predictive Sales Trends"
+            defaultType="line"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={25000}
+          />
+          <ComprehensiveGraphs
+            title="Customer Behavior Analysis"
+            defaultType="area"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={30000}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ComprehensiveGraphs
+            title="Market Opportunities"
+            defaultType="bar"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={45000}
+          />
+          <ComprehensiveGraphs
+            title="Risk Assessment"
+            defaultType="pie"
+            height={350}
+            autoRefresh={false}
+            refreshInterval={60000}
+          />
+        </div>
+
+        <div className="w-full">
+          <ComprehensiveGraphs
+            title="Performance Optimization Insights"
+            defaultType="composed"
+            height={400}
+            autoRefresh={true}
+            refreshInterval={15000}
+          />
+        </div>
       </div>
     </div>
   );

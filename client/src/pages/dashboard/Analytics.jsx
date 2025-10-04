@@ -20,6 +20,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ComprehensiveGraphs from '@/components/ComprehensiveGraphs';
+import { useGraphData } from '@/hooks/useGraphData';
 
 const Analytics = () => {
   const [analyticsData, setAnalyticsData] = useState({
@@ -425,6 +427,59 @@ const Analytics = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Comprehensive Analytics Graphs */}
+      <div className="mt-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Advanced Analytics</h2>
+          <Badge variant="secondary">Real-time Data</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ComprehensiveGraphs
+            title="Sales Revenue Trends"
+            defaultType="line"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={30000}
+          />
+          <ComprehensiveGraphs
+            title="Order Volume Analysis"
+            defaultType="bar"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={30000}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ComprehensiveGraphs
+            title="Customer Demographics"
+            defaultType="pie"
+            height={350}
+            autoRefresh={false}
+            refreshInterval={60000}
+          />
+          <ComprehensiveGraphs
+            title="Customer Acquisition"
+            defaultType="area"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={45000}
+          />
+        </div>
+
+        <div className="w-full">
+          <ComprehensiveGraphs
+            title="Comprehensive Business Analytics"
+            defaultType="composed"
+            height={400}
+            autoRefresh={true}
+            refreshInterval={20000}
+            fullscreen={false}
+          />
+        </div>
+      </div>
     </div>
   );
 };

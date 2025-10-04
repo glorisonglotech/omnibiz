@@ -24,6 +24,9 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
 import {
   Settings as SettingsIcon,
   User,
@@ -37,6 +40,22 @@ import {
   Save,
   Eye,
   EyeOff,
+  Monitor,
+  Sun,
+  Moon,
+  Zap,
+  Volume2,
+  VolumeX,
+  Accessibility,
+  Download,
+  Upload,
+  RefreshCw,
+  Check,
+  X,
+  AlertTriangle,
+  Info,
+  HelpCircle,
+  ExternalLink
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme, AVAILABLE_THEMES } from "@/context/ThemeContext";
@@ -57,7 +76,19 @@ const Settings = () => {
     fontSizes,
     borderRadius,
     setBorderRadius,
-    borderRadiusOptions
+    borderRadiusOptions,
+    compactMode,
+    setCompactMode,
+    highContrast,
+    setHighContrast,
+    reducedMotion,
+    setReducedMotion,
+    customAccentColor,
+    setCustomAccentColor,
+    soundEnabled,
+    setSoundEnabled,
+    autoSave,
+    setAutoSave
   } = useAppTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [settings, setSettings] = useState({
@@ -69,31 +100,50 @@ const Settings = () => {
     timezone: "Africa/Nairobi",
     currency: "KES",
     language: "en",
-    
+
     // Notification Settings
     emailNotifications: true,
     smsNotifications: false,
     pushNotifications: true,
     marketingEmails: false,
-    
+    soundNotifications: true,
+    desktopNotifications: true,
+
     // Security Settings
     twoFactorAuth: false,
     sessionTimeout: "30",
     passwordExpiry: "90",
-    
+    loginAlerts: true,
+    deviceTracking: true,
+
     // Appearance Settings
     theme: "light",
     sidebarCollapsed: false,
-    
+    compactMode: false,
+    highContrast: false,
+    reducedMotion: false,
+    customAccentColor: "#3b82f6",
+
     // Privacy Settings
     dataSharing: false,
     analytics: true,
-    
+    crashReporting: true,
+    usageStatistics: false,
+
+    // Performance Settings
+    autoSave: true,
+    cacheSize: 100,
+    backgroundSync: true,
+
     // Account Settings
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+
+  const [activeTab, setActiveTab] = useState("general");
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -686,6 +736,45 @@ const Settings = () => {
 
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
+                      <Label>Compact Mode</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Reduce spacing for more content
+                      </p>
+                    </div>
+                    <Switch
+                      checked={compactMode}
+                      onCheckedChange={setCompactMode}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>High Contrast</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Increase contrast for better visibility
+                      </p>
+                    </div>
+                    <Switch
+                      checked={highContrast}
+                      onCheckedChange={setHighContrast}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Reduced Motion</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Minimize animations for accessibility
+                      </p>
+                    </div>
+                    <Switch
+                      checked={reducedMotion}
+                      onCheckedChange={setReducedMotion}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
                       <Label>Enable Animations</Label>
                       <p className="text-sm text-muted-foreground">
                         Show smooth transitions and animations
@@ -695,6 +784,45 @@ const Settings = () => {
                       checked={animations}
                       onCheckedChange={setAnimations}
                     />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Sound Effects</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Play sounds for notifications and actions
+                      </p>
+                    </div>
+                    <Switch
+                      checked={soundEnabled}
+                      onCheckedChange={setSoundEnabled}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="customAccentColor">Custom Accent Color</Label>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id="customAccentColor"
+                        type="color"
+                        value={customAccentColor}
+                        onChange={(e) => setCustomAccentColor(e.target.value)}
+                        className="w-16 h-10 p-1 border rounded"
+                      />
+                      <Input
+                        value={customAccentColor}
+                        onChange={(e) => setCustomAccentColor(e.target.value)}
+                        placeholder="#3b82f6"
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCustomAccentColor('#3b82f6')}
+                      >
+                        Reset
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>

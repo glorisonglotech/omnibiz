@@ -64,6 +64,8 @@ app.use('/api/client', require('./routes/clientRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/activities', require('./routes/activityRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/reports', require('./routes/reportRoutes'));
+app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 404 and error handling

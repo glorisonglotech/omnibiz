@@ -11,12 +11,21 @@ import {
   Users,
   AlertTriangle,
   Eye,
-  Plus
+  Plus,
+  FileText,
+  UserPlus,
+  History,
+  Brain,
+  BarChart3
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermissions } from "@/components/RoleBasedAccess";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import * as XLSX from 'xlsx'; // Import XLSX to handle Excel file generation
+import ComprehensiveGraphs from "@/components/ComprehensiveGraphs";
+import RealTimeAIInsights from "@/components/RealTimeAIInsights";
 
 // Placeholder for fetching dynamic data
 const fetchDashboardData = async () => {
@@ -62,6 +71,7 @@ const fetchDashboardData = async () => {
 const Dashboard = () => {
   const { user, isAuthenticated, loading } = useAuth();
   const { isAdmin, isClient } = usePermissions();
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [showReport, setShowReport] = useState(false);  // To toggle the report view
 
@@ -119,9 +129,14 @@ const Dashboard = () => {
             <Eye className="mr-2 h-4 w-4" />
             View Reports
           </Button>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Quick Action
+          <Button
+            onClick={() => {
+              navigate('/dashboard/history');
+              toast.success('Opening activity history...');
+            }}
+          >
+            <History className="mr-2 h-4 w-4" />
+            View History
           </Button>
         </div>
       </div>
@@ -195,32 +210,86 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks and shortcuts</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="h-auto flex-col py-4">
-                <Package className="h-6 w-6 mb-2" />
-                <span className="text-xs">Add Product</span>
-              </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
-                <Calendar className="h-6 w-6 mb-2" />
-                <span className="text-xs">Book Appointment</span>
-              </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
-                <DollarSign className="h-6 w-6 mb-2" />
-                <span className="text-xs">Create Invoice</span>
-              </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
-                <Users className="h-6 w-6 mb-2" />
-                <span className="text-xs">Add Customer</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>Common tasks and shortcuts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Button
+              variant="outline"
+              className="h-auto flex-col py-4 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+              onClick={() => {
+                navigate('/dashboard/products');
+                toast.success('Opening products page...');
+              }}
+            >
+              <Package className="h-6 w-6 mb-2 text-blue-600" />
+              <span className="text-xs font-medium">Add Product</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto flex-col py-4 hover:bg-green-50 hover:border-green-300 transition-colors"
+              onClick={() => {
+                navigate('/dashboard/appointments');
+                toast.success('Opening appointments page...');
+              }}
+            >
+              <Calendar className="h-6 w-6 mb-2 text-green-600" />
+              <span className="text-xs font-medium">Book Appointment</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto flex-col py-4 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+              onClick={() => {
+                navigate('/dashboard/finances');
+                toast.success('Opening finances page...');
+              }}
+            >
+              <FileText className="h-6 w-6 mb-2 text-purple-600" />
+              <span className="text-xs font-medium">Create Invoice</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto flex-col py-4 hover:bg-orange-50 hover:border-orange-300 transition-colors"
+              onClick={() => {
+                navigate('/dashboard/team');
+                toast.success('Opening team page...');
+              }}
+            >
+              <UserPlus className="h-6 w-6 mb-2 text-orange-600" />
+              <span className="text-xs font-medium">Add Customer</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Comprehensive Graphs Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ComprehensiveGraphs
+          title="Revenue Trends"
+          defaultType="line"
+          height={300}
+          autoRefresh={true}
+          refreshInterval={30000}
+        />
+        <ComprehensiveGraphs
+          title="Sales Performance"
+          defaultType="bar"
+          height={300}
+          autoRefresh={true}
+          refreshInterval={30000}
+        />
+      </div>
+
+      {/* Real-time AI Insights */}
+      <RealTimeAIInsights
+        title="Business Intelligence"
+        autoStart={true}
+        showNotifications={true}
+        updateInterval={30000}
+      />
       </div>
   );
 };

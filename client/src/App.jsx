@@ -34,9 +34,7 @@ import HelpSupport from "./pages/dashboard/HelpSupport";
 import GUIImplementation from "./components/GUIImplementation";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
-import updateService from "@/services/updateService";
-import Logo from "@/components/ui/logo";
-import { useThemeSync } from "@/hooks/useThemeSync";
+import updateService from "@/services/updateServices";
 import ThemeSync from "@/components/ThemeSync";
 import { FinancialProvider } from "@/context/FinancialContext";
 import { PWAProvider } from "@/context/PWAContext";
@@ -47,7 +45,7 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import PWAUpdateNotification from "@/components/PWAUpdateNotification";
 import ClientSignup from "@/pages/client/ClientSignup";
 import ClientStorefront from "@/pages/client/ClientStorefront";
-import ProductCatalog from "@/pages/client/ ProductCatalog";
+import ProductCatalog from "@/pages/client/ProductCatalog";
 import BookAppointment from "@/pages/client/BookAppointment";
 import MyBookings from "@/pages/client/MyBookings";
 
@@ -70,6 +68,22 @@ function App() {
       updateService.stop();
     };
   }, []);
+
+  // Initialize update service when app is ready
+  useEffect(() => {
+    if (appReady) {
+      // Initialize automatic updates for existing users
+      updateService.initialize();
+
+      // Show welcome message for new features
+      updateService.showWelcomeMessage();
+
+      // Cleanup on unmount
+      return () => {
+        updateService.destroy();
+      };
+    }
+  }, [appReady]);
 
   const handleSplashComplete = () => {
     setShowSplash(false);

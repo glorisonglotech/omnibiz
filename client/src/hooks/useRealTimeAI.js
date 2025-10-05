@@ -7,7 +7,7 @@ export const useRealTimeAI = (options = {}) => {
     autoStart = true,
     updateInterval = 30000,
     showNotifications = true,
-    categories = null
+    categories = null // Filter by specific categories
   } = options;
 
   const [insights, setInsights] = useState([]);
@@ -17,75 +17,97 @@ export const useRealTimeAI = (options = {}) => {
   const unsubscribeRef = useRef(null);
 
   // Filter insights by categories if specified
-  const filteredInsights = categories 
+  const filteredInsights = categories && Array.isArray(categories)
     ? insights.filter(insight => categories.includes(insight.category))
     : insights;
 
-  // Statistics
-  const totalInsights = filteredInsights.length;
-  const newInsights = filteredInsights.filter(insight => 
-    new Date() - new Date(insight.timestamp) < 300000 // 5 minutes
-  ).length;
-  const criticalInsights = filteredInsights.filter(insight => 
-    insight.priority === 'critical'
-  ).length;
-  const highPriorityInsights = filteredInsights.filter(insight => 
-    insight.priority === 'high'
-  ).length;
-  const actionableInsights = filteredInsights.filter(insight => 
-    insight.recommendations && insight.recommendations.length > 0
-  ).length;
+  // Handle insights updates
+  const handleInsightsUpdate = useCallback((newInsights) => {
+    let processedInsights = newInsights;
 
-  // Start AI insights
-  const startAI = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Subscribe to insights updates
-      const unsubscribe = aiInsightsService.subscribe((newInsights) => {
-        setInsights(newInsights);
-        
-        // Show notifications for high-priority insights
-        if (showNotifications) {
-          const recentHighPriority = newInsights.filter(insight => {
-            const isRecent = new Date() - new Date(insight.timestamp) < 10000; // 10 seconds
-            return isRecent && (insight.priority === 'critical' || insight.priority === 'high');
-          });
-          
-          recentHighPriority.forEach(insight => {
-            toast.info(`🤖 AI Insight: ${insight.title}`, {
-              description: insight.description,
-              duration: 5000
-            });
-          });
+    // Filter by categories if specified
+    if (categories && Array.isArray(categories)) {
+      processedInsights = newInsights.filter(insight =>
+        categories.includes(insight.category)
+      );
+    }
+
+    // Check for new high-priority insights to show notifications
+    if (showNotifications) {
+      const newHighPriorityInsights = processedInsights.filter(insight =>
+        insight.isNew && (insight.priority === 'critical' || insight.priority === 'high')
+      );
+
+      newHighPriorityInsights.forEach(insight => {
+        const toastOptions = {
+          duration: 5000,
+          action: {
+            label: 'View',
+            onClick: () => {
+              // Mark as read when viewed
+              aiInsightsService.markAsRead(insight.id);
+            }
+          }
+        };
+
+        if (insight.priority === 'critical') {
+          toast.error(`🚨 ${insight.title}`, toastOptions);
+        } else {
+          toast.warning(`⚠️ ${insight.title}`, toastOptions);
         }
       });
-      
+    }
+
+    setInsights(processedInsights);
+    setError(null);
+  }, [categories, showNotifications]);
+
+  // Start real-time AI insights
+  const startAI = useCallback(async () => {
+    if (isActive) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Subscribe to insights updates
+      const unsubscribe = aiInsightsService.subscribe(handleInsightsUpdate);
       unsubscribeRef.current = unsubscribe;
-      
-      // Start the service
+
+      // Start the AI service
       aiInsightsService.startRealTimeInsights(updateInterval);
+
       setIsActive(true);
-      
+
+      if (showNotifications) {
+        toast.success('🤖 AI Insights activated - Real-time analysis started');
+      }
+
       return unsubscribe;
     } catch (err) {
       setError(err.message);
-      console.error('Error starting AI insights:', err);
+      toast.error('Failed to start AI insights');
     } finally {
       setLoading(false);
     }
-  }, [updateInterval, showNotifications]);
+  }, [isActive, updateInterval, handleInsightsUpdate, showNotifications]);
 
-  // Stop AI insights
+  // Stop real-time AI insights
   const stopAI = useCallback(() => {
+    if (!isActive) return;
+
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
       unsubscribeRef.current = null;
     }
+
     aiInsightsService.stopRealTimeInsights();
     setIsActive(false);
-  }, []);
+
+    if (showNotifications) {
+      toast.info('🤖 AI Insights deactivated');
+    }
+  }, [isActive, showNotifications]);
 
   // Toggle AI insights
   const toggleAI = useCallback(() => {
@@ -96,13 +118,45 @@ export const useRealTimeAI = (options = {}) => {
     }
   }, [isActive, startAI, stopAI]);
 
-  // Generate insights manually
-  const generateInsights = useCallback(() => {
-    if (isActive) {
-      aiInsightsService.generateInsights();
-      toast.success('Generating new AI insights...');
+  // Generate new insights manually
+  const generateInsights = useCallback(async () => {
+    setLoading(true);
+    try {
+      await aiInsightsService.generateInsights();
+      toast.success('🧠 New AI insights generated');
+    } catch (err) {
+      setError(err.message);
+      toast.error('Failed to generate insights');
+    } finally {
+      setLoading(false);
     }
-  }, [isActive]);
+  }, []);
+
+  // Mark insight as read
+  const markAsRead = useCallback((insightId) => {
+    aiInsightsService.markAsRead(insightId);
+  }, []);
+
+  // Clear all insights
+  const clearInsights = useCallback(() => {
+    aiInsightsService.clearInsights();
+    toast.info('All insights cleared');
+  }, []);
+
+  // Get insights by priority
+  const getInsightsByPriority = useCallback((priority) => {
+    return filteredInsights.filter(insight => insight.priority === priority);
+  }, [filteredInsights]);
+
+  // Get actionable insights
+  const getActionableInsights = useCallback(() => {
+    return filteredInsights.filter(insight => insight.actionable || (insight.recommendations && insight.recommendations.length > 0));
+  }, [filteredInsights]);
+
+  // Get new insights count
+  const getNewInsightsCount = useCallback(() => {
+    return filteredInsights.filter(insight => insight.isNew).length;
+  }, [filteredInsights]);
 
   // Auto-start if enabled
   useEffect(() => {
@@ -122,21 +176,72 @@ export const useRealTimeAI = (options = {}) => {
     };
   }, [autoStart, startAI]);
 
+  // Get current insights on mount
+  useEffect(() => {
+    const currentInsights = aiInsightsService.getInsights();
+    handleInsightsUpdate(currentInsights);
+  }, [handleInsightsUpdate]);
+
   return {
+    // State
     insights: filteredInsights,
     isActive,
     loading,
     error,
+
+    // Actions
     startAI,
     stopAI,
     toggleAI,
     generateInsights,
-    // Statistics
-    totalInsights,
-    newInsights,
-    criticalInsights,
-    highPriorityInsights,
-    actionableInsights
+    markAsRead,
+    clearInsights,
+
+    // Utilities
+    getInsightsByPriority,
+    getActionableInsights,
+    getNewInsightsCount,
+
+    // Stats
+    totalInsights: filteredInsights.length,
+    newInsights: getNewInsightsCount(),
+    criticalInsights: getInsightsByPriority('critical').length,
+    highPriorityInsights: getInsightsByPriority('high').length,
+    actionableInsights: getActionableInsights().length
+  };
+};
+
+// Hook for specific insight categories
+export const useRealTimeAIByCategory = (category, options = {}) => {
+  return useRealTimeAI({
+    ...options,
+    categories: [category]
+  });
+};
+
+// Hook for high-priority insights only
+export const useHighPriorityAI = (options = {}) => {
+  const aiData = useRealTimeAI(options);
+
+  const highPriorityInsights = aiData.insights.filter(insight =>
+    insight.priority === 'critical' || insight.priority === 'high'
+  );
+
+  return {
+    ...aiData,
+    insights: highPriorityInsights
+  };
+};
+
+// Hook for actionable insights only
+export const useActionableAI = (options = {}) => {
+  const aiData = useRealTimeAI(options);
+
+  const actionableInsights = aiData.insights.filter(insight => insight.actionable);
+
+  return {
+    ...aiData,
+    insights: actionableInsights
   };
 };
 

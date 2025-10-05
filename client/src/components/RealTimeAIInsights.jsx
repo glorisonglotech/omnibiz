@@ -1,297 +1,189 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { 
-  Brain, TrendingUp, TrendingDown, AlertTriangle, 
-  CheckCircle, Clock, Zap, RefreshCw, Filter,
-  Lightbulb, Target, DollarSign, Users, ShoppingCart,
-  BarChart3, PieChart, Activity, Bell, BellOff
+  TrendingUp, 
+  TrendingDown, 
+  AlertTriangle, 
+  Lightbulb, 
+  BarChart3, 
+  Users, 
+  DollarSign,
+  Package,
+  RefreshCw
 } from 'lucide-react';
-import { useRealTimeAI } from '@/hooks/useRealTimeAI';
-import { toast } from 'sonner';
 
-const RealTimeAIInsights = ({ 
-  title = "AI Insights",
-  showControls = true,
-  autoStart = true,
-  categories = null,
-  showNotifications = true,
-  updateInterval = 30000
-}) => {
-  const [activeTab, setActiveTab] = useState('all');
-  const [notificationsEnabled, setNotificationsEnabled] = useState(showNotifications);
+const RealTimeAIInsights = () => {
+  const [insights, setInsights] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const {
-    insights,
-    isActive,
-    loading,
-    error,
-    startAI,
-    stopAI,
-    toggleAI,
-    generateInsights,
-    totalInsights,
-    newInsights,
-    criticalInsights,
-    highPriorityInsights,
-    actionableInsights
-  } = useRealTimeAI({
-    autoStart,
-    updateInterval,
-    showNotifications: notificationsEnabled,
-    categories
-  });
-
-  const getPriorityIcon = (priority) => {
-    switch (priority) {
-      case 'critical':
-        return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      case 'high':
-        return <TrendingUp className="h-4 w-4 text-orange-500" />;
-      case 'medium':
-        return <Activity className="h-4 w-4 text-yellow-500" />;
-      case 'low':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      default:
-        return <Lightbulb className="h-4 w-4 text-blue-500" />;
+  // Mock AI insights data
+  const mockInsights = [
+    {
+      id: 1,
+      type: 'trend',
+      priority: 'high',
+      title: 'Sales Spike Detected',
+      description: 'Your sales have increased by 23% in the last 24 hours compared to the same period last week.',
+      icon: TrendingUp,
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
+      recommendation: 'Consider increasing inventory for top-selling items.',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours ago
+    },
+    {
+      id: 2,
+      type: 'alert',
+      priority: 'medium',
+      title: 'Low Stock Warning',
+      description: '5 products are running low on inventory and may need restocking soon.',
+      icon: AlertTriangle,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+      recommendation: 'Review inventory levels and place orders for affected items.',
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000) // 4 hours ago
+    },
+    {
+      id: 3,
+      type: 'opportunity',
+      priority: 'medium',
+      title: 'Customer Behavior Pattern',
+      description: 'Customers who buy Product A are 67% more likely to purchase Product B within 7 days.',
+      icon: Lightbulb,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      recommendation: 'Create a bundle offer or cross-selling campaign for these products.',
+      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000) // 6 hours ago
+    },
+    {
+      id: 4,
+      type: 'performance',
+      priority: 'low',
+      title: 'Peak Hours Identified',
+      description: 'Your busiest hours are between 2-4 PM and 7-9 PM on weekdays.',
+      icon: BarChart3,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+      recommendation: 'Schedule staff accordingly and consider targeted promotions during these hours.',
+      timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000) // 8 hours ago
     }
+  ];
+
+  const loadInsights = () => {
+    setLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+      setInsights(mockInsights);
+      setLoading(false);
+    }, 1000);
   };
 
-  const getCategoryIcon = (category) => {
-    switch (category) {
-      case 'sales':
-        return <DollarSign className="h-4 w-4" />;
-      case 'customers':
-        return <Users className="h-4 w-4" />;
-      case 'inventory':
-        return <ShoppingCart className="h-4 w-4" />;
-      case 'analytics':
-        return <BarChart3 className="h-4 w-4" />;
-      case 'performance':
-        return <Target className="h-4 w-4" />;
-      default:
-        return <Brain className="h-4 w-4" />;
-    }
-  };
+  useEffect(() => {
+    loadInsights();
+  }, []);
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'critical':
-        return 'border-l-red-500 bg-red-50';
       case 'high':
-        return 'border-l-orange-500 bg-orange-50';
+        return 'bg-red-100 text-red-800';
       case 'medium':
-        return 'border-l-yellow-500 bg-yellow-50';
+        return 'bg-yellow-100 text-yellow-800';
       case 'low':
-        return 'border-l-green-500 bg-green-50';
+        return 'bg-green-100 text-green-800';
       default:
-        return 'border-l-blue-500 bg-blue-50';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const filterInsightsByTab = (insights, tab) => {
-    switch (tab) {
-      case 'critical':
-        return insights.filter(insight => insight.priority === 'critical');
-      case 'high':
-        return insights.filter(insight => insight.priority === 'high');
-      case 'actionable':
-        return insights.filter(insight => insight.actionable);
-      case 'recent':
-        return insights.filter(insight => {
-          const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
-          return new Date(insight.timestamp) > hourAgo;
-        });
-      default:
-        return insights;
+  const formatTimestamp = (timestamp) => {
+    const now = new Date();
+    const diff = now - timestamp;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    
+    if (hours < 1) {
+      const minutes = Math.floor(diff / (1000 * 60));
+      return `${minutes} minutes ago`;
+    } else if (hours < 24) {
+      return `${hours} hours ago`;
+    } else {
+      const days = Math.floor(hours / 24);
+      return `${days} days ago`;
     }
   };
-
-  const filteredInsights = filterInsightsByTab(insights, activeTab);
-
-  const InsightCard = ({ insight }) => (
-    <Card className={`mb-3 border-l-4 ${getPriorityColor(insight.priority)}`}>
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-2">
-            {getPriorityIcon(insight.priority)}
-            {getCategoryIcon(insight.category)}
-            <CardTitle className="text-sm font-medium">{insight.title}</CardTitle>
-          </div>
-          <div className="flex items-center space-x-1">
-            <Badge variant="outline" className="text-xs">
-              {insight.category}
-            </Badge>
-            <Badge variant={insight.priority === 'critical' ? 'destructive' : 'secondary'} className="text-xs">
-              {insight.priority}
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <p className="text-sm text-gray-600 mb-2">{insight.description}</p>
-        
-        {insight.metrics && (
-          <div className="flex flex-wrap gap-2 mb-2">
-            {Object.entries(insight.metrics).map(([key, value]) => (
-              <Badge key={key} variant="outline" className="text-xs">
-                {key}: {typeof value === 'number' ? value.toLocaleString() : value}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {insight.recommendation && (
-          <div className="bg-blue-50 p-2 rounded text-xs text-blue-800 mb-2">
-            <strong>Recommendation:</strong> {insight.recommendation}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <div className="flex items-center">
-            <Clock className="h-3 w-3 mr-1" />
-            {new Date(insight.timestamp).toLocaleTimeString()}
-          </div>
-          {insight.actionable && (
-            <Badge variant="outline" className="text-xs">
-              <Target className="h-3 w-3 mr-1" />
-              Actionable
-            </Badge>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <CardTitle className="text-base font-medium flex items-center">
-            <Brain className="h-5 w-5 mr-2" />
-            {title}
-            {isActive && (
-              <div className="ml-2 flex items-center">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="ml-1 text-xs text-green-600">Live</span>
-              </div>
-            )}
-          </CardTitle>
-          <CardDescription>
-            Real-time AI-powered business insights and recommendations
-          </CardDescription>
+          <h2 className="text-2xl font-bold text-gray-900">AI Insights</h2>
+          <p className="text-gray-600">Real-time business intelligence and recommendations</p>
         </div>
-        
-        {showControls && (
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-            >
-              {notificationsEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={generateInsights}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
+        <Button 
+          onClick={loadInsights} 
+          disabled={loading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
 
-            <Button
-              variant={isActive ? "destructive" : "default"}
-              size="sm"
-              onClick={toggleAI}
-            >
-              {isActive ? 'Stop' : 'Start'} AI
-            </Button>
+      <div className="grid gap-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+            <span className="ml-2 text-gray-600">Loading insights...</span>
           </div>
+        ) : (
+          insights.map((insight) => {
+            const IconComponent = insight.icon;
+            return (
+              <Card key={insight.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${insight.bgColor}`}>
+                        <IconComponent className={`h-5 w-5 ${insight.color}`} />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{insight.title}</CardTitle>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Badge className={getPriorityColor(insight.priority)}>
+                            {insight.priority.toUpperCase()}
+                          </Badge>
+                          <span className="text-sm text-gray-500">
+                            {formatTimestamp(insight.timestamp)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base mb-3">
+                    {insight.description}
+                  </CardDescription>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-sm font-medium text-gray-700 mb-1">💡 Recommendation:</p>
+                    <p className="text-sm text-gray-600">{insight.recommendation}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
         )}
-      </CardHeader>
-      
-      <CardContent>
-        {/* Statistics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{totalInsights}</div>
-            <div className="text-xs text-gray-500">Total Insights</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{newInsights}</div>
-            <div className="text-xs text-gray-500">New Today</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">{criticalInsights}</div>
-            <div className="text-xs text-gray-500">Critical</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">{actionableInsights}</div>
-            <div className="text-xs text-gray-500">Actionable</div>
-          </div>
+      </div>
+
+      {!loading && insights.length === 0 && (
+        <div className="text-center py-12">
+          <Lightbulb className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No insights available</h3>
+          <p className="text-gray-600">Check back later for AI-powered business insights.</p>
         </div>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="critical">Critical</TabsTrigger>
-            <TabsTrigger value="high">High</TabsTrigger>
-            <TabsTrigger value="actionable">Actionable</TabsTrigger>
-            <TabsTrigger value="recent">Recent</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={activeTab} className="mt-4">
-            {loading && (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <span className="ml-2">Generating insights...</span>
-              </div>
-            )}
-
-            {error && (
-              <div className="flex items-center justify-center py-8 text-red-500">
-                <AlertTriangle className="h-8 w-8 mr-2" />
-                <span>Error loading insights: {error}</span>
-              </div>
-            )}
-
-            {!loading && !error && (
-              <ScrollArea className="h-96">
-                {filteredInsights.length > 0 ? (
-                  <div className="space-y-3">
-                    {filteredInsights.map((insight) => (
-                      <InsightCard key={insight.id} insight={insight} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center py-8 text-gray-500">
-                    <Brain className="h-8 w-8 mr-2" />
-                    <span>No insights available for this category</span>
-                  </div>
-                )}
-              </ScrollArea>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        {/* Status */}
-        <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-          <div className="flex items-center">
-            <Zap className="h-3 w-3 mr-1" />
-            {isActive ? 'AI actively monitoring' : 'AI monitoring paused'}
-          </div>
-          <div>
-            Last updated: {new Date().toLocaleTimeString()}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };
 

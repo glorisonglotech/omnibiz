@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import ComprehensiveGraphs from "@/components/ComprehensiveGraphs";
+import { generateMockGraphData } from "@/hooks/useGraphData";
 import {
   Card,
   CardContent,
@@ -51,7 +53,6 @@ import { useFinancial } from "@/context/FinancialContext";
 import PaymentOptions from "@/components/payments/PaymentOptions";
 import MpesaPayment from "@/components/payments/MpesaPayment";
 import PayPalPayment from "@/components/payments/PayPalPayment";
-import ComprehensiveGraphs from "@/components/ComprehensiveGraphs";
 
 const Finances = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -442,6 +443,67 @@ const Finances = () => {
             <p className="text-xs text-muted-foreground">5 invoices pending</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Financial Analytics Graphs */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ComprehensiveGraphs
+          title="Revenue vs Expenses"
+          description="Monthly financial performance comparison"
+          type="composed"
+          data={generateMockGraphData('growth', 12)}
+          height={350}
+          autoRefresh={true}
+          refreshInterval={60000}
+        />
+
+        <ComprehensiveGraphs
+          title="Profit Trends"
+          description="Net profit analysis over time"
+          type="area"
+          data={generateMockGraphData('growth', 30)}
+          height={350}
+          autoRefresh={true}
+          refreshInterval={60000}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ComprehensiveGraphs
+          title="Expense Categories"
+          description="Breakdown of business expenses"
+          type="pie"
+          data={[
+            { name: 'Operations', value: 40 },
+            { name: 'Marketing', value: 25 },
+            { name: 'Staff', value: 20 },
+            { name: 'Equipment', value: 10 },
+            { name: 'Other', value: 5 }
+          ]}
+          height={300}
+          showControls={false}
+        />
+
+        <ComprehensiveGraphs
+          title="Cash Flow"
+          description="Daily cash flow patterns"
+          type="line"
+          data={generateMockGraphData('trend', 30)}
+          height={300}
+        />
+
+        <ComprehensiveGraphs
+          title="Invoice Status"
+          description="Payment status distribution"
+          type="bar"
+          data={[
+            { name: 'Paid', value: 65 },
+            { name: 'Pending', value: 25 },
+            { name: 'Overdue', value: 10 }
+          ]}
+          height={300}
+          showControls={false}
+        />
       </div>
 
       {/* Payment Integration Demo */}

@@ -1,242 +1,341 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  TrendingUp, BarChart3, PieChart, Activity, 
-  Zap, Download, RefreshCw, Maximize2
+  BarChart3, 
+  TrendingUp, 
+  PieChart, 
+  Activity, 
+  DollarSign,
+  Users,
+  Package,
+  ShoppingCart,
+  Calendar,
+  Target,
+  Zap,
+  RefreshCw
 } from 'lucide-react';
 import ComprehensiveGraphs from '@/components/ComprehensiveGraphs';
-import { useGraphData } from '@/hooks/useGraphData';
+import { generateMockGraphData } from '@/hooks/useGraphData';
+import { toast } from 'sonner';
 
 const GraphsShowcase = () => {
-  const [activeDemo, setActiveDemo] = useState('trends');
-  
-  const { multipleGraphData } = useGraphData();
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const demoSections = [
-    {
-      id: 'trends',
-      title: 'Trend Analysis',
-      description: 'Track business performance over time',
-      icon: <TrendingUp className="h-5 w-5" />,
-      charts: [
-        { title: 'Revenue Trends', type: 'line', data: multipleGraphData.revenue },
-        { title: 'Sales Growth', type: 'area', data: multipleGraphData.sales },
-        { title: 'Customer Acquisition', type: 'line', data: multipleGraphData.customers }
-      ]
-    },
-    {
-      id: 'comparisons',
-      title: 'Comparative Analysis',
-      description: 'Compare different metrics and periods',
-      icon: <BarChart3 className="h-5 w-5" />,
-      charts: [
-        { title: 'Revenue vs Expenses', type: 'bar', data: multipleGraphData.financial },
-        { title: 'Product Performance', type: 'bar', data: multipleGraphData.products },
-        { title: 'Regional Comparison', type: 'bar', data: multipleGraphData.regions }
-      ]
-    },
-    {
-      id: 'distributions',
-      title: 'Distribution Analysis',
-      description: 'Understand data composition and segments',
-      icon: <PieChart className="h-5 w-5" />,
-      charts: [
-        { title: 'Revenue by Category', type: 'pie', data: multipleGraphData.categories },
-        { title: 'Customer Segments', type: 'pie', data: multipleGraphData.segments },
-        { title: 'Market Share', type: 'pie', data: multipleGraphData.market }
-      ]
-    },
-    {
-      id: 'performance',
-      title: 'Performance Metrics',
-      description: 'Monitor KPIs and operational efficiency',
-      icon: <Activity className="h-5 w-5" />,
-      charts: [
-        { title: 'KPI Dashboard', type: 'composed', data: multipleGraphData.kpis },
-        { title: 'Operational Efficiency', type: 'area', data: multipleGraphData.efficiency },
-        { title: 'Quality Metrics', type: 'line', data: multipleGraphData.quality }
-      ]
-    },
-    {
-      id: 'realtime',
-      title: 'Real-time Analytics',
-      description: 'Live data updates and monitoring',
-      icon: <Zap className="h-5 w-5" />,
-      charts: [
-        { title: 'Live Sales', type: 'line', data: multipleGraphData.liveSales, autoRefresh: true },
-        { title: 'Active Users', type: 'area', data: multipleGraphData.activeUsers, autoRefresh: true },
-        { title: 'System Performance', type: 'composed', data: multipleGraphData.system, autoRefresh: true }
-      ]
-    }
+  const refreshAllGraphs = () => {
+    setRefreshKey(prev => prev + 1);
+    toast.success('All graphs refreshed successfully!');
+  };
+
+  // Sample data for different chart types
+  const pieData = [
+    { name: 'Desktop', value: 45 },
+    { name: 'Mobile', value: 35 },
+    { name: 'Tablet', value: 20 }
   ];
 
-  const currentSection = demoSections.find(section => section.id === activeDemo);
+  const categoryData = [
+    { name: 'Electronics', value: 35 },
+    { name: 'Clothing', value: 25 },
+    { name: 'Books', value: 20 },
+    { name: 'Home & Garden', value: 15 },
+    { name: 'Sports', value: 5 }
+  ];
+
+  const performanceData = [
+    { name: 'Excellent', value: 40 },
+    { name: 'Good', value: 35 },
+    { name: 'Average', value: 20 },
+    { name: 'Poor', value: 5 }
+  ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Graphs Showcase</h1>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+            <BarChart3 className="h-8 w-8 text-green-600" />
+            Comprehensive Graphs Showcase
+          </h1>
           <p className="text-muted-foreground">
-            Comprehensive data visualization and analytics platform
+            Interactive charts and analytics for business insights
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Badge variant="secondary">
-            <Activity className="h-3 w-3 mr-1" />
-            Interactive Demo
-          </Badge>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export All
-          </Button>
-        </div>
+        <Button onClick={refreshAllGraphs} className="gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Refresh All
+        </Button>
       </div>
 
       {/* Feature Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <BarChart3 className="h-5 w-5 mr-2" />
-            Platform Features
-          </CardTitle>
-          <CardDescription>
-            Advanced charting capabilities for comprehensive business analytics
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="text-center p-4 border rounded-lg">
-              <TrendingUp className="h-8 w-8 mx-auto mb-2 text-blue-500" />
-              <h3 className="font-semibold">5 Chart Types</h3>
-              <p className="text-sm text-muted-foreground">Line, Area, Bar, Pie, Composed</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="font-semibold">Real-time Updates</p>
+                <p className="text-xs text-muted-foreground">Auto-refresh capabilities</p>
+              </div>
             </div>
-            <div className="text-center p-4 border rounded-lg">
-              <RefreshCw className="h-8 w-8 mx-auto mb-2 text-green-500" />
-              <h3 className="font-semibold">Real-time Updates</h3>
-              <p className="text-sm text-muted-foreground">Auto-refresh with live data</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="font-semibold">Interactive Controls</p>
+                <p className="text-xs text-muted-foreground">Chart type switching</p>
+              </div>
             </div>
-            <div className="text-center p-4 border rounded-lg">
-              <Maximize2 className="h-8 w-8 mx-auto mb-2 text-purple-500" />
-              <h3 className="font-semibold">Interactive Controls</h3>
-              <p className="text-sm text-muted-foreground">Zoom, filter, export options</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-yellow-600" />
+              <div>
+                <p className="font-semibold">Export Ready</p>
+                <p className="text-xs text-muted-foreground">CSV data export</p>
+              </div>
             </div>
-            <div className="text-center p-4 border rounded-lg">
-              <Activity className="h-8 w-8 mx-auto mb-2 text-orange-500" />
-              <h3 className="font-semibold">Responsive Design</h3>
-              <p className="text-sm text-muted-foreground">Works on all devices</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-purple-600" />
+              <div>
+                <p className="font-semibold">Multiple Types</p>
+                <p className="text-xs text-muted-foreground">Line, Bar, Pie, Area</p>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Demo Sections */}
-      <Tabs value={activeDemo} onValueChange={setActiveDemo} className="w-full">
+      <Tabs defaultValue="trends" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
-          {demoSections.map((section) => (
-            <TabsTrigger key={section.id} value={section.id} className="flex items-center">
-              {section.icon}
-              <span className="ml-2 hidden sm:inline">{section.title}</span>
-            </TabsTrigger>
-          ))}
+          <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="comparisons">Comparisons</TabsTrigger>
+          <TabsTrigger value="distributions">Distributions</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="realtime">Real-time</TabsTrigger>
         </TabsList>
 
-        {demoSections.map((section) => (
-          <TabsContent key={section.id} value={section.id} className="space-y-6">
-            {/* Section Header */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  {section.icon}
-                  <span className="ml-2">{section.title}</span>
-                </CardTitle>
-                <CardDescription>{section.description}</CardDescription>
-              </CardHeader>
-            </Card>
+        <TabsContent value="trends" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ComprehensiveGraphs
+              key={`trend-1-${refreshKey}`}
+              title="Revenue Growth Trends"
+              description="Monthly revenue progression with growth indicators"
+              type="area"
+              data={generateMockGraphData('growth', 12)}
+              height={350}
+            />
+            
+            <ComprehensiveGraphs
+              key={`trend-2-${refreshKey}`}
+              title="Customer Acquisition"
+              description="New customer trends over time"
+              type="line"
+              data={generateMockGraphData('trend', 30)}
+              height={350}
+            />
+          </div>
+          
+          <ComprehensiveGraphs
+            key={`trend-3-${refreshKey}`}
+            title="Sales Performance Timeline"
+            description="Comprehensive sales data with multiple metrics"
+            type="composed"
+            data={generateMockGraphData('growth', 30)}
+            height={400}
+          />
+        </TabsContent>
 
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {section.charts.map((chart, index) => (
-                <ComprehensiveGraphs
-                  key={`${section.id}-${index}`}
-                  title={chart.title}
-                  defaultType={chart.type}
-                  data={chart.data}
-                  height={300}
-                  autoRefresh={chart.autoRefresh || false}
-                  refreshInterval={chart.autoRefresh ? 10000 : 30000}
-                  showControls={true}
-                  exportable={true}
-                />
-              ))}
-            </div>
+        <TabsContent value="comparisons" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ComprehensiveGraphs
+              key={`comp-1-${refreshKey}`}
+              title="Monthly Comparisons"
+              description="Month-over-month performance analysis"
+              type="bar"
+              data={generateMockGraphData('trend', 12)}
+              height={350}
+            />
+            
+            <ComprehensiveGraphs
+              key={`comp-2-${refreshKey}`}
+              title="Product Performance"
+              description="Comparative analysis of product categories"
+              type="bar"
+              data={categoryData}
+              height={350}
+              showControls={false}
+            />
+          </div>
+        </TabsContent>
 
-            {/* Usage Instructions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>How to Use</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <h4 className="font-semibold mb-2">Interactive Features:</h4>
-                    <ul className="space-y-1 text-muted-foreground">
-                      <li>• Switch between chart types using the dropdown</li>
-                      <li>• Adjust time ranges (7D, 30D, 90D, 1Y)</li>
-                      <li>• Click refresh to update data manually</li>
-                      <li>• Use fullscreen mode for detailed analysis</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Export Options:</h4>
-                    <ul className="space-y-1 text-muted-foreground">
-                      <li>• Export chart data as JSON</li>
-                      <li>• Save charts as images (coming soon)</li>
-                      <li>• Generate PDF reports (coming soon)</li>
-                      <li>• Share charts via URL (coming soon)</li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
+        <TabsContent value="distributions" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <ComprehensiveGraphs
+              key={`dist-1-${refreshKey}`}
+              title="Traffic Sources"
+              description="Website traffic distribution"
+              type="pie"
+              data={pieData}
+              height={300}
+              showControls={false}
+            />
+            
+            <ComprehensiveGraphs
+              key={`dist-2-${refreshKey}`}
+              title="Product Categories"
+              description="Sales by product category"
+              type="pie"
+              data={categoryData}
+              height={300}
+              showControls={false}
+            />
+            
+            <ComprehensiveGraphs
+              key={`dist-3-${refreshKey}`}
+              title="Performance Ratings"
+              description="Customer satisfaction distribution"
+              type="pie"
+              data={performanceData}
+              height={300}
+              showControls={false}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="performance" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ComprehensiveGraphs
+              key={`perf-1-${refreshKey}`}
+              title="KPI Dashboard"
+              description="Key performance indicators tracking"
+              type="composed"
+              data={generateMockGraphData('growth', 20)}
+              height={350}
+            />
+            
+            <ComprehensiveGraphs
+              key={`perf-2-${refreshKey}`}
+              title="Efficiency Metrics"
+              description="Operational efficiency over time"
+              type="area"
+              data={generateMockGraphData('trend', 30)}
+              height={350}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="realtime" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ComprehensiveGraphs
+              key={`rt-1-${refreshKey}`}
+              title="Live Sales Data"
+              description="Real-time sales monitoring"
+              type="line"
+              data={generateMockGraphData('trend', 24)}
+              height={350}
+              autoRefresh={true}
+              refreshInterval={5000}
+            />
+            
+            <ComprehensiveGraphs
+              key={`rt-2-${refreshKey}`}
+              title="Active Users"
+              description="Current active user count"
+              type="area"
+              data={generateMockGraphData('trend', 24)}
+              height={350}
+              autoRefresh={true}
+              refreshInterval={3000}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <ComprehensiveGraphs
+              key={`rt-3-${refreshKey}`}
+              title="Server Performance"
+              description="Real-time server metrics"
+              type="line"
+              data={generateMockGraphData('trend', 20)}
+              height={250}
+              autoRefresh={true}
+              refreshInterval={2000}
+            />
+            
+            <ComprehensiveGraphs
+              key={`rt-4-${refreshKey}`}
+              title="Order Processing"
+              description="Live order processing rate"
+              type="bar"
+              data={generateMockGraphData('trend', 10)}
+              height={250}
+              autoRefresh={true}
+              refreshInterval={4000}
+            />
+            
+            <ComprehensiveGraphs
+              key={`rt-5-${refreshKey}`}
+              title="System Health"
+              description="Overall system status"
+              type="pie"
+              data={[
+                { name: 'Healthy', value: 85 },
+                { name: 'Warning', value: 12 },
+                { name: 'Critical', value: 3 }
+              ]}
+              height={250}
+              autoRefresh={true}
+              refreshInterval={10000}
+              showControls={false}
+            />
+          </div>
+        </TabsContent>
       </Tabs>
 
-      {/* Integration Examples */}
+      {/* Usage Instructions */}
       <Card>
         <CardHeader>
-          <CardTitle>Integration Examples</CardTitle>
+          <CardTitle>How to Use Comprehensive Graphs</CardTitle>
           <CardDescription>
-            See how these charts are integrated across the application
+            Interactive features and customization options
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-semibold mb-2">Dashboard</h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                Revenue trends, sales performance, and customer growth metrics
-              </p>
-              <Badge variant="outline">Live Updates</Badge>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold mb-2">Interactive Features</h4>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Switch between chart types (Line, Bar, Area, Pie)</li>
+                <li>• Adjust time ranges (7d, 30d, 90d, 1y)</li>
+                <li>• Real-time data refresh capabilities</li>
+                <li>• Export data to CSV format</li>
+                <li>• Hover tooltips for detailed information</li>
+              </ul>
             </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-semibold mb-2">Analytics</h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                Detailed analysis with multiple chart types and comparisons
-              </p>
-              <Badge variant="outline">Interactive</Badge>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-semibold mb-2">Finances</h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                Financial analytics with profit/loss and expense tracking
-              </p>
-              <Badge variant="outline">Real-time</Badge>
+            <div>
+              <h4 className="font-semibold mb-2">Customization Options</h4>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Custom color schemes for different data types</li>
+                <li>• Configurable auto-refresh intervals</li>
+                <li>• Responsive design for all screen sizes</li>
+                <li>• Data transformation and filtering</li>
+                <li>• Integration with existing API endpoints</li>
+              </ul>
             </div>
           </div>
         </CardContent>

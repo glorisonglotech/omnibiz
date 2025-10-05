@@ -305,7 +305,22 @@ const Profile = () => {
     try {
       const token = localStorage.getItem("token");
 
-      await api.put("/user/profile", profileData, {
+      // Filter out empty values to avoid validation errors
+      const cleanedProfileData = { ...profileData };
+
+      // Remove empty gender field to avoid enum validation error
+      if (!cleanedProfileData.gender || cleanedProfileData.gender === '') {
+        delete cleanedProfileData.gender;
+      }
+
+      // Remove other empty fields that might cause issues
+      Object.keys(cleanedProfileData).forEach(key => {
+        if (cleanedProfileData[key] === '') {
+          delete cleanedProfileData[key];
+        }
+      });
+
+      await api.put("/user/profile", cleanedProfileData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

@@ -53,8 +53,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
-import { toast } from "sonner";
 import InteractiveMap from "@/components/InteractiveMap";
+import { toast } from "sonner";
 
 const Locations = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -490,22 +490,6 @@ const Locations = () => {
             </p>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Interactive Map */}
-      <div className="mt-8">
-        <InteractiveMap
-          title="Business Locations Map"
-          height={500}
-          showControls={true}
-          locations={locations}
-          onLocationSelect={(location) => {
-            setSelectedLocation(location);
-            setIsLocationDetailsOpen(true);
-            toast.success(`Selected: ${location.name}`);
-          }}
-          fullscreen={false}
-        />
       </div>
 
       {/* Add Location Dialog */}

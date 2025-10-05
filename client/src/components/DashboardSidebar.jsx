@@ -42,6 +42,7 @@ const navigationItems = [
   { name: "Locations", href: "/dashboard/locations", icon: MapPin },
   { name: "History", href: "/dashboard/history", icon: History },
   { name: "Search", href: "/dashboard/search", icon: Search },
+  { name: "Graphs", href: "/dashboard/graphs", icon: BarChart3 },
   { name: "Reports", href: "/dashboard/reports", icon: FileText },
   { name: "GUI Demo", href: "/dashboard/gui", icon: Monitor },
   { name: "Help & Support", href: "/dashboard/support", icon: HelpCircle },

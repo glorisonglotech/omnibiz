@@ -25,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as XLSX from 'xlsx'; // Import XLSX to handle Excel file generation
 import ComprehensiveGraphs from "@/components/ComprehensiveGraphs";
+import { generateMockGraphData } from "@/hooks/useGraphData";
 import RealTimeAIInsights from "@/components/RealTimeAIInsights";
 
 // Placeholder for fetching dynamic data
@@ -207,6 +208,62 @@ const Dashboard = () => {
             </Card>
           );
         })}
+      </div>
+
+      {/* Analytics Graphs */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <ComprehensiveGraphs
+          title="Revenue Trends"
+          description="Daily revenue and profit analysis"
+          type="area"
+          data={generateMockGraphData('growth', 30)}
+          height={300}
+          autoRefresh={true}
+          refreshInterval={60000}
+        />
+
+        <ComprehensiveGraphs
+          title="Sales Performance"
+          description="Orders and customer metrics"
+          type="composed"
+          data={generateMockGraphData('trend', 30)}
+          height={300}
+          autoRefresh={true}
+          refreshInterval={60000}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <ComprehensiveGraphs
+          title="Product Categories"
+          description="Sales distribution by category"
+          type="pie"
+          data={[
+            { name: 'Electronics', value: 35 },
+            { name: 'Clothing', value: 25 },
+            { name: 'Books', value: 20 },
+            { name: 'Home & Garden', value: 15 },
+            { name: 'Sports', value: 5 }
+          ]}
+          height={250}
+          showControls={false}
+        />
+
+        <ComprehensiveGraphs
+          title="Monthly Profits"
+          description="Profit trends over time"
+          type="bar"
+          data={generateMockGraphData('growth', 12)}
+          height={250}
+        />
+
+        <ComprehensiveGraphs
+          title="Customer Growth"
+          description="New vs returning customers"
+          type="line"
+          data={generateMockGraphData('trend', 30)}
+          height={250}
+        />
       </div>
 
       {/* Quick Actions */}

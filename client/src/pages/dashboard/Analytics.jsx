@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  ShoppingCart, 
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  ShoppingCart,
   DollarSign,
   Package,
   Calendar,
@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ComprehensiveGraphs from '@/components/ComprehensiveGraphs';
-import { useGraphData } from '@/hooks/useGraphData';
+import { generateMockGraphData } from '@/hooks/useGraphData';
 
 const Analytics = () => {
   const [analyticsData, setAnalyticsData] = useState({
@@ -222,29 +222,27 @@ const Analytics = () => {
 
         <TabsContent value="sales" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Sales Trends */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <LineChart className="h-5 w-5" />
-                  Sales Trends
-                </CardTitle>
-                <CardDescription>Daily revenue and order trends</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {analyticsData.salesTrends.daily.map((day, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{new Date(day.date).toLocaleDateString()}</span>
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm font-medium">{formatCurrency(day.revenue)}</span>
-                        <Badge variant="outline">{day.orders} orders</Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Sales Trends Chart */}
+            <ComprehensiveGraphs
+              title="Sales Revenue Trends"
+              description="Daily revenue and growth patterns"
+              type="area"
+              data={generateMockGraphData('growth', 30)}
+              height={350}
+              autoRefresh={true}
+              refreshInterval={60000}
+            />
+
+            {/* Orders Trends Chart */}
+            <ComprehensiveGraphs
+              title="Order Volume Trends"
+              description="Daily order count and patterns"
+              type="line"
+              data={generateMockGraphData('trend', 30)}
+              height={350}
+              autoRefresh={true}
+              refreshInterval={60000}
+            />
 
             {/* Top Products */}
             <Card>
@@ -277,28 +275,32 @@ const Analytics = () => {
 
         <TabsContent value="customers" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Customer Demographics */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PieChart className="h-5 w-5" />
-                  Age Demographics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {analyticsData.customerInsights.demographics.ageGroups.map((group, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">{group.range}</span>
-                        <span className="text-sm font-medium">{group.percentage}%</span>
-                      </div>
-                      <Progress value={group.percentage} className="h-2" />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Customer Demographics Pie Chart */}
+            <ComprehensiveGraphs
+              title="Customer Demographics"
+              description="Age group distribution of customers"
+              type="pie"
+              data={[
+                { name: '18-25', value: 25 },
+                { name: '26-35', value: 35 },
+                { name: '36-45', value: 20 },
+                { name: '46-55', value: 15 },
+                { name: '55+', value: 5 }
+              ]}
+              height={350}
+              showControls={false}
+            />
+
+            {/* Customer Growth Trends */}
+            <ComprehensiveGraphs
+              title="Customer Acquisition"
+              description="New customer growth over time"
+              type="bar"
+              data={generateMockGraphData('growth', 30)}
+              height={350}
+              autoRefresh={true}
+              refreshInterval={60000}
+            />
 
             {/* Customer Behavior */}
             <Card>

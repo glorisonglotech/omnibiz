@@ -45,8 +45,8 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 
 const Settings = () => {
-  const { user, isAuthenticated, loading } = useAuth();
-  const { theme, setTheme, themes } = useTheme();
+  const { isAuthenticated, loading } = useAuth();
+  const { theme, setTheme } = useTheme();
   const {
     sidebarCollapsed,
     setSidebarCollapsed,

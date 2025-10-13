@@ -21,6 +21,7 @@ export function Signup({ className, ...props }) {
     confirmPassword: "",
     phone: "",
     businessName: "",
+    role: "client", // default role
   });
 
   const [error, setError] = useState("");
@@ -28,8 +29,8 @@ export function Signup({ className, ...props }) {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
+    const { id, value, name } = e.target;
+    setFormData((prev) => ({ ...prev, [name || id]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -37,8 +38,8 @@ export function Signup({ className, ...props }) {
     setLoading(true);
     setError("");
 
-    const { name, email, password, confirmPassword, phone, businessName } =
-      formData;
+
+    const { name, email, password, confirmPassword, phone, businessName, role } = formData;
 
     if (
       !name ||
@@ -46,7 +47,8 @@ export function Signup({ className, ...props }) {
       !password ||
       !confirmPassword ||
       !phone ||
-      !businessName
+      !businessName ||
+      !role
     ) {
       setError("All fields are required.");
       toast.error("All fields are required.");
@@ -68,6 +70,7 @@ export function Signup({ className, ...props }) {
         password,
         phone,
         businessName,
+        role,
       });
 
       localStorage.setItem("token", response.data.token);
@@ -184,6 +187,24 @@ export function Signup({ className, ...props }) {
                 />
               </div>
 
+              <div className="grid gap-3">
+                <Label htmlFor="role" className="text-green-700">
+                  Select Role
+                </Label>
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  required
+                  className="border-green-300 focus-visible:ring-green-500 rounded-md p-2"
+                >
+                  <option value="client">Client</option>
+                  <option value="admin">Admin</option>
+                  <option value="manager">Manager</option>
+                  <option value="staff">Staff</option>
+                </select>
+              </div>
               <div className="flex flex-col gap-3">
                 <Button
                   type="submit"

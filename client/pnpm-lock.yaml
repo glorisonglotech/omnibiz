@@ -101,6 +101,9 @@ importers:
       xlsx:
         specifier: ^0.18.5
         version: 0.18.5
+      xslx:
+        specifier: ^1.0.0
+        version: 1.0.0
     devDependencies:
       '@eslint/js':
         specifier: ^9.35.0
@@ -3183,6 +3186,9 @@ packages:
   xmlhttprequest-ssl@2.1.2:
     resolution: {integrity: sha512-TEU+nJVUUnA4CYJFLvK5X9AOeH4KvDvhIfm0vV1GaQRtchnG0hgK5p8hw/xjv8cunWYCsiPCSDzObPyhEwq3KQ==}
     engines: {node: '>=0.4.0'}
+
+  xslx@1.0.0:
+    resolution: {integrity: sha512-S1ja8iIsnxthzcHk4EpwvC/He27koGMKhDQMBRKEA43UKCCxZfs/lpQVEDr/ohsvm8k6oK53HZWYsnsOD4LeMQ==}
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
@@ -6425,6 +6431,8 @@ snapshots:
       word: 0.3.0
 
   xmlhttprequest-ssl@2.1.2: {}
+
+  xslx@1.0.0: {}
 
   yallist@3.1.1: {}
 

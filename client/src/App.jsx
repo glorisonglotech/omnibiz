@@ -26,9 +26,16 @@ import Help from "./pages/Help";
 import Analytics from "./pages/dashboard/Analytics";
 import Maps from "./pages/dashboard/Maps";
 import Purchasing from "./pages/dashboard/Purchasing";
+import History from "./pages/dashboard/History";
+import Search from "./pages/dashboard/Search";
+import GraphsShowcase from "./pages/dashboard/GraphsShowcase";
+import Reports from "./pages/dashboard/Reports";
+import HelpSupport from "./pages/dashboard/HelpSupport";
+import GUIImplementation from "./components/GUIImplementation";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
-import Logo from "@/components/ui/logo";
+import updateService from "@/services/updateServices";
+import ThemeSync from "@/components/ThemeSync";
 import { FinancialProvider } from "@/context/FinancialContext";
 import { PWAProvider } from "@/context/PWAContext";
 import { SocketProvider } from "@/context/SocketContext";
@@ -38,7 +45,7 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import PWAUpdateNotification from "@/components/PWAUpdateNotification";
 import ClientSignup from "@/pages/client/ClientSignup";
 import ClientStorefront from "@/pages/client/ClientStorefront";
-import ProductCatalog from "@/pages/client/ ProductCatalog";
+import ProductCatalog from "@/pages/client/ProductCatalog";
 import BookAppointment from "@/pages/client/BookAppointment";
 import MyBookings from "@/pages/client/MyBookings";
 
@@ -51,10 +58,32 @@ function App() {
     const timer = setTimeout(() => {
       setShowSplash(false);
       setAppReady(true);
+
+      // Initialize update service when app is ready
+      updateService.start();
     }, 3000); // Show splash for 3 seconds
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      updateService.stop();
+    };
   }, []);
+
+  // Initialize update service when app is ready
+  useEffect(() => {
+    if (appReady) {
+      // Initialize automatic updates for existing users
+      updateService.initialize();
+
+      // Show welcome message for new features
+      updateService.showWelcomeMessage();
+
+      // Cleanup on unmount
+      return () => {
+        updateService.destroy();
+      };
+    }
+  }, [appReady]);
 
   const handleSplashComplete = () => {
     setShowSplash(false);
@@ -77,6 +106,7 @@ function App() {
             <SocketProvider>
               <FinancialProvider>
                 <BrowserRouter>
+                  <ThemeSync />
                   <Toaster richColors position="top-center" />
                   <PWAInstallPrompt />
                   <PWAUpdateNotification />
@@ -115,9 +145,15 @@ function App() {
                       <Route path="products" element={<Products />} />
                       <Route path="checkout" element={<Checkout />} />
                       <Route path="help" element={<Help />} />
+                      <Route path="support" element={<HelpSupport />} />
                       <Route path="analytics" element={<Analytics />} />
                       <Route path="maps" element={<Maps />} />
                       <Route path="purchasing" element={<Purchasing />} />
+                      <Route path="history" element={<History />} />
+                      <Route path="search" element={<Search />} />
+                      <Route path="graphs" element={<GraphsShowcase />} />
+                      <Route path="reports" element={<Reports />} />
+                      <Route path="gui" element={<GUIImplementation />} />
                     </Route>
 
                     {/* Catch-all Route for 404 */}

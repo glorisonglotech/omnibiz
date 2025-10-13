@@ -301,7 +301,16 @@ const ECommerce = () => {
               </div>
             </DialogContent>
           </Dialog>
-          <Button variant="outline" className="gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              // Open the client storefront in a new tab
+              const inviteCode = user?.inviteCode || 'demo';
+              window.open(`/client/store/${inviteCode}`, '_blank');
+              toast.success('Opening your store in a new tab...');
+            }}
+          >
             <Eye className="h-4 w-4" />
             View Store
           </Button>

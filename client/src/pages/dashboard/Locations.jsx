@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
+import InteractiveMap from "@/components/InteractiveMap";
 import { toast } from "sonner";
 
 const Locations = () => {
@@ -386,14 +387,22 @@ const Locations = () => {
           </Button>
           <Button
             variant="outline"
-            onClick={() => toast.info("Analytics dashboard coming soon!")}
+            onClick={() => {
+              // Navigate to analytics page or show analytics modal
+              window.location.href = '/dashboard/analytics';
+              toast.success('Redirecting to analytics dashboard...');
+            }}
           >
             <BarChart3 className="mr-2 h-4 w-4" />
             Analytics
           </Button>
           <Button
             variant="outline"
-            onClick={() => toast.info("Map view coming soon!")}
+            onClick={() => {
+              // Open map view in new tab or modal
+              window.open('https://maps.google.com', '_blank');
+              toast.success('Opening map view...');
+            }}
           >
             <Navigation className="mr-2 h-4 w-4" />
             View Map

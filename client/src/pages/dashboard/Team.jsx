@@ -244,32 +244,58 @@ const Team = () => {
 
   // Payroll handler with M-Pesa integration
   const handleSendPayroll = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please log in first.");
+      return;
+    }
+
     if (!payroll.employeeId || !payroll.amount || !payroll.phone) {
       toast.error("Please fill in all required fields.");
       return;
     }
 
-    try {
-      // First, initiate M-Pesa payment
-      const mpesaResponse = await api.post("/payments/mpesa/initiate", {
-        phoneNumber: payroll.phone,
-        amount: Number(payroll.amount),
-        description: `Payroll payment for ${employees.find(emp => emp._id === payroll.employeeId)?.fullName || 'Employee'}`
-      });
+    // Validate amount is a positive number
+    const amountNum = Number(payroll.amount);
+    if (isNaN(amountNum) || amountNum < 1) {
+      toast.error("Amount must be a positive number (at least 1 KSh).");
+      return;
+    }
 
-      if (mpesaResponse.data.success) {
+    try {
+      // First, initiate M-Pesa STK Push with backend-expected payload structure matching Mpesa model
+      const selectedEmployee = employees.find(emp => emp._id === payroll.employeeId);
+      const mpesaResponse = await api.post(
+        "/mpesa/stkpush",
+        {
+          phone: payroll.phone,  // String, as per model
+          amount: amountNum,     // Number, as per model (ensures integer-like for M-Pesa)
+          accountReference: "Payroll Payment",  // String, as per model
+          transactionDesc: `Payroll payment for ${selectedEmployee?.name || 'Employee'} - ${payroll.message || ''}`  // String, as per model
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Check for successful response (backend returns status 200 with message/data on success)
+      if (mpesaResponse.status === 200 && mpesaResponse.data?.data?.checkoutRequestID) {
+        const transactionId = mpesaResponse.data.data.checkoutRequestID;
+
         // Create expense record for payroll
-        await api.post("/expenses", {
-          employeeId: payroll.employeeId,
-          amount: Number(payroll.amount),
-          phone: payroll.phone,
-          message: payroll.message,
-          smsReceipt: payroll.smsReceipt,
-          paymentMethod: "M-Pesa",
-          transactionId: mpesaResponse.data.transactionId,
-          category: "Payroll",
-          description: `Payroll payment via M-Pesa for ${employees.find(emp => emp._id === payroll.employeeId)?.fullName || 'Employee'}`
-        });
+        await api.post(
+          "/expenses",
+          {
+            employeeId: payroll.employeeId,
+            amount: amountNum,
+            phone: payroll.phone,
+            message: payroll.message,
+            smsReceipt: payroll.smsReceipt,
+            paymentMethod: "M-Pesa",
+            transactionId: transactionId,
+            category: "Payroll",
+            description: `Payroll payment via M-Pesa for ${selectedEmployee?.name || 'Employee'}`
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
         setIsPayrollOpen(false);
         setPayroll({
@@ -281,15 +307,18 @@ const Team = () => {
         });
 
         // Refetch payment history
-        api.get("/expenses").then((res) => setPaymentHistory(res.data));
+        const payRes = await api.get("/expenses", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setPaymentHistory(payRes.data || []);
 
-        toast.success("M-Pesa payment initiated successfully! Employee will receive payment prompt.");
+        toast.success("M-Pesa STK Push initiated successfully! Employee will receive payment prompt on their phone.");
       } else {
-        throw new Error(mpesaResponse.data.message || "M-Pesa payment failed");
+        throw new Error(mpesaResponse.data?.error || mpesaResponse.data?.message || "M-Pesa STK Push failed");
       }
     } catch (err) {
       console.error("Payroll payment error:", err);
-      toast.error(err.response?.data?.message || "Error sending payroll payment. Please try again.");
+      toast.error(err.response?.data?.error || err.response?.data?.message || "Error sending payroll payment. Please try again.");
     }
   };
 
@@ -407,6 +436,8 @@ const Team = () => {
                               amount: e.target.value,
                             }))
                           }
+                          type="number"
+                          min="1"
                         />
                       </div>
                       <div className="grid gap-2">

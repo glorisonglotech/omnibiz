@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import ComprehensiveGraphs from "@/components/ComprehensiveGraphs";
+import { generateMockGraphData } from "@/hooks/useGraphData";
 import {
   Card,
   CardContent,
@@ -443,6 +445,67 @@ const Finances = () => {
         </Card>
       </div>
 
+      {/* Financial Analytics Graphs */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ComprehensiveGraphs
+          title="Revenue vs Expenses"
+          description="Monthly financial performance comparison"
+          type="composed"
+          data={generateMockGraphData('growth', 12)}
+          height={350}
+          autoRefresh={true}
+          refreshInterval={60000}
+        />
+
+        <ComprehensiveGraphs
+          title="Profit Trends"
+          description="Net profit analysis over time"
+          type="area"
+          data={generateMockGraphData('growth', 30)}
+          height={350}
+          autoRefresh={true}
+          refreshInterval={60000}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ComprehensiveGraphs
+          title="Expense Categories"
+          description="Breakdown of business expenses"
+          type="pie"
+          data={[
+            { name: 'Operations', value: 40 },
+            { name: 'Marketing', value: 25 },
+            { name: 'Staff', value: 20 },
+            { name: 'Equipment', value: 10 },
+            { name: 'Other', value: 5 }
+          ]}
+          height={300}
+          showControls={false}
+        />
+
+        <ComprehensiveGraphs
+          title="Cash Flow"
+          description="Daily cash flow patterns"
+          type="line"
+          data={generateMockGraphData('trend', 30)}
+          height={300}
+        />
+
+        <ComprehensiveGraphs
+          title="Invoice Status"
+          description="Payment status distribution"
+          type="bar"
+          data={[
+            { name: 'Paid', value: 65 },
+            { name: 'Pending', value: 25 },
+            { name: 'Overdue', value: 10 }
+          ]}
+          height={300}
+          showControls={false}
+        />
+      </div>
+
       {/* Payment Integration Demo */}
       <Card>
         <CardHeader>
@@ -654,6 +717,58 @@ const Finances = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Financial Analytics Graphs */}
+      <div className="mt-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Financial Analytics</h2>
+          <Badge variant="secondary">Live Data</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ComprehensiveGraphs
+            title="Revenue vs Expenses"
+            defaultType="bar"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={30000}
+          />
+          <ComprehensiveGraphs
+            title="Profit Trends"
+            defaultType="line"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={30000}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ComprehensiveGraphs
+            title="Expense Categories"
+            defaultType="pie"
+            height={350}
+            autoRefresh={false}
+            refreshInterval={60000}
+          />
+          <ComprehensiveGraphs
+            title="Cash Flow Analysis"
+            defaultType="area"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={45000}
+          />
+        </div>
+
+        <div className="w-full">
+          <ComprehensiveGraphs
+            title="Invoice Status Overview"
+            defaultType="composed"
+            height={400}
+            autoRefresh={true}
+            refreshInterval={20000}
+          />
+        </div>
       </div>
     </div>
   );

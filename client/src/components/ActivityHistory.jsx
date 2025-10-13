@@ -39,8 +39,8 @@ const ActivityHistory = ({ userId = null, showFilters = true, limit = 20 }) => {
 
   // Filters
   const [filters, setFilters] = useState({
-    category: '',
-    action: '',
+    category: 'all',
+    action: 'all',
     search: '',
     dateRange: null,
     page: 1
@@ -67,8 +67,8 @@ const ActivityHistory = ({ userId = null, showFilters = true, limit = 20 }) => {
       setLoading(true);
       const params = new URLSearchParams();
       
-      if (filters.category) params.append('category', filters.category);
-      if (filters.action) params.append('action', filters.action);
+      if (filters.category && filters.category !== 'all') params.append('category', filters.category);
+      if (filters.action && filters.action !== 'all') params.append('action', filters.action);
       if (filters.search) params.append('search', filters.search);
       if (filters.dateRange?.from) params.append('startDate', filters.dateRange.from.toISOString());
       if (filters.dateRange?.to) params.append('endDate', filters.dateRange.to.toISOString());
@@ -202,7 +202,7 @@ const ActivityHistory = ({ userId = null, showFilters = true, limit = 20 }) => {
   };
 
   const categories = [
-    { value: '', label: 'All Categories' },
+    { value: 'all', label: 'All Categories' },
     { value: 'authentication', label: 'Authentication' },
     { value: 'orders', label: 'Orders' },
     { value: 'services', label: 'Services' },

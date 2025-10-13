@@ -16,6 +16,12 @@ import {
   User,
   LogOut,
   HelpCircle,
+  History,
+  Search,
+  PieChart,
+  FileText,
+  TrendingUp,
+  Monitor
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,6 +30,8 @@ import { useNavigate } from "react-router-dom";
 
 const navigationItems = [
   { name: "Overview", href: "/dashboard", icon: BarChart3 },
+  { name: "Analytics", href: "/dashboard/analytics", icon: TrendingUp },
+  { name: "Graphs", href: "/dashboard/graphs", icon: PieChart },
   { name: "Inventory", href: "/dashboard/inventory", icon: Package },
   { name: "Products", href: "/dashboard/products", icon: Package },
   { name: "E-Commerce", href: "/dashboard/ecommerce", icon: ShoppingCart },
@@ -32,6 +40,12 @@ const navigationItems = [
   { name: "Team", href: "/dashboard/team", icon: Users },
   { name: "AI Insights", href: "/dashboard/ai-insights", icon: Brain },
   { name: "Locations", href: "/dashboard/locations", icon: MapPin },
+  { name: "History", href: "/dashboard/history", icon: History },
+  { name: "Search", href: "/dashboard/search", icon: Search },
+  { name: "Graphs", href: "/dashboard/graphs", icon: BarChart3 },
+  { name: "Reports", href: "/dashboard/reports", icon: FileText },
+  { name: "GUI Demo", href: "/dashboard/gui", icon: Monitor },
+  { name: "Help & Support", href: "/dashboard/support", icon: HelpCircle },
 ];
 
 function DashboardSidebar() {

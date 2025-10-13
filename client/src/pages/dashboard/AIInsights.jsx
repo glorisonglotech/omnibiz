@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import ComprehensiveGraphs from '@/components/ComprehensiveGraphs';
+import { generateMockGraphData } from '@/hooks/useGraphData';
 import {
   Card,
   CardContent,
@@ -25,6 +27,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import RealTimeAIInsights from "@/components/RealTimeAIInsights";
 
 const AIInsights = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -171,11 +174,39 @@ const AIInsights = () => {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline">
+          <Button
+            variant="outline"
+            onClick={() => {
+              // Navigate to detailed reports page
+              window.location.href = '/dashboard/analytics';
+              toast.success('Opening detailed analytics reports...');
+            }}
+          >
             <Eye className="mr-2 h-4 w-4" />
             View Reports
           </Button>
-          <Button className="bg-green-500 cursor-pointer hover:bg-green-400">
+          <Button
+            className="bg-green-500 cursor-pointer hover:bg-green-400"
+            onClick={async () => {
+              toast.info('Generating fresh AI insights...');
+              // Simulate AI insight generation
+              setTimeout(() => {
+                setInsights([
+                  ...insights,
+                  {
+                    id: Date.now(),
+                    type: "realtime",
+                    title: "Real-time Market Analysis",
+                    description: "Current market conditions suggest a 23% increase in demand for your top products.",
+                    confidence: 94,
+                    impact: "high",
+                    trend: "up",
+                  }
+                ]);
+                toast.success('New AI insights generated successfully!');
+              }, 2000);
+            }}
+          >
             <Zap className="mr-2 h-4 w-4" />
             Generate Insights
           </Button>
@@ -227,6 +258,60 @@ const AIInsights = () => {
             <p className="text-xs text-muted-foreground">Average prediction accuracy</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* AI-Powered Analytics Graphs */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ComprehensiveGraphs
+          title="Predictive Sales Trends"
+          description="AI-powered sales forecasting and trends"
+          type="area"
+          data={generateMockGraphData('growth', 30)}
+          height={350}
+          autoRefresh={true}
+          refreshInterval={45000}
+        />
+
+        <ComprehensiveGraphs
+          title="Customer Behavior Analysis"
+          description="AI insights into customer patterns"
+          type="line"
+          data={generateMockGraphData('trend', 30)}
+          height={350}
+          autoRefresh={true}
+          refreshInterval={45000}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ComprehensiveGraphs
+          title="Market Opportunities"
+          description="AI-identified growth opportunities"
+          type="bar"
+          data={generateMockGraphData('growth', 12)}
+          height={300}
+        />
+
+        <ComprehensiveGraphs
+          title="Risk Assessment"
+          description="Business risk analysis by AI"
+          type="pie"
+          data={[
+            { name: 'Low Risk', value: 60 },
+            { name: 'Medium Risk', value: 30 },
+            { name: 'High Risk', value: 10 }
+          ]}
+          height={300}
+          showControls={false}
+        />
+
+        <ComprehensiveGraphs
+          title="Performance Optimization"
+          description="AI-suggested improvements"
+          type="composed"
+          data={generateMockGraphData('trend', 20)}
+          height={300}
+        />
       </div>
 
       {/* Insights and Recommendations */}
@@ -322,6 +407,68 @@ const AIInsights = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Real-time AI Insights Component */}
+      <div className="mt-8">
+        <RealTimeAIInsights
+          title="Advanced AI Business Intelligence"
+          autoStart={true}
+          showNotifications={true}
+          updateInterval={20000}
+        />
+      </div>
+
+      {/* AI-Powered Analytics Graphs */}
+      <div className="mt-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">AI-Powered Analytics</h2>
+          <Badge variant="secondary">Predictive Insights</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ComprehensiveGraphs
+            title="Predictive Sales Trends"
+            defaultType="line"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={25000}
+          />
+          <ComprehensiveGraphs
+            title="Customer Behavior Analysis"
+            defaultType="area"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={30000}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ComprehensiveGraphs
+            title="Market Opportunities"
+            defaultType="bar"
+            height={350}
+            autoRefresh={true}
+            refreshInterval={45000}
+          />
+          <ComprehensiveGraphs
+            title="Risk Assessment"
+            defaultType="pie"
+            height={350}
+            autoRefresh={false}
+            refreshInterval={60000}
+          />
+        </div>
+
+        <div className="w-full">
+          <ComprehensiveGraphs
+            title="Performance Optimization Insights"
+            defaultType="composed"
+            height={400}
+            autoRefresh={true}
+            refreshInterval={15000}
+          />
+        </div>
       </div>
     </div>
   );

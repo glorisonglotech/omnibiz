@@ -215,10 +215,35 @@ const Help = () => {
                   <h3 className="font-semibold mb-1">{channel.title}</h3>
                   <p className="text-sm text-muted-foreground mb-2">{channel.description}</p>
                   <Badge variant="outline" className="text-xs mb-3">{channel.available}</Badge>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     className="w-full"
-                    onClick={() => toast.info(`${channel.title} feature coming soon!`)}
+                    onClick={() => {
+                      switch(channel.title) {
+                        case 'Live Chat':
+                          // Open chat widget or redirect to chat page
+                          toast.success('Opening live chat...');
+                          window.open('https://tawk.to/chat/omnibiz', '_blank');
+                          break;
+                        case 'Phone Support':
+                          // Open phone dialer
+                          window.location.href = 'tel:+254700000000';
+                          toast.success('Opening phone dialer...');
+                          break;
+                        case 'Email Support':
+                          // Open email client
+                          window.location.href = 'mailto:support@omnibiz.com?subject=Support Request';
+                          toast.success('Opening email client...');
+                          break;
+                        case 'Video Tutorial':
+                          // Open video tutorials page
+                          window.open('/tutorials', '_blank');
+                          toast.success('Opening video tutorials...');
+                          break;
+                        default:
+                          toast.info(`${channel.title} feature coming soon!`);
+                      }
+                    }}
                   >
                     {channel.action}
                   </Button>

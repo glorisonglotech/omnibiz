@@ -24,6 +24,9 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
 import {
   Settings as SettingsIcon,
   User,
@@ -37,12 +40,29 @@ import {
   Save,
   Eye,
   EyeOff,
+  Monitor,
+  Sun,
+  Moon,
+  Zap,
+  Volume2,
+  VolumeX,
+  Accessibility,
+  Download,
+  Upload,
+  RefreshCw,
+  Check,
+  X,
+  AlertTriangle,
+  Info,
+  HelpCircle,
+  ExternalLink
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme, AVAILABLE_THEMES } from "@/context/ThemeContext";
 import { useTheme } from "next-themes";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import ThemeCustomizer from "@/components/ThemeCustomizer";
 
 const Settings = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -57,7 +77,19 @@ const Settings = () => {
     fontSizes,
     borderRadius,
     setBorderRadius,
-    borderRadiusOptions
+    borderRadiusOptions,
+    compactMode,
+    setCompactMode,
+    highContrast,
+    setHighContrast,
+    reducedMotion,
+    setReducedMotion,
+    customAccentColor,
+    setCustomAccentColor,
+    soundEnabled,
+    setSoundEnabled,
+    autoSave,
+    setAutoSave
   } = useAppTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [settings, setSettings] = useState({
@@ -69,31 +101,50 @@ const Settings = () => {
     timezone: "Africa/Nairobi",
     currency: "KES",
     language: "en",
-    
+
     // Notification Settings
     emailNotifications: true,
     smsNotifications: false,
     pushNotifications: true,
     marketingEmails: false,
-    
+    soundNotifications: true,
+    desktopNotifications: true,
+
     // Security Settings
     twoFactorAuth: false,
     sessionTimeout: "30",
     passwordExpiry: "90",
-    
+    loginAlerts: true,
+    deviceTracking: true,
+
     // Appearance Settings
     theme: "light",
     sidebarCollapsed: false,
-    
+    compactMode: false,
+    highContrast: false,
+    reducedMotion: false,
+    customAccentColor: "#3b82f6",
+
     // Privacy Settings
     dataSharing: false,
     analytics: true,
-    
+    crashReporting: true,
+    usageStatistics: false,
+
+    // Performance Settings
+    autoSave: true,
+    cacheSize: 100,
+    backgroundSync: true,
+
     // Account Settings
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+
+  const [activeTab, setActiveTab] = useState("general");
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -588,157 +639,7 @@ const Settings = () => {
 
         {/* Appearance Settings */}
         <TabsContent value="appearance">
-          <div className="space-y-6">
-            {/* Theme Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Palette className="h-5 w-5" />
-                  Theme Selection
-                </CardTitle>
-                <CardDescription>
-                  Choose your preferred color theme
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {Object.entries(AVAILABLE_THEMES).map(([key, themeData]) => (
-                    <div
-                      key={key}
-                      className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all hover:scale-105 ${
-                        theme === key ? 'border-primary ring-2 ring-primary/20' : 'border-border'
-                      }`}
-                      onClick={() => setTheme(key)}
-                    >
-                      <div className={`w-full h-16 rounded-md mb-2 ${themeData.preview}`}></div>
-                      <div className="text-sm font-medium">{themeData.name}</div>
-                      <div className="text-xs text-muted-foreground">{themeData.description}</div>
-                      {theme === key && (
-                        <div className="absolute top-2 right-2 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                          <div className="w-2 h-2 bg-primary-foreground rounded-full"></div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Layout & Typography */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  Layout & Typography
-                </CardTitle>
-                <CardDescription>
-                  Customize layout and text preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="fontSize">Font Size</Label>
-                    <Select value={fontSize} onValueChange={setFontSize}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(fontSizes).map(([key, size]) => (
-                          <SelectItem key={key} value={key}>
-                            {size.name} ({size.value})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="borderRadius">Border Radius</Label>
-                    <Select value={borderRadius} onValueChange={setBorderRadius}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(borderRadiusOptions).map(([key, radius]) => (
-                          <SelectItem key={key} value={key}>
-                            {radius.name} ({radius.value})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Collapsed Sidebar</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Keep sidebar collapsed by default
-                      </p>
-                    </div>
-                    <Switch
-                      checked={sidebarCollapsed}
-                      onCheckedChange={setSidebarCollapsed}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Enable Animations</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Show smooth transitions and animations
-                      </p>
-                    </div>
-                    <Switch
-                      checked={animations}
-                      onCheckedChange={setAnimations}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Theme Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Theme Preview</CardTitle>
-                <CardDescription>
-                  See how your selected theme looks
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 p-4 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Sample Dashboard</h3>
-                    <div className="flex gap-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-card border rounded-lg p-4">
-                      <h4 className="font-medium mb-2">Revenue</h4>
-                      <p className="text-2xl font-bold text-primary">$12,345</p>
-                      <p className="text-sm text-muted-foreground">+12% from last month</p>
-                    </div>
-                    <div className="bg-card border rounded-lg p-4">
-                      <h4 className="font-medium mb-2">Orders</h4>
-                      <p className="text-2xl font-bold text-primary">1,234</p>
-                      <p className="text-sm text-muted-foreground">+5% from last month</p>
-                    </div>
-                    <div className="bg-card border rounded-lg p-4">
-                      <h4 className="font-medium mb-2">Customers</h4>
-                      <p className="text-2xl font-bold text-primary">567</p>
-                      <p className="text-sm text-muted-foreground">+8% from last month</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <ThemeCustomizer />
         </TabsContent>
 
         {/* Privacy Settings */}

@@ -168,7 +168,16 @@ const MyBookings = () => {
             <CardContent className="py-16 text-center">
               <Calendar className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-xl font-medium text-muted-foreground">You have no upcoming appointments.</p>
-              <Button className="mt-6 shadow-lg hover:shadow-xl">Book a New Appointment</Button>
+              <Button
+                className="mt-6 shadow-lg hover:shadow-xl"
+                onClick={() => {
+                  // Navigate to booking page or open booking modal
+                  window.location.href = '/dashboard/services';
+                  toast.success('Redirecting to services page...');
+                }}
+              >
+                Book a New Appointment
+              </Button>
             </CardContent>
           </Card>
         )}

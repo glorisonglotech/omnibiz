@@ -14,9 +14,11 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import React from "react";
+import { toast } from "sonner";
 import NotificationCenter from "./NotificationCenter";
 import ProfilePicture from "./ProfilePicture";
 import Logo from "./ui/logo";
+import ThemeSwitcher from "./ThemeSwitcher";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -40,8 +42,11 @@ const DashboardTopbar = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Implement search functionality here
-      console.log("Searching for:", searchQuery);
+      // Navigate to search results page with query
+      navigate(`/dashboard/search?q=${encodeURIComponent(searchQuery.trim())}`);
+
+      // Show search toast
+      toast.info(`Searching for: "${searchQuery.trim()}"`);
     }
   };
 
@@ -140,34 +145,8 @@ const DashboardTopbar = () => {
 
         {/* Right side actions */}
         <div className="flex items-center space-x-4">
-          {/* Theme Toggle */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-green-600 hover:text-green-700"
-              >
-                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="border-green-100">
-              <DropdownMenuItem className="text-green-700 hover:bg-green-50">
-                <Sun className="mr-2 h-4 w-4" />
-                <span>Light</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-green-700 hover:bg-green-50">
-                <Moon className="mr-2 h-4 w-4" />
-                <span>Dark</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-green-700 hover:bg-green-50">
-                <Monitor className="mr-2 h-4 w-4" />
-                <span>System</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Enhanced Theme Switcher */}
+          <ThemeSwitcher />
 
           {/* Notifications */}
           <NotificationCenter />
@@ -195,11 +174,17 @@ const DashboardTopbar = () => {
                 My Account
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-green-700 hover:bg-green-50">
+              <DropdownMenuItem
+                className="text-green-700 hover:bg-green-50"
+                onClick={() => navigate('/dashboard/profile')}
+              >
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-green-700 hover:bg-green-50">
+              <DropdownMenuItem
+                className="text-green-700 hover:bg-green-50"
+                onClick={() => navigate('/dashboard/settings')}
+              >
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>

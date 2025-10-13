@@ -4,6 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -20,7 +21,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ShoppingCart, Search, Filter, Plus, Minus, Trash2, Package, User, LogOut } from "lucide-react";
-import { toast } from "sonner";
 const ClientStorefront = () => {
   const { inviteCode } = useParams();
   const [searchQuery, setSearchQuery] = useState("");
@@ -145,10 +145,25 @@ const ClientStorefront = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => toast.info('Profile feature coming soon!')}
+              >
                 <User className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  // Clear any stored auth data
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  // Redirect to home page
+                  window.location.href = '/';
+                  toast.success('Logged out successfully');
+                }}
+              >
                 <LogOut className="h-5 w-5" />
               </Button>
             </div>

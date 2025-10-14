@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Clock, User, Phone, Mail, CheckCircle } from "lucide-react";
+import { Calendar, Clock, User, MapPin, Phone, Mail, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,9 +42,8 @@ const BookAppointment = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Simple form validation for required fields
-    if (!selectedService || !date || !selectedTime || !formData.name || !formData.phone || !formData.email) {
-      toast.error("Please complete all required fields for your booking.");
+    if (!selectedService || !date || !selectedTime) {
+      toast.error("Please complete all required fields");
       return;
     }
 
@@ -188,7 +187,6 @@ const BookAppointment = () => {
                       </CardHeader>
                       <CardContent className="space-y-2 text-sm">
                         <p><strong>Service:</strong> {selectedServiceData.name}</p>
-                        {/* The following conversion is valid in JS/JSX */}
                         <p><strong>Date:</strong> {date.toLocaleDateString()}</p>
                         <p><strong>Time:</strong> {selectedTime}</p>
                         <p><strong>Duration:</strong> {selectedServiceData.duration}</p>
@@ -294,7 +292,7 @@ const BookAppointment = () => {
               >
                 Back
               </Button>
-              <Button type="submit" className="flex-1" disabled={!formData.name || !formData.phone || !formData.email}>
+              <Button type="submit" className="flex-1">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Confirm Booking
               </Button>

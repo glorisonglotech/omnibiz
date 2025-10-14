@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
-// Mock booking data
 const bookings = [
   {
     id: 1,
@@ -43,12 +42,10 @@ const bookings = [
 ];
 
 const MyBookings = () => {
-  // Function to return the correct badge style based on status
   const getStatusBadge = (status) => {
     switch (status) {
       case "confirmed":
-        // Assuming 'bg-success' is a custom or configured class for confirmation color
-        return <Badge className="bg-green-500 hover:bg-green-600 text-white"><CheckCircle className="h-3 w-3 mr-1" />Confirmed</Badge>;
+        return <Badge className="bg-success"><CheckCircle className="h-3 w-3 mr-1" />Confirmed</Badge>;
       case "pending":
         return <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" />Pending</Badge>;
       case "completed":
@@ -61,100 +58,85 @@ const MyBookings = () => {
   };
 
   const handleCancel = (id) => {
-    // In a real app, this would call an API to update the status in the database
-    toast.success(`Booking #${String(id).padStart(4, '0')} cancelled successfully`);
+    toast.success("Booking cancelled successfully");
   };
 
   const handleReschedule = (id) => {
-    // In a real app, this would open a modal or navigate to a reschedule form
-    toast.info(`Reschedule feature for booking #${String(id).padStart(4, '0')} coming soon!`);
+    toast.info("Reschedule feature coming soon!");
   };
 
   const upcomingBookings = bookings.filter(b => b.status !== "completed" && b.status !== "cancelled");
   const pastBookings = bookings.filter(b => b.status === "completed" || b.status === "cancelled");
 
   return (
-    <div className="space-y-8 p-4 md:p-8 bg-gray-50 min-h-screen">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-extrabold text-foreground">My Appointments</h1>
-        <p className="text-lg text-muted-foreground mt-1">Easily manage your future and past beauty and spa sessions.</p>
+        <h1 className="text-3xl font-bold text-foreground">My Bookings</h1>
+        <p className="text-muted-foreground">Manage your appointments and view history</p>
       </div>
 
-      <Separator />
-
-      {/* Upcoming Bookings Section */}
+      {/* Upcoming Bookings */}
       <div className="space-y-4">
-        <h2 className="text-2xl font-semibold text-foreground border-l-4 border-primary pl-3">Upcoming Appointments ({upcomingBookings.length})</h2>
-        
+        <h2 className="text-xl font-semibold text-foreground">Upcoming Appointments</h2>
         {upcomingBookings.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4">
             {upcomingBookings.map((booking) => (
-              <Card key={booking.id} className="shadow-md hover:shadow-lg transition-shadow duration-300">
-                <CardHeader className="pb-3">
+              <Card key={booking.id} className="card-hover">
+                <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                      <CardTitle className="text-2xl text-primary">{booking.service}</CardTitle>
-                      <CardDescription className="mt-1 text-sm">
-                        Booking ID: <span className="font-mono text-xs text-gray-500">#{String(booking.id).padStart(4, '0')}</span>
+                      <CardTitle className="text-xl">{booking.service}</CardTitle>
+                      <CardDescription className="mt-1">
+                        Booking ID: #{booking.id.toString().padStart(4, '0')}
                       </CardDescription>
                     </div>
                     {getStatusBadge(booking.status)}
                   </div>
                 </CardHeader>
-                
-                <CardContent className="space-y-4 pt-3">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    {/* Date */}
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-blue-500" />
-                      <div className="font-medium text-gray-700">
-                        {new Date(booking.date).toLocaleDateString('en-US', { 
-                          weekday: 'short', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
-                      </div>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>{new Date(booking.date).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}</span>
                     </div>
-                    {/* Time & Duration */}
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-purple-500" />
-                      <div className="font-medium text-gray-700">
-                        {booking.time} <span className="text-xs text-muted-foreground">({booking.duration})</span>
-                      </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>{booking.time} ({booking.duration})</span>
                     </div>
-                    {/* Location */}
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-red-500" />
-                      <div className="font-medium text-gray-700">{booking.location}</div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      <span>{booking.location}</span>
                     </div>
-                    {/* Staff */}
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-green-500" />
-                      <div className="font-medium text-gray-700">Staff: {booking.staff}</div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="h-4 w-4" />
+                      <span>Staff: {booking.staff}</span>
                     </div>
                   </div>
                   
                   <Separator />
                   
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="text-2xl font-extrabold text-primary">
+                    <div className="text-xl font-bold text-primary">
                       Total: KES {booking.price.toLocaleString()}
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         onClick={() => handleReschedule(booking.id)}
-                        className="transition-all hover:bg-yellow-50 hover:border-yellow-300"
                       >
                         Reschedule
                       </Button>
-                      {(booking.status === "confirmed" || booking.status === "pending") && (
+                      {booking.status !== "completed" && (
                         <Button
                           variant="destructive"
                           onClick={() => handleCancel(booking.id)}
-                          className="transition-all hover:scale-[1.02]"
                         >
-                          Cancel Appointment
+                          Cancel
                         </Button>
                       )}
                     </div>
@@ -164,33 +146,24 @@ const MyBookings = () => {
             ))}
           </div>
         ) : (
-          <Card className="border-2 border-dashed border-gray-300">
-            <CardContent className="py-16 text-center">
-              <Calendar className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-              <p className="text-xl font-medium text-muted-foreground">You have no upcoming appointments.</p>
-              <Button
-                className="mt-6 shadow-lg hover:shadow-xl"
-                onClick={() => {
-                  // Navigate to booking page or open booking modal
-                  window.location.href = '/dashboard/services';
-                  toast.success('Redirecting to services page...');
-                }}
-              >
-                Book a New Appointment
-              </Button>
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No upcoming bookings</p>
+              <Button className="mt-4">Book an Appointment</Button>
             </CardContent>
           </Card>
         )}
       </div>
 
-      {/* Past Bookings Section */}
+      {/* Past Bookings */}
       {pastBookings.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold text-foreground border-l-4 border-gray-400 pl-3">Past Appointments ({pastBookings.length})</h2>
+          <h2 className="text-xl font-semibold text-foreground">Past Appointments</h2>
           <div className="grid grid-cols-1 gap-4">
             {pastBookings.map((booking) => (
-              <Card key={booking.id} className="opacity-80 transition-opacity duration-300 hover:opacity-100">
-                <CardHeader className="pb-2">
+              <Card key={booking.id} className="opacity-75">
+                <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                       <CardTitle className="text-lg">{booking.service}</CardTitle>
@@ -202,11 +175,9 @@ const MyBookings = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {booking.location}
-                    </span>
-                    <span className="font-bold text-lg text-gray-700">KES {booking.price.toLocaleString()}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">{booking.location}</span>
+                    <span className="font-semibold">KES {booking.price.toLocaleString()}</span>
                   </div>
                 </CardContent>
               </Card>

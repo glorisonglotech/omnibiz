@@ -14,7 +14,14 @@ const userSchema = new mongoose.Schema(
     businessPhone: String,
     businessAddress: String,
 
-    // Profile Information
+    // Add inviteCode field
+    inviteCode: { 
+      type: String, 
+      unique: true, 
+      sparse: true // Allows null/undefined for non-store owners
+    },
+
+    // ... (rest of your existing fields remain unchanged)
     firstName: String,
     lastName: String,
     dateOfBirth: Date,
@@ -22,42 +29,28 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['male', 'female', 'other', 'prefer-not-to-say']
     },
-
-    // Address Information
     address: String,
     city: String,
     state: String,
     country: String,
     zipCode: String,
-
-    // Work Information
     jobTitle: String,
     department: String,
     bio: String,
     avatar: String,
-
-    // Settings
     timezone: { type: String, default: 'Africa/Nairobi' },
     currency: { type: String, default: 'KES' },
     language: { type: String, default: 'en' },
-
-    // Notification Settings
     emailNotifications: { type: Boolean, default: true },
     smsNotifications: { type: Boolean, default: false },
     pushNotifications: { type: Boolean, default: true },
     marketingEmails: { type: Boolean, default: false },
-
-    // Security Settings
     twoFactorAuth: { type: Boolean, default: false },
-    sessionTimeout: { type: Number, default: 30 }, // minutes
-    passwordExpiry: { type: Number, default: 90 }, // days
+    sessionTimeout: { type: Number, default: 30 },
+    passwordExpiry: { type: Number, default: 90 },
     lastPasswordChange: { type: Date, default: Date.now },
-
-    // Privacy Settings
     dataSharing: { type: Boolean, default: false },
     analytics: { type: Boolean, default: true },
-
-    // Account Status
     isActive: { type: Boolean, default: true },
     lastLogin: Date,
     role: {
@@ -65,8 +58,6 @@ const userSchema = new mongoose.Schema(
       enum: ['super_admin', 'admin', 'manager', 'staff', 'client'],
       default: 'client'
     },
-
-    // Role-based Permissions
     permissions: {
       canCreateOrders: { type: Boolean, default: true },
       canViewAllOrders: { type: Boolean, default: false },
@@ -82,53 +73,41 @@ const userSchema = new mongoose.Schema(
       canViewAllClients: { type: Boolean, default: false },
       canAssignAdmins: { type: Boolean, default: false }
     },
-
-    // Client-specific Information
     clientType: {
       type: String,
       enum: ['individual', 'business', 'wholesale', 'retail'],
       default: 'individual'
     },
     creditLimit: { type: Number, default: 0 },
-    paymentTerms: { type: String, default: 'immediate' }, // immediate, net30, net60
-
-    // Admin Assignment (for clients)
+    paymentTerms: { type: String, default: 'immediate' },
     assignedAdmin: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
     },
-
-    // Service Preferences (for clients)
     servicePreferences: {
       preferredContactMethod: {
         type: String,
         enum: ['email', 'phone', 'sms', 'app'],
         default: 'email'
       },
-      serviceCategories: [String], // Categories of services they're interested in
-      maxOrderValue: { type: Number, default: 0 }, // Maximum order value without approval
+      serviceCategories: [String],
+      maxOrderValue: { type: Number, default: 0 },
       autoApproveOrders: { type: Boolean, default: false }
     },
-
-    // Admin Capabilities (for admin users)
     adminCapabilities: {
-      maxClientsManaged: { type: Number, default: 0 }, // 0 = unlimited
-      serviceAreas: [String], // Geographic or service areas they manage
-      specializations: [String], // Areas of expertise
+      maxClientsManaged: { type: Number, default: 0 },
+      serviceAreas: [String],
+      specializations: [String],
       workingHours: {
         start: { type: String, default: '09:00' },
         end: { type: String, default: '17:00' },
         timezone: { type: String, default: 'Africa/Nairobi' }
       }
     },
-
-    // Client Management (for tracking client relationships)
     managedClients: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
     }],
-
-    // Status tracking
     accountStatus: {
       type: String,
       enum: ['active', 'inactive', 'suspended', 'pending_verification'],

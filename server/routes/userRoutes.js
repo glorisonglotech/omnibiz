@@ -18,4 +18,9 @@ router.put('/settings', protect, userController.updateSettings);
 // PUT /api/user/last-login - Update last login
 router.put('/last-login', protect, userController.updateLastLogin);
 
+
+// New routes for invite code
+router.post('/invite-code', protect, userController.saveInviteCode);
+router.get('/store-owner/:inviteCode', userController.getStoreOwnerByInviteCode);
+
 module.exports = router;

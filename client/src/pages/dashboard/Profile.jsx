@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -33,6 +34,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   User,
   Mail,
@@ -102,7 +115,37 @@ import {
   Crown,
   Flame,
   Rocket,
-  Diamond
+  Diamond,
+  RotateCw,
+  ZoomIn,
+  ZoomOut,
+  Crop,
+  Filter,
+  Image as ImageIcon,
+  UserPlus,
+  MailPlus,
+  CalendarDays,
+  MapPin as MapPinIcon,
+  Languages,
+  BookOpen,
+  Trophy,
+  Medal,
+  Gift,
+  Sparkle,
+  CrownIcon,
+  Shield as ShieldIcon,
+  BellRing,
+  DownloadCloud,
+  UploadCloud,
+  ScanFace,
+  Palette as PaletteIcon,
+  Contrast,
+  Sun,
+  Moon,
+  Laptop,
+  Smartphone as SmartphoneIcon,
+  Tablet,
+  Monitor as MonitorIcon
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -116,7 +159,15 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showQRCode, setShowQRCode] = useState(false);
   const [profileVisibility, setProfileVisibility] = useState("public");
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [avatarZoom, setAvatarZoom] = useState(1);
+  const [avatarRotation, setAvatarRotation] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  
   const fileInputRef = useRef(null);
+  const avatarInputRef = useRef(null);
+  const coverInputRef = useRef(null);
 
   const [profileData, setProfileData] = useState({
     firstName: "",
@@ -162,12 +213,12 @@ const Profile = () => {
     rating: 4.8,
     reviewsCount: 23,
     achievements: [
-      { id: 1, title: "First Sale", description: "Made your first sale", earned: true, icon: "🎯", date: "2024-01-15" },
-      { id: 2, title: "Team Builder", description: "Added 10+ team members", earned: true, icon: "👥", date: "2024-02-20" },
-      { id: 3, title: "Revenue Milestone", description: "Reached $10K revenue", earned: true, icon: "💰", date: "2024-03-10" },
-      { id: 4, title: "Customer Champion", description: "100+ satisfied customers", earned: false, icon: "⭐", date: null },
-      { id: 5, title: "Innovation Leader", description: "Launched 5+ new features", earned: true, icon: "🚀", date: "2024-04-05" },
-      { id: 6, title: "Community Builder", description: "Helped 50+ users", earned: false, icon: "🤝", date: null },
+      { id: 1, title: "First Sale", description: "Made your first sale", earned: true, icon: "🎯", date: "2024-01-15", type: "sales" },
+      { id: 2, title: "Team Builder", description: "Added 10+ team members", earned: true, icon: "👥", date: "2024-02-20", type: "team" },
+      { id: 3, title: "Revenue Milestone", description: "Reached $10K revenue", earned: true, icon: "💰", date: "2024-03-10", type: "revenue" },
+      { id: 4, title: "Customer Champion", description: "100+ satisfied customers", earned: false, icon: "⭐", date: null, type: "customer" },
+      { id: 5, title: "Innovation Leader", description: "Launched 5+ new features", earned: true, icon: "🚀", date: "2024-04-05", type: "innovation" },
+      { id: 6, title: "Community Builder", description: "Helped 50+ users", earned: false, icon: "🤝", date: null, type: "community" },
     ]
   });
 
@@ -258,6 +309,23 @@ const Profile = () => {
     { id: 4, name: "Alex Rodriguez", role: "Marketing Lead", avatar: "", mutual: 6, connected: true },
   ]);
 
+  // Enhanced profile photo states
+  const [avatarHistory, setAvatarHistory] = useState([]);
+  const [selectedAvatarFrame, setSelectedAvatarFrame] = useState(null);
+  const [avatarFilters, setAvatarFilters] = useState({
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+  });
+
+  const avatarFrames = [
+    { id: 1, name: "Gold Crown", icon: Crown, color: "border-yellow-400" },
+    { id: 2, name: "Silver Diamond", icon: Diamond, color: "border-gray-300" },
+    { id: 3, name: "Blue Tech", icon: Code, color: "border-blue-500" },
+    { id: 4, name: "Green Nature", icon: Sparkles, color: "border-green-500" },
+    { id: 5, name: "Red Flame", icon: Flame, color: "border-red-500" },
+  ];
+
   useEffect(() => {
     const fetchProfile = async () => {
       if (!isAuthenticated) {
@@ -292,6 +360,11 @@ const Profile = () => {
         };
 
         setProfileData(mappedProfile);
+        
+        // Initialize avatar history with current avatar
+        if (userData.avatar) {
+          setAvatarHistory([userData.avatar]);
+        }
       } catch (error) {
         toast.error("Error fetching profile data.");
         console.error("Error fetching profile data:", error);
@@ -332,20 +405,73 @@ const Profile = () => {
     }
   };
 
-  const handleAvatarUpload = (event) => {
+  // Enhanced avatar upload with multiple options
+  const handleAvatarUpload = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File size must be less than 5MB");
-        return;
-      }
+    if (!file) return;
 
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      
+      // Create preview for editing
       const reader = new FileReader();
       reader.onload = (e) => {
-        setProfileData({ ...profileData, avatar: e.target.result });
-        toast.success("Profile picture updated!");
+        const imageUrl = e.target.result;
+        setAvatarPreview(imageUrl);
+        setShowAvatarEditor(true);
+        
+        // Add to avatar history
+        setAvatarHistory(prev => [imageUrl, ...prev.slice(0, 4)]);
       };
       reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error("Error processing image");
+      console.error("Error processing image:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleAvatarSave = () => {
+    if (avatarPreview) {
+      setProfileData({ ...profileData, avatar: avatarPreview });
+      toast.success("Profile picture updated!");
+      setShowAvatarEditor(false);
+      setAvatarZoom(1);
+      setAvatarRotation(0);
+      setAvatarFilters({ brightness: 100, contrast: 100, saturation: 100 });
+    }
+  };
+
+  const handleAvatarFromURL = async () => {
+    const url = prompt("Enter image URL:");
+    if (url) {
+      try {
+        setIsUploading(true);
+        // Validate URL and load image
+        const img = new Image();
+        img.onload = () => {
+          setAvatarPreview(url);
+          setShowAvatarEditor(true);
+          setAvatarHistory(prev => [url, ...prev.slice(0, 4)]);
+        };
+        img.onerror = () => toast.error("Invalid image URL");
+        img.src = url;
+      } catch (error) {
+        toast.error("Error loading image from URL");
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -364,6 +490,36 @@ const Profile = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const removeAvatar = () => {
+    setProfileData({ ...profileData, avatar: "" });
+    setAvatarPreview("");
+    toast.success("Profile picture removed");
+  };
+
+  const restorePreviousAvatar = (avatarUrl) => {
+    setProfileData({ ...profileData, avatar: avatarUrl });
+    toast.success("Previous profile picture restored");
+  };
+
+  // Avatar editor functions
+  const rotateAvatar = () => {
+    setAvatarRotation((prev) => (prev + 90) % 360);
+  };
+
+  const zoomAvatar = (direction) => {
+    setAvatarZoom(prev => {
+      const newZoom = direction === 'in' ? prev + 0.1 : prev - 0.1;
+      return Math.max(0.5, Math.min(3, newZoom));
+    });
+  };
+
+  const applyAvatarFilter = (filter, value) => {
+    setAvatarFilters(prev => ({
+      ...prev,
+      [filter]: value
+    }));
   };
 
   const addSkill = (skillName, level = 50) => {
@@ -433,6 +589,12 @@ const Profile = () => {
     URL.revokeObjectURL(url);
 
     toast.success("Profile exported successfully!");
+  };
+
+  // New feature: Download profile as image
+  const downloadProfileAsImage = async () => {
+    toast.info("This feature would generate a profile card image");
+    // Implementation would require html2canvas or similar library
   };
 
   if (loading) {
@@ -512,11 +674,12 @@ const Profile = () => {
               onChange={handleCoverUpload}
               className="hidden"
               id="cover-upload"
+              ref={coverInputRef}
             />
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => document.getElementById('cover-upload')?.click()}
+              onClick={() => coverInputRef.current?.click()}
             >
               <Camera className="h-4 w-4 mr-2" />
               Change Cover
@@ -527,25 +690,57 @@ const Profile = () => {
         {/* Profile Header */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
           <div className="flex items-end gap-6">
-            {/* Avatar */}
-            <div className="relative">
-              <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
-                <AvatarImage src={profileData.avatar} alt={`${profileData.firstName} ${profileData.lastName}`} />
-                <AvatarFallback className="text-2xl font-bold bg-primary text-primary-foreground">
-                  {profileData.firstName?.[0]}{profileData.lastName?.[0]}
-                </AvatarFallback>
-              </Avatar>
+            {/* Enhanced Avatar Section */}
+            <div className="relative group">
+              <div className={`relative rounded-full p-1 ${
+                selectedAvatarFrame ? selectedAvatarFrame.color : 'border-4 border-white/20'
+              }`}>
+                <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
+                  <AvatarImage 
+                    src={profileData.avatar} 
+                    alt={`${profileData.firstName} ${profileData.lastName}`} 
+                  />
+                  <AvatarFallback className="text-2xl font-bold bg-primary text-primary-foreground">
+                    {profileData.firstName?.[0]}{profileData.lastName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+
+                {/* Enhanced Avatar Upload Options */}
+                {isEditing && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <Camera className="h-8 w-8 text-white" />
+                      </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center">
+                      <DropdownMenuItem onClick={() => avatarInputRef.current?.click()}>
+                        <UploadCloud className="h-4 w-4 mr-2" />
+                        Upload Photo
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleAvatarFromURL}>
+                        <Link className="h-4 w-4 mr-2" />
+                        From URL
+                      </DropdownMenuItem>
+                      {profileData.avatar && (
+                        <DropdownMenuItem onClick={removeAvatar}>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove Photo
+                        </DropdownMenuItem>
+                      )}
+                      {avatarHistory.length > 0 && (
+                        <DropdownMenuItem onClick={() => setShowAvatarEditor(true)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Photo
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
 
               {/* Availability Indicator */}
               <div className={`absolute bottom-2 right-2 h-6 w-6 rounded-full border-2 border-white ${getAvailabilityColor(profileData.availability)}`} />
-
-              {/* Avatar Upload */}
-              {isEditing && (
-                <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
-                     onClick={() => fileInputRef.current?.click()}>
-                  <Camera className="h-8 w-8 text-white" />
-                </div>
-              )}
             </div>
 
             {/* Profile Info */}
@@ -629,7 +824,7 @@ const Profile = () => {
         accept="image/*"
         onChange={handleAvatarUpload}
         className="hidden"
-        ref={fileInputRef}
+        ref={avatarInputRef}
       />
 
       {/* Main Content */}
@@ -831,6 +1026,10 @@ const Profile = () => {
                       <QrCode className="h-4 w-4 mr-2" />
                       Show QR Code
                     </Button>
+                    <Button variant="outline" className="w-full justify-start" onClick={downloadProfileAsImage}>
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Save as Image
+                    </Button>
                   </CardContent>
                 </Card>
 
@@ -939,6 +1138,133 @@ const Profile = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enhanced Avatar Editor Dialog */}
+      <Dialog open={showAvatarEditor} onOpenChange={setShowAvatarEditor}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Profile Picture</DialogTitle>
+            <DialogDescription>
+              Adjust and customize your profile picture
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Preview Section */}
+            <div className="space-y-4">
+              <div className="relative h-64 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center overflow-hidden">
+                {avatarPreview && (
+                  <img
+                    src={avatarPreview}
+                    alt="Avatar preview"
+                    className="max-h-56 max-w-56 rounded-full object-cover transition-all"
+                    style={{
+                      transform: `scale(${avatarZoom}) rotate(${avatarRotation}deg)`,
+                      filter: `brightness(${avatarFilters.brightness}%) contrast(${avatarFilters.contrast}%) saturate(${avatarFilters.saturation}%)`
+                    }}
+                  />
+                )}
+              </div>
+              
+              {/* Quick Actions */}
+              <div className="flex justify-center space-x-2">
+                <Button variant="outline" size="sm" onClick={rotateAvatar}>
+                  <RotateCw className="h-4 w-4 mr-1" />
+                  Rotate
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => zoomAvatar('in')}>
+                  <ZoomIn className="h-4 w-4 mr-1" />
+                  Zoom In
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => zoomAvatar('out')}>
+                  <ZoomOut className="h-4 w-4 mr-1" />
+                  Zoom Out
+                </Button>
+              </div>
+            </div>
+
+            {/* Controls Section */}
+            <div className="space-y-4">
+              {/* Filter Controls */}
+              <div className="space-y-3">
+                <Label>Brightness</Label>
+                <Slider
+                  value={[avatarFilters.brightness]}
+                  onValueChange={([value]) => applyAvatarFilter('brightness', value)}
+                  max={200}
+                  step={1}
+                />
+                
+                <Label>Contrast</Label>
+                <Slider
+                  value={[avatarFilters.contrast]}
+                  onValueChange={([value]) => applyAvatarFilter('contrast', value)}
+                  max={200}
+                  step={1}
+                />
+                
+                <Label>Saturation</Label>
+                <Slider
+                  value={[avatarFilters.saturation]}
+                  onValueChange={([value]) => applyAvatarFilter('saturation', value)}
+                  max={200}
+                  step={1}
+                />
+              </div>
+
+              {/* Avatar Frames */}
+              <div className="space-y-2">
+                <Label>Avatar Frames</Label>
+                <div className="flex space-x-2">
+                  {avatarFrames.map((frame) => (
+                    <Button
+                      key={frame.id}
+                      variant="outline"
+                      size="sm"
+                      className={`p-2 ${selectedAvatarFrame?.id === frame.id ? 'border-2 border-primary' : ''}`}
+                      onClick={() => setSelectedAvatarFrame(frame)}
+                    >
+                      <frame.icon className="h-4 w-4" />
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Avatar History */}
+              {avatarHistory.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Recent Photos</Label>
+                  <div className="flex space-x-2">
+                    {avatarHistory.slice(0, 4).map((avatar, index) => (
+                      <img
+                        key={index}
+                        src={avatar}
+                        alt={`Previous ${index + 1}`}
+                        className="h-12 w-12 rounded-full object-cover cursor-pointer border-2 hover:border-primary transition-colors"
+                        onClick={() => setAvatarPreview(avatar)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAvatarEditor(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAvatarSave} disabled={isUploading}>
+              {isUploading ? (
+                <RotateCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Changes
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

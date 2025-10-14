@@ -48,6 +48,7 @@ import ClientStorefront from "@/pages/client/ClientStorefront";
 import ProductCatalog from "@/pages/client/ProductCatalog";
 import BookAppointment from "@/pages/client/BookAppointment";
 import MyBookings from "@/pages/client/MyBookings";
+import ClientLogin from "./pages/client/ClientLogin";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -122,6 +123,7 @@ function App() {
                     
                     {/* Client Routes */}
                     <Route path="/client/signup/:inviteCode" element={<ClientSignup />} />
+                    <Route path="/client/login/:inviteCode" element={<ClientLogin />} />
                     <Route path="/client/store/:inviteCode" element={<ClientStorefront />} />
                     <Route path="/client/catalog" element={<ProductCatalog />} />
                     <Route path="/client/book" element={<BookAppointment />} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,33 +21,52 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ShoppingCart, Search, Filter, Plus, Minus, Trash2, Package, User, LogOut } from "lucide-react";
+import api from "@/lib/api";
+
 const ClientStorefront = () => {
   const { inviteCode } = useParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [cart, setCart] = useState([]); // Array of CartItem objects
+  const [cart, setCart] = useState([]);
+  const [storeOwner, setStoreOwner] = useState({
+    businessName: "Loading...",
+    ownerName: "Loading...",
+  });
+  const [products, setProducts] = useState([]);
 
-  // Simulated store owner info
-  const storeOwner = {
-    businessName: "Premium Beauty Store",
-    ownerName: "Sarah Johnson",
-  };
-
-  // Simulated products (will be fetched from backend)
-  const products = [
-    { id: "1", name: "Premium Hair Shampoo", description: "Nourishing shampoo for all hair types", price: 30, category: "Hair Care", stock: 25, image: "/placeholder.svg" },
-    { id: "2", name: "Hair Styling Gel", description: "Strong hold, natural finish", price: 16, category: "Hair Care", stock: 40, image: "/placeholder.svg" },
-    { id: "3", name: "Organic Face Mask", description: "Deep cleansing and hydrating", price: 45, category: "Skincare", stock: 15, image: "/placeholder.svg" },
-    { id: "4", name: "Professional Hair Dryer", description: "Fast drying with heat protection", price: 200, category: "Tools", stock: 8, image: "/placeholder.svg" },
-    { id: "5", name: "Moisturizing Cream", description: "24-hour hydration", price: 35, category: "Skincare", stock: 30, image: "/placeholder.svg" },
-    { id: "6", name: "Hair Brush Set", description: "Professional quality brushes", price: 28, category: "Tools", stock: 20, image: "/placeholder.svg" },
-  ];
+  useEffect(() => {
+    const fetchStoreData = async () => {
+      try {
+        const [ownerResponse, productsResponse] = await Promise.all([
+          api.get(`user/store-owner/${inviteCode}`),
+          api.get(`products/store/${inviteCode}`)
+        ]);
+        
+        setStoreOwner({
+          businessName: ownerResponse.data.businessName || "Premium Beauty Store",
+          ownerName: ownerResponse.data.ownerName || "Store Owner",
+        });
+        
+        setProducts(productsResponse.data || []);
+      } catch (error) {
+        toast.error("Failed to load store information or products.");
+        console.error("Error fetching store data:", error);
+        setStoreOwner({
+          businessName: "Premium Beauty Store",
+          ownerName: "Store Owner",
+        });
+        setProducts([]);
+      }
+    };
+    
+    fetchStoreData();
+  }, [inviteCode]);
 
   const categories = ["all", ...Array.from(new Set(products.map((p) => p.category)))];
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          product.description.toLowerCase().includes(searchQuery.toLowerCase());
+                         product.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -75,7 +94,7 @@ const ClientStorefront = () => {
     } else {
       setCart([...cart, { ...product, quantity: 1 }]);
       toast({
-        title: "Added to cart! 🛍️",
+        title: "Added to cart!",
         description: `${product.name} added to your cart`,
       });
     }
@@ -123,7 +142,7 @@ const ClientStorefront = () => {
 
   const handleCheckout = () => {
     toast({
-      title: "Checkout initiated! 🎉",
+      title: "Checkout initiated!",
       description: "Redirecting to payment...",
     });
     // Will integrate with M-Pesa or other payment system
@@ -156,10 +175,8 @@ const ClientStorefront = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => {
-                  // Clear any stored auth data
                   localStorage.removeItem('token');
                   localStorage.removeItem('user');
-                  // Redirect to home page
                   window.location.href = '/';
                   toast.success('Logged out successfully');
                 }}

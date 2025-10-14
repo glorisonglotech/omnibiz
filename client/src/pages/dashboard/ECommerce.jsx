@@ -46,6 +46,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { v4 as uuidv4 } from 'uuid';
+
 
 const defaultProduct = {
   name: "",
@@ -200,15 +202,29 @@ const ECommerce = () => {
   };
 
   // Invite Link Handlers
-  const generateInviteLink = () => {
+
+  const generateInviteLink = async () => {
     setIsGenerating(true);
-    setTimeout(() => {
-      const uniqueCode = Math.random().toString(36).substring(2, 15);
+    try {
+      const uniqueCode = uuidv4().replace(/-/g, '').substring(0, 12);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found. Please log in again.");
+      }
+      const response = await api.post("/user/invite-code", { inviteCode: uniqueCode }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("Invite code save response:", response.data); // Debug
       const link = `${window.location.origin}/client/signup/${uniqueCode}`;
       setInviteLink(link);
+      toast.success("Invite link generated and saved. Share this link with your clients.");
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message;
+      toast.error(`Failed to generate invite link: ${errorMessage}`);
+      console.error("Error generating invite code:", error.response?.data || error.message);
+    } finally {
       setIsGenerating(false);
-      toast.success("Invite link generated. Share this link with your clients.");
-    }, 1000);
+    }
   };
 
   const copyToClipboard = () => {
@@ -224,7 +240,7 @@ const ECommerce = () => {
           text: "You've been invited to access my exclusive online store!",
           url: inviteLink,
         })
-        .catch(() => {});
+        .catch(() => { });
     } else {
       copyToClipboard();
     }

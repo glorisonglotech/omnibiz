@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingBag, Lock, User, Mail, Phone, Eye, EyeOff } from "lucide-react";
+import { ShoppingBag, Lock, User, Mail, Phone, Eye, EyeOff, LogIn } from "lucide-react";
 import { toast } from "sonner";
-
+import api from "@/lib/api";
+import { Link } from "react-router-dom";
 
 const ClientSignup = () => {
   const { inviteCode } = useParams();
@@ -19,12 +20,30 @@ const ClientSignup = () => {
     phone: "",
     password: "",
   });
-
-  // Simulated store owner info (will be fetched from backend)
-  const storeOwner = {
+  const [storeOwner, setStoreOwner] = useState({
     businessName: "Premium Beauty Store",
-    ownerName: "Sarah Johnson",
-  };
+    ownerName: "Loading...",
+  });
+
+  useEffect(() => {
+    const fetchStoreOwner = async () => {
+      try {
+        const response = await api.get(`user/store-owner/${inviteCode}`);
+        setStoreOwner({
+          businessName: response.data.businessName || "Premium Beauty Store",
+          ownerName: response.data.ownerName || "Store Owner",
+        });
+      } catch (error) {
+        toast.error("Failed to load store information.");
+        console.error("Error fetching store owner:", error);
+        setStoreOwner({
+          businessName: "Premium Beauty Store",
+          ownerName: "Store Owner",
+        });
+      }
+    };
+    fetchStoreOwner();
+  }, [inviteCode]);
 
   const handleChange = (e) => {
     setFormData({
@@ -36,15 +55,12 @@ const ClientSignup = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsLoading(true);
-
-    // Simulate signup (will be replaced with actual backend call)
     setTimeout(() => {
       toast.success({
-        title: "Welcome! 🎉",
+        title: "Welcome!",
         description: `You now have access to ${storeOwner.businessName}`,
       });
       setIsLoading(false);
-      // Redirect to client storefront
       navigate(`/client/store/${inviteCode}`);
     }, 1500);
   };
@@ -57,7 +73,7 @@ const ClientSignup = () => {
             <ShoppingBag className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl">You're Invited! 🎁</CardTitle>
+            <CardTitle className="text-2xl">You're Invited!</CardTitle>
             <CardDescription className="mt-2">
               {storeOwner.ownerName} has invited you to shop at{" "}
               <span className="font-semibold text-foreground">{storeOwner.businessName}</span>
@@ -81,7 +97,6 @@ const ClientSignup = () => {
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -98,7 +113,6 @@ const ClientSignup = () => {
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <div className="relative">
@@ -115,7 +129,6 @@ const ClientSignup = () => {
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="password">Create Password</Label>
               <div className="relative">
@@ -143,7 +156,6 @@ const ClientSignup = () => {
                 </button>
               </div>
             </div>
-
             <Button
               type="submit"
               className="w-full gap-2"
@@ -158,7 +170,6 @@ const ClientSignup = () => {
                 </>
               )}
             </Button>
-
             <p className="text-xs text-center text-muted-foreground">
               By signing up, you agree to our{" "}
               <a href="#" className="text-primary hover:underline">
@@ -169,10 +180,16 @@ const ClientSignup = () => {
                 Privacy Policy
               </a>
             </p>
-
+            <p className="text-xs text-center text-muted-foreground">
+              Already have an account?{" "}
+              <Link href="/login" className="text-primary hover:underline flex items-center justify-center gap-1">
+                <LogIn className="h-4 w-4" />
+                Log in
+              </Link>
+            </p>
             <div className="pt-4 border-t">
               <p className="text-xs text-center text-muted-foreground">
-                🔒 Secure & Private • Only {storeOwner.ownerName} can see your orders
+                <Lock className="inline h-4 w-4 mr-1" /> Secure & Private • Only {storeOwner.ownerName} can see your orders
               </p>
             </div>
           </form>

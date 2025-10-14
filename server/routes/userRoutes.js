@@ -9,7 +9,7 @@ router.get('/profile', protect, userController.getProfile);
 // PUT /api/user/profile - Update user profile
 router.put('/profile', protect, userController.updateProfile);
 
-// PUT /api/user/change-password - Change password
+// PUT /api/user/change-password : Change password
 router.put('/change-password', protect, userController.changePassword);
 
 // PUT /api/user/settings - Update user settings

@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema(
     inviteCode: { 
       type: String, 
       unique: true, 
-      sparse: true // Allows null/undefined for non-store owners
+      sparse: true 
     },
 
     // ... (rest of your existing fields remain unchanged)

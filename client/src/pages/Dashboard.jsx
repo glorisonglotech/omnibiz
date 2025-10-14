@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-
-import { useAuth } from "@/context/AuthContext";
 import { usePermissions } from "@/components/RoleBasedAccess";
 import AdminDashboard from "./dashboard/AdminDashboard";
 import ClientDashboard from "./dashboard/ClientDashboard";

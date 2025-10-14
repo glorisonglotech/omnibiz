@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import DashboardSidebar from "./DashboardSidebar";
 import DashboardTopbar from "./DashboardTopbar";
+import LiveChatWidget from "./storefront/LiveChatWidget";
 
 const DashboardLayout = () => {
   return (
@@ -16,6 +17,7 @@ const DashboardLayout = () => {
           <Outlet />
         </main>
       </div>
+       <LiveChatWidget />
     </div>
   );
 };

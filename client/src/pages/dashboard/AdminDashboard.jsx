@@ -40,12 +40,16 @@ const AdminDashboard = () => {
         api.get('/admin/service-requests?status=submitted&limit=5')
       ]);
 
-      setStats(dashboardResponse.data.data);
+      setStats(dashboardResponse.data.data || {});
       setPendingOrders(ordersResponse.data.orders || []);
       setPendingServiceRequests(serviceRequestsResponse.data.requests || []);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       toast.error('Failed to load dashboard data');
+      // Set empty defaults on error
+      setStats({});
+      setPendingOrders([]);
+      setPendingServiceRequests([]);
     } finally {
       setLoading(false);
     }
@@ -91,7 +95,7 @@ const AdminDashboard = () => {
               Admin Dashboard
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
-              Welcome back, {user?.name}
+              Welcome back, {user?.name || 'Admin'}
             </p>
           </div>
           <Badge variant="outline" className="text-sm">
@@ -188,13 +192,32 @@ const AdminDashboard = () => {
                     Total Clients
                   </p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {stats.clients.total}
+                    {stats.clients?.total || 0}
                   </p>
                 </div>
                 <Users className="h-8 w-8 text-purple-600" />
               </div>
             </Card>
           </div>
+        )}
+
+        {/* Show empty state if no stats */}
+        {!stats && (
+          <Card className="p-6">
+            <div className="text-center py-8">
+              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                No Data Available
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Unable to load dashboard statistics.
+              </p>
+              <Button onClick={fetchDashboardData}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          </Card>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -216,10 +239,10 @@ const AdminDashboard = () => {
                     <div key={order._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {order.orderId}
+                          {order.orderId || 'N/A'}
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {order.customer.name} • ${order.total}
+                          {order.customer?.name || 'Unknown Customer'} • ${order.total || 0}
                         </p>
                       </div>
                       <div className="flex space-x-2">
@@ -264,17 +287,17 @@ const AdminDashboard = () => {
                     <div key={request._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {request.title}
+                          {request.title || 'Untitled Request'}
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {request.serviceType} • {request.priority}
+                          {request.serviceType || 'Unknown'} • {request.priority || 'normal'}
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge 
                           variant={request.priority === 'urgent' ? 'destructive' : 'secondary'}
                         >
-                          {request.priority}
+                          {request.priority || 'normal'}
                         </Badge>
                         <Button size="sm" variant="outline">
                           Review

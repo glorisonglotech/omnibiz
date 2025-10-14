@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import { clientAPI } from '@/lib/api'; // Import clientAPI for dashboard stats
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user } = useAuth(); // Get the logged-in user from AuthContext
@@ -70,10 +71,15 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Here's what's happening with your business today.</p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline">
-            <Eye className="mr-2 h-4 w-4" />
-            View Reports
-          </Button>
+
+
+          <Link to="/dashboard/reports">
+            <Button variant="outline">
+              <Eye className="mr-2 h-4 w-4" />
+              View Reports
+            </Button>
+          </Link>
+
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             Quick Action
@@ -121,12 +127,11 @@ const Dashboard = () => {
             <div className="space-y-4">
               {dashboardData.recentActivities.map((activity) => (
                 <div key={activity.id} className="flex items-start space-x-3">
-                  <div className={`mt-1 h-2 w-2 rounded-full ${
-                    activity.type === 'order' ? 'bg-blue-500' :
+                  <div className={`mt-1 h-2 w-2 rounded-full ${activity.type === 'order' ? 'bg-blue-500' :
                     activity.type === 'appointment' ? 'bg-green-500' :
-                    activity.type === 'payment' ? 'bg-purple-500' :
-                    'bg-orange-500'
-                  }`} />
+                      activity.type === 'payment' ? 'bg-purple-500' :
+                        'bg-orange-500'
+                    }`} />
                   <div className="flex-1 space-y-1">
                     <p className="text-sm font-medium text-foreground">{activity.action}</p>
                     <p className="text-xs text-muted-foreground">{activity.details}</p>

@@ -77,7 +77,7 @@ const Reports = () => {
         description: 'Comprehensive sales performance and revenue analysis',
         icon: DollarSign,
         category: 'Financial',
-        permissions: ['canViewReports']
+        permissions: ['canViewReports', 'admin']
       },
       {
         id: 'order-analysis',
@@ -114,51 +114,65 @@ const Reports = () => {
     ];
 
     // Filter reports based on user permissions
-    const userPermissions = user.permissions || {};
+    const userPermissions = user?.permissions || {};
+    const userRole = user?.role || 'user';
+    
+    // Show all reports if user is admin or has permissions
     const filteredReports = reports.filter(report => 
-      report.permissions.some(permission => userPermissions[permission])
+      userRole === 'admin' || 
+      report.permissions.some(permission => 
+        userPermissions[permission] || permission === userRole
+      )
     );
 
-    setAvailableReports(filteredReports);
+    // If no permissions match, show all reports (better UX for demo)
+    setAvailableReports(filteredReports.length > 0 ? filteredReports : reports);
   };
 
   const handleGenerateReport = async (reportId) => {
     try {
       setLoading(true);
+      toast.info(`Generating ${reportId} report...`);
       
-      const params = new URLSearchParams();
-      params.append('reportType', reportId);
-      params.append('timeframe', filters.timeframe);
-      if (filters.dateRange?.from) params.append('startDate', filters.dateRange.from.toISOString());
-      if (filters.dateRange?.to) params.append('endDate', filters.dateRange.to.toISOString());
-
-      const response = await api.post('/reports/generate', {
+      const token = localStorage.getItem('token');
+      const params = {
         reportType: reportId,
         timeframe: filters.timeframe,
-        dateRange: filters.dateRange,
         format: 'pdf'
+      };
+
+      if (filters.dateRange?.from) {
+        params.startDate = filters.dateRange.from.toISOString();
+      }
+      if (filters.dateRange?.to) {
+        params.endDate = filters.dateRange.to.toISOString();
+      }
+
+      const response = await api.post('/reports/generate', params, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        responseType: 'blob'
       });
 
       // Handle report download
-      if (response.data.downloadUrl) {
-        window.open(response.data.downloadUrl, '_blank');
-      } else {
-        // Create blob and download
+      if (response.data) {
         const blob = new Blob([response.data], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${reportId}-${Date.now()}.pdf`;
+        a.download = `${reportId}-${new Date().toISOString().split('T')[0]}.pdf`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+        toast.success('Report downloaded successfully!');
+      } else {
+        throw new Error('No data received');
       }
-
-      toast.success('Report generated successfully');
     } catch (error) {
       console.error('Error generating report:', error);
-      toast.error('Failed to generate report');
+      toast.error(error.response?.data?.message || 'Report generation is currently unavailable. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -166,11 +180,19 @@ const Reports = () => {
 
   const handleExportData = async (format = 'csv') => {
     try {
+      toast.info(`Preparing ${format.toUpperCase()} export...`);
+      
+      const token = localStorage.getItem('token');
       const response = await api.post('/reports/export', {
         format,
         timeframe: filters.timeframe,
         dateRange: filters.dateRange,
         includeCharts: format === 'pdf'
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        responseType: 'blob'
       });
 
       const blob = new Blob([response.data], { 
@@ -179,7 +201,7 @@ const Reports = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `omnibiz-report-${Date.now()}.${format}`;
+      a.download = `omnibiz-report-${new Date().toISOString().split('T')[0]}.${format}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -188,23 +210,28 @@ const Reports = () => {
       toast.success(`Data exported as ${format.toUpperCase()}`);
     } catch (error) {
       console.error('Error exporting data:', error);
-      toast.error('Failed to export data');
+      toast.error('Export feature is currently unavailable. Please contact support.');
     }
   };
 
   const handleScheduleReport = async (reportId, schedule) => {
     try {
+      const token = localStorage.getItem('token');
       await api.post('/reports/schedule', {
         reportId,
         schedule, // 'daily', 'weekly', 'monthly'
-        recipients: [user.email],
+        recipients: [user?.email || 'admin@omnibiz.com'],
         format: 'pdf'
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
 
-      toast.success(`Report scheduled to be sent ${schedule}`);
+      toast.success(`${reportId} report scheduled to be sent ${schedule}`);
     } catch (error) {
       console.error('Error scheduling report:', error);
-      toast.error('Failed to schedule report');
+      toast.error('Report scheduling is currently unavailable. Feature coming soon!');
     }
   };
 

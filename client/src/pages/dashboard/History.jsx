@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 import { 
   History as HistoryIcon, 
   Activity, 
@@ -23,19 +24,73 @@ import { toast } from 'sonner';
 
 const History = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [exportLoading, setExportLoading] = useState(false);
+  const [realStats, setRealStats] = useState(null);
+
+  useEffect(() => {
+    fetchActivityStats();
+  }, []);
+
+  const fetchActivityStats = async () => {
+    try {
+      const response = await fetch('/api/activities/stats', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRealStats(data);
+      }
+    } catch (error) {
+      console.log('Using default stats');
+    }
+  };
 
   const handleExportHistory = async () => {
     try {
       setExportLoading(true);
-      // Simulate export process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success('History exported successfully!');
+      const response = await fetch('/api/activities/export?format=csv', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `activity-history-${Date.now()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('History exported successfully!');
+      } else {
+        throw new Error('Export failed');
+      }
     } catch (error) {
-      toast.error('Failed to export history');
+      toast.error('Failed to export history. Please try again.');
     } finally {
       setExportLoading(false);
     }
+  };
+
+  const handleScheduleReport = () => {
+    toast.info('Opening schedule settings...');
+    navigate('/dashboard/reports');
+  };
+
+  const handleSetAlerts = () => {
+    toast.info('Opening alert configuration...');
+    navigate('/dashboard/settings');
+  };
+
+  const handleArchiveData = () => {
+    toast.info('Archive feature coming soon!');
+    // Could implement archiving old activity data
   };
 
   const activityStats = [
@@ -224,17 +279,32 @@ const History = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-auto flex-col py-4">
+            <Button 
+              variant="outline" 
+              className="h-auto flex-col py-4 hover:bg-blue-50 hover:border-blue-500 transition-colors"
+              onClick={handleScheduleReport}
+            >
               <Calendar className="h-6 w-6 mb-2 text-blue-600" />
-              <span className="text-sm">Schedule Report</span>
+              <span className="text-sm font-medium">Schedule Report</span>
+              <span className="text-xs text-muted-foreground mt-1">Automate activity reports</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col py-4">
+            <Button 
+              variant="outline" 
+              className="h-auto flex-col py-4 hover:bg-orange-50 hover:border-orange-500 transition-colors"
+              onClick={handleSetAlerts}
+            >
               <Clock className="h-6 w-6 mb-2 text-orange-600" />
-              <span className="text-sm">Set Alerts</span>
+              <span className="text-sm font-medium">Set Alerts</span>
+              <span className="text-xs text-muted-foreground mt-1">Configure notifications</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col py-4">
+            <Button 
+              variant="outline" 
+              className="h-auto flex-col py-4 hover:bg-purple-50 hover:border-purple-500 transition-colors"
+              onClick={handleArchiveData}
+            >
               <FileText className="h-6 w-6 mb-2 text-purple-600" />
-              <span className="text-sm">Archive Data</span>
+              <span className="text-sm font-medium">Archive Data</span>
+              <span className="text-xs text-muted-foreground mt-1">Store old records</span>
             </Button>
           </div>
         </CardContent>

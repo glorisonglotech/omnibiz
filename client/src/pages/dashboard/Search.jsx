@@ -52,80 +52,56 @@ const Search = () => {
     
     setLoading(true);
     try {
-      // Try to fetch real data from API
-      const apiResults = await searchAPI.search(searchQuery);
+      const token = localStorage.getItem('token');
       
-      if (apiResults && Object.keys(apiResults).length > 0) {
-        setResults(apiResults);
-        const total = Object.values(apiResults).reduce((sum, arr) => sum + arr.length, 0);
-        setTotalResults(total);
-        toast.success(`Found ${total} results for "${searchQuery}"`);
+      // Fetch real data from multiple endpoints
+      const [productsRes, ordersRes, customersRes] = await Promise.allSettled([
+        searchAPI.searchByCategory('products', searchQuery),
+        searchAPI.searchByCategory('orders', searchQuery),
+        searchAPI.searchByCategory('customers', searchQuery)
+      ]);
+
+      const apiResults = {
+        products: productsRes.status === 'fulfilled' ? productsRes.value : [],
+        orders: ordersRes.status === 'fulfilled' ? ordersRes.value : [],
+        customers: customersRes.status === 'fulfilled' ? customersRes.value : [],
+        transactions: [],
+        locations: [],
+        appointments: [],
+        documents: []
+      };
+
+      // Set results from database
+      setResults(apiResults);
+      
+      // Calculate total from API results
+      const apiTotal = Object.values(apiResults).reduce((sum, arr) => sum + (arr?.length || 0), 0);
+      setTotalResults(apiTotal);
+      
+      if (apiTotal > 0) {
+        toast.success(`Found ${apiTotal} results for "${searchQuery}"`);
       } else {
-        // Fallback to mock data if API returns empty
-        useMockData(searchQuery);
+        toast.info('No results found. Try different keywords.');
       }
     } catch (error) {
-      // Fallback to mock data if API fails
-      console.log('Using mock data for search');
-      useMockData(searchQuery);
+      console.error('Search API error:', error);
+      toast.error('Search failed. Please check your connection and try again.');
+      // Set empty results on error
+      setResults({
+        products: [],
+        orders: [],
+        customers: [],
+        transactions: [],
+        locations: [],
+        appointments: [],
+        documents: []
+      });
+      setTotalResults(0);
     } finally {
       setLoading(false);
     }
   };
 
-  const useMockData = (searchQuery) => {
-    const mockResults = {
-        products: [
-          { id: 1, name: 'Wireless Headphones', category: 'Electronics', price: 99.99, stock: 25 },
-          { id: 2, name: 'Smartphone Case', category: 'Accessories', price: 19.99, stock: 50 }
-        ],
-        orders: [
-          { id: 'ORD-001', customer: 'John Doe', total: 299.99, status: 'completed', date: '2024-01-15' },
-          { id: 'ORD-002', customer: 'Jane Smith', total: 149.99, status: 'pending', date: '2024-01-14' }
-        ],
-        customers: [
-          { id: 1, name: 'John Doe', email: 'john@example.com', orders: 5, totalSpent: 1299.99 },
-          { id: 2, name: 'Jane Smith', email: 'jane@example.com', orders: 3, totalSpent: 899.99 }
-        ],
-        transactions: [
-          { id: 'TXN-001', type: 'payment', amount: 299.99, date: '2024-01-15', description: 'Order payment' },
-          { id: 'TXN-002', type: 'refund', amount: -49.99, date: '2024-01-14', description: 'Product return' }
-        ],
-        locations: [
-          { id: 1, name: 'Main Store', address: '123 Main St', city: 'New York', status: 'active' },
-          { id: 2, name: 'Branch Office', address: '456 Oak Ave', city: 'Los Angeles', status: 'active' }
-        ],
-        appointments: [
-          { id: 1, client: 'John Doe', service: 'Consultation', date: '2024-01-20', time: '10:00 AM' },
-          { id: 2, client: 'Jane Smith', service: 'Follow-up', date: '2024-01-21', time: '2:00 PM' }
-        ],
-        documents: [
-          { id: 1, name: 'Invoice #001', type: 'invoice', date: '2024-01-15', size: '245 KB' },
-          { id: 2, name: 'Report Q1 2024', type: 'report', date: '2024-01-10', size: '1.2 MB' }
-        ]
-      };
-
-    // Filter results based on search query
-    const filteredResults = {};
-    Object.keys(mockResults).forEach(category => {
-      filteredResults[category] = mockResults[category].filter(item => {
-        const searchText = JSON.stringify(item).toLowerCase();
-        return searchText.includes(searchQuery.toLowerCase());
-      });
-    });
-
-    setResults(filteredResults);
-    
-    // Calculate total results
-    const total = Object.values(filteredResults).reduce((sum, arr) => sum + arr.length, 0);
-    setTotalResults(total);
-    
-    if (total > 0) {
-      toast.success(`Found ${total} results for "${searchQuery}"`);
-    } else {
-      toast.info('No results found. Try different keywords.');
-    }
-  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -145,8 +121,47 @@ const Search = () => {
     { id: 'documents', label: 'Documents', icon: FileText, count: results.documents?.length || 0 }
   ];
 
-  const ResultCard = ({ item, type, onClick }) => (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
+  const handleResultClick = (item, type) => {
+    // Navigate to appropriate page based on result type
+    switch(type) {
+      case 'products':
+        navigate('/dashboard/inventory');
+        toast.success(`Viewing product: ${item.name}`);
+        break;
+      case 'orders':
+        navigate('/dashboard/ecommerce');
+        toast.success(`Viewing order: ${item.id}`);
+        break;
+      case 'customers':
+        navigate('/dashboard/ecommerce');
+        toast.success(`Viewing customer: ${item.name}`);
+        break;
+      case 'transactions':
+        navigate('/dashboard/finances');
+        toast.success(`Viewing transaction: ${item.id}`);
+        break;
+      case 'locations':
+        navigate('/dashboard/locations');
+        toast.success(`Viewing location: ${item.name}`);
+        break;
+      case 'appointments':
+        navigate('/dashboard/appointments');
+        toast.success(`Viewing appointment with ${item.client}`);
+        break;
+      case 'documents':
+        navigate('/dashboard/reports');
+        toast.success(`Viewing document: ${item.name}`);
+        break;
+      default:
+        toast.info('Opening details...');
+    }
+  };
+
+  const ResultCard = ({ item, type }) => (
+    <Card 
+      className="hover:shadow-md transition-shadow cursor-pointer" 
+      onClick={() => handleResultClick(item, type)}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -241,7 +256,6 @@ const Search = () => {
                         key={index} 
                         item={item} 
                         type={type}
-                        onClick={() => toast.info(`Opening ${type} details...`)}
                       />
                     ))}
                     {items.length > 3 && (
@@ -262,7 +276,6 @@ const Search = () => {
                   key={index} 
                   item={item} 
                   type={type}
-                  onClick={() => toast.info(`Opening ${type} details...`)}
                 />
               ))}
               {items.length === 0 && (
@@ -271,7 +284,7 @@ const Search = () => {
                     <SearchIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No {type} found</h3>
                     <p className="text-muted-foreground">
-                      Try adjusting your search terms
+                      Try adjusting your search terms or check your filters
                     </p>
                   </CardContent>
                 </Card>

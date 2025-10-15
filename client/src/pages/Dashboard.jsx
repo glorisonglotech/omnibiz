@@ -17,10 +17,11 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import { clientAPI } from '@/lib/api'; // Import clientAPI for dashboard stats
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user } = useAuth(); // Get the logged-in user from AuthContext
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState({
     stats: [],
     recentActivities: [],
@@ -56,8 +57,35 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [user]); // Re-fetch if user changes
 
+  const handleQuickAction = (action) => {
+    switch(action) {
+      case 'add-product':
+        navigate('/dashboard/ecommerce');
+        toast.success('Opening E-Commerce to add product');
+        break;
+      case 'book-appointment':
+        navigate('/dashboard/appointments');
+        toast.success('Opening appointments booking');
+        break;
+      case 'create-invoice':
+        navigate('/dashboard/finances');
+        toast.success('Opening finances to create invoice');
+        break;
+      case 'add-customer':
+        navigate('/dashboard/ecommerce');
+        toast.success('Opening customer management');
+        break;
+      default:
+        toast.info('Feature coming soon!');
+    }
+  };
+
   if (loading) {
-    return <div>Loading dashboard...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
@@ -80,9 +108,9 @@ const Dashboard = () => {
             </Button>
           </Link>
 
-          <Button>
+          <Button onClick={() => navigate('/dashboard/search')}>
             <Plus className="mr-2 h-4 w-4" />
-            Quick Action
+            Search All
           </Button>
         </div>
       </div>
@@ -201,21 +229,37 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="h-auto flex-col py-4">
-                <Package className="h-6 w-6 mb-2" />
-                <span className="text-xs">Add Product</span>
+              <Button 
+                variant="outline" 
+                className="h-auto flex-col py-4 hover:bg-green-50 hover:border-green-500 transition-colors"
+                onClick={() => handleQuickAction('add-product')}
+              >
+                <Package className="h-6 w-6 mb-2 text-green-600" />
+                <span className="text-xs font-medium">Add Product</span>
               </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
-                <Calendar className="h-6 w-6 mb-2" />
-                <span className="text-xs">Book Appointment</span>
+              <Button 
+                variant="outline" 
+                className="h-auto flex-col py-4 hover:bg-blue-50 hover:border-blue-500 transition-colors"
+                onClick={() => handleQuickAction('book-appointment')}
+              >
+                <Calendar className="h-6 w-6 mb-2 text-blue-600" />
+                <span className="text-xs font-medium">Book Appointment</span>
               </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
-                <DollarSign className="h-6 w-6 mb-2" />
-                <span className="text-xs">Create Invoice</span>
+              <Button 
+                variant="outline" 
+                className="h-auto flex-col py-4 hover:bg-purple-50 hover:border-purple-500 transition-colors"
+                onClick={() => handleQuickAction('create-invoice')}
+              >
+                <DollarSign className="h-6 w-6 mb-2 text-purple-600" />
+                <span className="text-xs font-medium">Create Invoice</span>
               </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
-                <Users className="h-6 w-6 mb-2" />
-                <span className="text-xs">Add Customer</span>
+              <Button 
+                variant="outline" 
+                className="h-auto flex-col py-4 hover:bg-orange-50 hover:border-orange-500 transition-colors"
+                onClick={() => handleQuickAction('add-customer')}
+              >
+                <Users className="h-6 w-6 mb-2 text-orange-600" />
+                <span className="text-xs font-medium">Add Customer</span>
               </Button>
             </div>
           </CardContent>

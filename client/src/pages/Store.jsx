@@ -48,48 +48,14 @@ const Store = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       setProducts(response.data || []);
+      
+      if (!response.data || response.data.length === 0) {
+        toast.info("No products found. Add products to get started!");
+      }
     } catch (error) {
       console.error("Error fetching products:", error);
-      toast.error("Failed to load products");
-      // Set mock products as fallback
-      setProducts([
-        {
-          _id: "1",
-          name: "Premium Hair Shampoo",
-          description: "Nourishing shampoo for all hair types",
-          price: 30,
-          category: "Hair Care",
-          stockQuantity: 25,
-          image: "https://via.placeholder.com/300x300?text=Shampoo"
-        },
-        {
-          _id: "2",
-          name: "Hair Styling Gel",
-          description: "Strong hold gel with natural finish",
-          price: 16,
-          category: "Hair Care",
-          stockQuantity: 40,
-          image: "https://via.placeholder.com/300x300?text=Gel"
-        },
-        {
-          _id: "3",
-          name: "Organic Face Mask",
-          description: "Deep cleansing and hydrating mask",
-          price: 45,
-          category: "Skincare",
-          stockQuantity: 15,
-          image: "https://via.placeholder.com/300x300?text=Face+Mask"
-        },
-        {
-          _id: "4",
-          name: "Professional Hair Dryer",
-          description: "Fast drying with ionic technology",
-          price: 200,
-          category: "Tools",
-          stockQuantity: 8,
-          image: "https://via.placeholder.com/300x300?text=Hair+Dryer"
-        }
-      ]);
+      toast.error("Failed to load products. Please check your connection.");
+      setProducts([]);
     } finally {
       setLoading(false);
     }

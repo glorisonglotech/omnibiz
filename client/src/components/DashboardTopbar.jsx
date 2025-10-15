@@ -99,7 +99,7 @@ const DashboardTopbar = () => {
     .toUpperCase();
 
   return (
-    <header className="bg-white border-b border-green-100 px-6 py-4">
+    <header className="bg-card border-b border-border px-6 py-4 shadow-sm">
       {/* Breadcrumbs */}
       {breadcrumbs.length > 0 && (
         <div className="mb-4">
@@ -109,13 +109,13 @@ const DashboardTopbar = () => {
                 <React.Fragment key={breadcrumb.path}>
                   <BreadcrumbItem>
                     {breadcrumb.current ? (
-                      <BreadcrumbPage className="text-green-700 font-medium">
+                      <BreadcrumbPage className="text-primary font-medium">
                         {breadcrumb.name}
                       </BreadcrumbPage>
                     ) : (
                       <BreadcrumbLink
                         href={breadcrumb.path}
-                        className="text-green-600 hover:text-green-700"
+                        className="text-foreground hover:text-primary transition-colors"
                       >
                         {breadcrumb.name}
                       </BreadcrumbLink>
@@ -133,12 +133,12 @@ const DashboardTopbar = () => {
         {/* Search */}
         <div className="flex items-center space-x-4 flex-1 max-w-md">
           <form onSubmit={handleSearch} className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-green-500" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search across modules..."
-              className="pl-10 bg-green-50 border border-green-200 focus-visible:ring-green-500"
+              className="pl-10 bg-accent/50 border-input focus-visible:ring-primary"
             />
           </form>
         </div>
@@ -156,7 +156,7 @@ const DashboardTopbar = () => {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex items-center space-x-2 text-green-700 hover:text-green-800"
+                className="flex items-center space-x-2 hover:bg-accent"
               >
                 <ProfilePicture
                   user={user}
@@ -164,25 +164,25 @@ const DashboardTopbar = () => {
                   editable={false}
                 />
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium">{userName}</p>
-                  <p className="text-xs text-green-500">{user?.role || 'User'}</p>
+                  <p className="text-sm font-medium text-foreground">{userName}</p>
+                  <p className="text-xs text-muted-foreground">{user?.role || 'User'}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="border-green-100">
-              <DropdownMenuLabel className="text-green-700">
+            <DropdownMenuContent align="end" className="border-border">
+              <DropdownMenuLabel className="text-foreground font-medium">
                 My Account
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-green-700 hover:bg-green-50"
+                className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer"
                 onClick={() => navigate('/dashboard/profile')}
               >
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-green-700 hover:bg-green-50"
+                className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer"
                 onClick={() => navigate('/dashboard/settings')}
               >
                 <Settings className="mr-2 h-4 w-4" />
@@ -190,7 +190,7 @@ const DashboardTopbar = () => {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-green-700 hover:bg-green-50"
+                className="text-destructive hover:bg-destructive/10 focus:bg-destructive/10 cursor-pointer"
                 onClick={handleLogout}
               >
                 <LogOut className="mr-2 h-4 w-4" />

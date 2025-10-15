@@ -6,14 +6,14 @@ import LiveChatWidget from "./storefront/LiveChatWidget";
 
 const DashboardLayout = () => {
   return (
-    <div className="flex h-screen bg-white text-green-700">
+    <div className="flex h-screen bg-background text-foreground">
       {/* Sidebar */}
       <DashboardSidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden border-l border-green-100">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardTopbar />
-        <main className="flex-1 overflow-auto p-6 bg-white">
+        <main className="flex-1 overflow-auto p-6 bg-background">
           <Outlet />
         </main>
       </div>

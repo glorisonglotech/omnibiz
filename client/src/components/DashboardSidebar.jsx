@@ -65,21 +65,21 @@ function DashboardSidebar() {
   return (
     <div
       className={cn(
-        "bg-white border-r border-green-100 transition-all duration-300",
+        "bg-card border-r border-border transition-all duration-300 shadow-sm",
         isCollapsed ? "w-16" : "w-64"
       )}
     >
       <div className="flex h-full flex-col">
         {/* Logo and collapse button */}
-        <div className="flex items-center justify-between p-4 border-b border-green-100">
+        <div className="flex items-center justify-between p-4 border-b border-border">
           {!isCollapsed && (
             <Link to="/dashboard" className="flex items-center space-x-2">
               <img
                 src="https://2aa832b0f010801d3551c6c63b116063.cdn.bubble.io/cdn-cgi/image/w=48,h=48,f=auto,dpr=1,fit=contain/f1758225569468x933635082935872100/logo.webp"
                 alt=""
               />
-              <span className="text-xl font-bold text-green-700">
-                Omin<span className="text-green-500">Biz</span>
+              <span className="text-xl font-bold text-primary">
+                Omin<span className="text-accent">Biz</span>
               </span>
             </Link>
           )}
@@ -87,7 +87,7 @@ function DashboardSidebar() {
             variant="ghost"
             size="icon"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="h-8 w-8 text-green-600 hover:text-green-700"
+            className="h-8 w-8 text-primary hover:text-primary/80"
           >
             {isCollapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
           </Button>
@@ -104,8 +104,8 @@ function DashboardSidebar() {
                 className={cn(
                   "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-green-600 text-white"
-                    : "text-green-700 hover:bg-green-100 hover:text-green-800"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
                 <item.icon
@@ -118,7 +118,7 @@ function DashboardSidebar() {
         </nav>
 
         {/* User info and settings */}
-        <div className="border-t border-green-100">
+        <div className="border-t border-border">
           {/* Settings and Profile Links */}
           <div className="p-2 space-y-1">
             <Link
@@ -126,8 +126,8 @@ function DashboardSidebar() {
               className={cn(
                 "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 location.pathname === "/dashboard/settings"
-                  ? "bg-green-600 text-white"
-                  : "text-green-700 hover:bg-green-100 hover:text-green-800"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
               <Settings
@@ -140,8 +140,8 @@ function DashboardSidebar() {
               className={cn(
                 "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 location.pathname === "/dashboard/profile"
-                  ? "bg-green-600 text-white"
-                  : "text-green-700 hover:bg-green-100 hover:text-green-800"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
               <User
@@ -156,8 +156,8 @@ function DashboardSidebar() {
               className={cn(
                 "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 location.pathname === "/dashboard/help"
-                  ? "bg-green-600 text-white"
-                  : "text-green-700 hover:bg-green-100 hover:text-green-800"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
               <HelpCircle
@@ -172,7 +172,7 @@ function DashboardSidebar() {
               variant="ghost"
               className={cn(
                 "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full justify-start",
-                "text-red-600 hover:bg-red-50 hover:text-red-700"
+                "text-destructive hover:bg-destructive/10 hover:text-destructive"
               )}
             >
               <LogOut
@@ -184,16 +184,16 @@ function DashboardSidebar() {
 
           {/* User info */}
           {!isCollapsed && (
-            <div className="p-4 border-t border-green-100">
+            <div className="p-4 border-t border-border bg-muted/30">
               <div className="flex items-center space-x-3">
-                <div className="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">{userInitials}</span> {/* Show user initials */}
+                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shadow-sm">
+                  <span className="text-sm font-medium text-primary-foreground">{userInitials}</span> {/* Show user initials */}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-green-800 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {userName} {/* Display the user's name */}
                   </p>
-                  <p className="text-xs text-green-500 truncate">Admin</p>
+                  <p className="text-xs text-muted-foreground truncate">Admin</p>
                 </div>
               </div>
             </div>

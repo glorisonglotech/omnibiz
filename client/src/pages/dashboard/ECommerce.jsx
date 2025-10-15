@@ -1,8 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useFinancial } from "@/context/FinancialContext";
+
+// Lazy load heavy components for better performance
+const ProductCatalog = lazy(() => import("@/components/ecommerce/ProductCatalog"));
+const SalesAnalytics = lazy(() => import("@/components/ecommerce/SalesAnalytics"));
+const OrderTimeline = lazy(() => import("@/components/ecommerce/OrderTimeline"));
+const QuickActions = lazy(() => import("@/components/ecommerce/QuickActions"));
+const EnhancedProductForm = lazy(() => import("@/components/ecommerce/EnhancedProductForm"));
+const EnhancedOrderForm = lazy(() => import("@/components/ecommerce/EnhancedOrderForm"));
+const RealTimeSync = lazy(() => import("@/components/ecommerce/RealTimeSync"));
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +57,6 @@ import {
 } from "@/components/ui/select";
 import { v4 as uuidv4 } from 'uuid';
 
-
 const defaultProduct = {
   name: "",
   sku: "",
@@ -61,23 +69,30 @@ const defaultProduct = {
 };
 
 const ECommerce = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { refreshFinancialData } = useFinancial();
 
   const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false);
   const [viewOrder, setViewOrder] = useState(null);
+  const [isEditProductOpen, setIsEditProductOpen] = useState(false);
+  const [editProduct, setEditProduct] = useState(null);
+  const [activeView, setActiveView] = useState('overview'); // overview, products, analytics
+  const [timeFrame, setTimeFrame] = useState('month');
 
   // Add Product Dialog State
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [newProduct, setNewProduct] = useState(defaultProduct);
+  const [isAddOrderOpen, setIsAddOrderOpen] = useState(false);
 
   // Invite Link State
   const [inviteLink, setInviteLink] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Fetch orders
   useEffect(() => {
     const fetchOrders = async () => {
       if (!isAuthenticated) {
@@ -98,6 +113,24 @@ const ECommerce = () => {
       }
     };
     fetchOrders();
+  }, [isAuthenticated]);
+
+  // Fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const response = await api.get("/products", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        setProducts(response.data || []);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+    fetchProducts();
   }, [isAuthenticated]);
 
   const handleEditClick = (order) => {
@@ -185,12 +218,13 @@ const ECommerce = () => {
     };
     try {
       const token = localStorage.getItem("token");
-      await api.post("/products", sanitizedProduct, {
+      const response = await api.post("/products", sanitizedProduct, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
+      setProducts(prev => [...prev, response.data]);
       setNewProduct(defaultProduct);
       setIsAddProductOpen(false);
       toast.success("Product added successfully!");
@@ -198,6 +232,149 @@ const ECommerce = () => {
       toast.error(error.response?.data?.error || "Error adding product.");
       // eslint-disable-next-line no-console
       console.error("Error adding product:", error);
+    }
+  };
+
+  // Product handlers
+  const handleEditProduct = (product) => {
+    setEditProduct(product);
+    setIsEditProductOpen(true);
+  };
+
+  const handleDeleteProduct = async (product) => {
+    try {
+      await api.delete(`/products/${product._id || product.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      setProducts(prev => prev.filter(p => (p._id || p.id) !== (product._id || product.id)));
+      toast.success("Product deleted successfully!");
+    } catch (error) {
+      toast.error("Failed to delete product");
+    }
+  };
+
+  const handleViewProduct = (product) => {
+    toast.info(`Viewing ${product.name}`);
+    // Could open a detailed view modal
+  };
+
+  // Import/Export handlers
+  const handleImportProducts = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        toast.info('Import feature coming soon!');
+        // TODO: Implement CSV/Excel parsing
+      }
+    };
+    input.click();
+  };
+
+  const handleExportData = () => {
+    try {
+      const dataStr = JSON.stringify({ products, orders }, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ecommerce-data-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success('Data exported successfully!');
+    } catch (error) {
+      toast.error('Failed to export data');
+    }
+  };
+
+  const handleGenerateReport = () => {
+    toast.info('Generating report...');
+    setTimeout(() => {
+      toast.success('Report generation coming soon!');
+    }, 1000);
+  };
+
+  // Real-time sync handlers
+  const handleProductRealTimeUpdate = (data) => {
+    setProducts(prev => {
+      const index = prev.findIndex(p => (p._id || p.id) === (data._id || data.id));
+      if (index !== -1) {
+        const updated = [...prev];
+        updated[index] = data;
+        return updated;
+      }
+      return [...prev, data];
+    });
+  };
+
+  const handleOrderRealTimeUpdate = (data) => {
+    setOrders(prev => {
+      const index = prev.findIndex(o => (o._id || o.id) === (data._id || data.id));
+      if (index !== -1) {
+        const updated = [...prev];
+        updated[index] = data;
+        return updated;
+      }
+      return [...prev, data];
+    });
+    
+    // Refresh financial data if order is paid
+    if (data.status === 'Paid' || data.paymentStatus === 'Paid') {
+      refreshFinancialData?.();
+    }
+  };
+
+  const handleStockRealTimeUpdate = (data) => {
+    setProducts(prev => 
+      prev.map(p => 
+        (p._id === data.productId || p.id === data.productId)
+          ? { ...p, stockQuantity: data.stockQuantity }
+          : p
+      )
+    );
+  };
+
+  // Enhanced product submit handler
+  const handleProductSubmit = async (productData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await api.post('/products', productData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      setProducts(prev => [...prev, response.data]);
+      setIsAddProductOpen(false);
+      toast.success('Product added successfully with images!');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to add product');
+    }
+  };
+
+  // Enhanced order submit handler
+  const handleOrderSubmit = async (orderData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await api.post('/orders', orderData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      setOrders(prev => [...prev, response.data]);
+      setIsAddOrderOpen(false);
+      toast.success('Order created successfully!');
+      
+      if (response.data.status === 'Paid' || response.data.paymentStatus === 'Paid') {
+        refreshFinancialData?.();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to create order');
     }
   };
 
@@ -263,6 +440,13 @@ const ECommerce = () => {
   const revenue = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
   const avgOrderValue = totalOrders ? (revenue / totalOrders).toFixed(2) : "0.00";
 
+  // Loading fallback
+  const LoadingFallback = () => (
+    <div className="flex items-center justify-center p-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -270,12 +454,37 @@ const ECommerce = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">E-Commerce Dashboard</h1>
           <p className="text-muted-foreground">Manage your online store and orders</p>
+          {/* Real-Time Sync Status */}
+          <div className="mt-2">
+            <Suspense fallback={null}>
+              <RealTimeSync
+                onProductUpdate={handleProductRealTimeUpdate}
+                onOrderUpdate={handleOrderRealTimeUpdate}
+                onStockUpdate={handleStockRealTimeUpdate}
+              />
+            </Suspense>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
             variant="default"
+            className="gap-2 bg-purple-600 hover:bg-purple-700"
+            onClick={() => setIsAddOrderOpen(true)}
+          >
+            <ShoppingCart className="h-4 w-4" />
+            Create Order
+          </Button>
+          <Button
+            variant="default"
             className="gap-2 bg-blue-600 hover:bg-blue-700"
-            onClick={() => window.location.href = '/store'}
+            onClick={() => {
+              if (user?.inviteCode) {
+                window.location.href = `/store/${user.inviteCode}`;
+              } else {
+                setActiveView('products');
+                toast.info('View your products and generate an invite link');
+              }
+            }}
           >
             <Package className="h-4 w-4" />
             Store Overview
@@ -329,154 +538,71 @@ const ECommerce = () => {
             variant="outline"
             className="gap-2"
             onClick={() => {
-              // Open the client storefront in a new tab
-              const inviteCode = user?.inviteCode || 'demo';
-              window.open(`/client/store/${inviteCode}`, '_blank');
-              toast.success('Opening your store in a new tab...');
+              if (user?.inviteCode) {
+                window.open(`/store/${user.inviteCode}`, '_blank');
+                toast.success('Opening your store in a new tab...');
+              } else {
+                // Generate invite code first
+                toast.info('Generate an invite link first to access your store');
+              }
             }}
           >
             <Eye className="h-4 w-4" />
             View Store
           </Button>
-          <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 bg-green-500 hover:bg-green-400">
-                <Plus className="h-4 w-4" />
-                Add Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Product</DialogTitle>
-                <DialogDescription>
-                  Register a new product to your inventory
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="product-name">Product Name</Label>
-                  <Input
-                    id="product-name"
-                    placeholder="Enter product name"
-                    value={newProduct.name}
-                    onChange={(e) =>
-                      handleNewProductChange("name", e.target.value)
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="sku">SKU</Label>
-                  <Input
-                    id="sku"
-                    placeholder="Product SKU"
-                    value={newProduct.sku}
-                    onChange={(e) =>
-                      handleNewProductChange("sku", e.target.value)
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
-                    placeholder="Enter category"
-                    value={newProduct.category}
-                    onChange={(e) =>
-                      handleNewProductChange("category", e.target.value)
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="stock">Stock Quantity</Label>
-                    <Input
-                      id="stock"
-                      type="number"
-                      min="0"
-                      placeholder="e.g. 25"
-                      value={newProduct.stockQuantity}
-                      onChange={(e) =>
-                        handleNewProductChange("stockQuantity", e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="reorderLevel">Reorder Level</Label>
-                    <Input
-                      id="reorderLevel"
-                      type="number"
-                      min="0"
-                      placeholder="e.g. 10"
-                      value={newProduct.reorderLevel}
-                      onChange={(e) =>
-                        handleNewProductChange("reorderLevel", e.target.value)
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="price">Price ($)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="e.g. 29.99"
-                      value={newProduct.price}
-                      onChange={(e) =>
-                        handleNewProductChange("price", e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="supplier">Supplier</Label>
-                    <Input
-                      id="supplier"
-                      placeholder="Supplier name"
-                      value={newProduct.supplierName}
-                      onChange={(e) =>
-                        handleNewProductChange("supplierName", e.target.value)
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Product description"
-                    value={newProduct.description}
-                    onChange={(e) =>
-                      handleNewProductChange("description", e.target.value)
-                    }
-                    className="resize-none"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  className="text-red-500 cursor-pointer hover:text-red-400"
-                  onClick={() => setIsAddProductOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-green-500 cursor-pointer hover:bg-green-400"
-                  onClick={handleAddProduct}
-                >
-                  <Send className="mr-2 h-4 w-4" />
-                  Add Product
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            className="gap-2 bg-green-500 hover:bg-green-400"
+            onClick={() => setIsAddProductOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Add Product
+          </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-4">
+      {/* View Tabs */}
+      <div className="flex items-center gap-2 border-b border-border pb-2">
+        <Button
+          variant={activeView === 'overview' ? 'default' : 'ghost'}
+          onClick={() => setActiveView('overview')}
+          className="gap-2"
+        >
+          <ShoppingCart className="h-4 w-4" />
+          Overview
+        </Button>
+        <Button
+          variant={activeView === 'products' ? 'default' : 'ghost'}
+          onClick={() => setActiveView('products')}
+          className="gap-2"
+        >
+          <Package className="h-4 w-4" />
+          Products ({products.length})
+        </Button>
+        <Button
+          variant={activeView === 'analytics' ? 'default' : 'ghost'}
+          onClick={() => setActiveView('analytics')}
+          className="gap-2"
+        >
+          <TrendingUp className="h-4 w-4" />
+          Analytics
+        </Button>
+      </div>
+
+      {/* Quick Actions - Always visible */}
+      <Suspense fallback={<LoadingFallback />}>
+        <QuickActions
+          onAddProduct={() => setIsAddProductOpen(true)}
+          onImport={handleImportProducts}
+          onExport={handleExportData}
+          onGenerateReport={handleGenerateReport}
+        />
+      </Suspense>
+
+      {/* Conditional Views */}
+      {activeView === 'overview' && (
+        <>
+          {/* Stats Cards */}
+          <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
@@ -655,6 +781,59 @@ const ECommerce = () => {
         </Card>
       </div>
 
+          {/* Order Timeline */}
+          <Suspense fallback={<LoadingFallback />}>
+            <OrderTimeline orders={orders} limit={15} />
+          </Suspense>
+        </>
+      )}
+
+      {/* Products View */}
+      {activeView === 'products' && (
+        <Suspense fallback={<LoadingFallback />}>
+          <ProductCatalog
+            products={products}
+            onEdit={handleEditProduct}
+            onDelete={handleDeleteProduct}
+            onView={handleViewProduct}
+          />
+        </Suspense>
+      )}
+
+      {/* Analytics View */}
+      {activeView === 'analytics' && (
+        <div id="analytics-section" className="space-y-4">
+          {/* Time Frame Selector */}
+          <Card className="border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Sales Analytics</h3>
+                  <p className="text-sm text-muted-foreground">View your sales performance and trends</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="timeframe" className="text-sm">Time Period:</Label>
+                  <Select value={timeFrame} onValueChange={setTimeFrame}>
+                    <SelectTrigger id="timeframe" className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="week">This Week</SelectItem>
+                      <SelectItem value="month">This Month</SelectItem>
+                      <SelectItem value="year">This Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Suspense fallback={<LoadingFallback />}>
+            <SalesAnalytics orders={orders} timeFrame={timeFrame} />
+          </Suspense>
+        </div>
+      )}
+
       {/* View Order Dialog */}
       {isViewOrderOpen && viewOrder && (
         <Dialog open={isViewOrderOpen} onOpenChange={setIsViewOrderOpen}>
@@ -821,6 +1000,28 @@ const ECommerce = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Enhanced Product Form */}
+      <Suspense fallback={<LoadingFallback />}>
+        <EnhancedProductForm
+          isOpen={isAddProductOpen}
+          onClose={() => setIsAddProductOpen(false)}
+          onSubmit={handleProductSubmit}
+          initialData={editProduct}
+          mode={editProduct ? 'edit' : 'add'}
+        />
+      </Suspense>
+
+      {/* Enhanced Order Form */}
+      <Suspense fallback={<LoadingFallback />}>
+        <EnhancedOrderForm
+          isOpen={isAddOrderOpen}
+          onClose={() => setIsAddOrderOpen(false)}
+          onSubmit={handleOrderSubmit}
+          products={products}
+          mode="add"
+        />
+      </Suspense>
     </div>
   );
 };

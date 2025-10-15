@@ -207,6 +207,201 @@ export const AVAILABLE_THEMES = {
       background: 'var(--background)',
       foreground: 'var(--foreground)'
     }
+  },
+  dracula: {
+    name: 'Dracula',
+    description: 'Popular dark theme',
+    preview: 'bg-[#282a36] text-[#f8f8f2] border border-[#bd93f9]',
+    category: 'special',
+    colors: {
+      primary: '#bd93f9',
+      secondary: '#ff79c6',
+      accent: '#50fa7b',
+      background: '#282a36',
+      foreground: '#f8f8f2'
+    }
+  },
+  nord: {
+    name: 'Nord',
+    description: 'Arctic nordic theme',
+    preview: 'bg-[#2e3440] text-[#eceff4] border border-[#88c0d0]',
+    category: 'special',
+    colors: {
+      primary: '#88c0d0',
+      secondary: '#81a1c1',
+      accent: '#a3be8c',
+      background: '#2e3440',
+      foreground: '#eceff4'
+    }
+  },
+  tokyonight: {
+    name: 'Tokyo Night',
+    description: 'Neon city nights',
+    preview: 'bg-[#1a1b26] text-[#c0caf5] border border-[#7aa2f7]',
+    category: 'special',
+    colors: {
+      primary: '#7aa2f7',
+      secondary: '#bb9af7',
+      accent: '#9ece6a',
+      background: '#1a1b26',
+      foreground: '#c0caf5'
+    }
+  },
+  monokai: {
+    name: 'Monokai',
+    description: 'Classic code theme',
+    preview: 'bg-[#272822] text-[#f8f8f2] border border-[#66d9ef]',
+    category: 'special',
+    colors: {
+      primary: '#66d9ef',
+      secondary: '#f92672',
+      accent: '#a6e22e',
+      background: '#272822',
+      foreground: '#f8f8f2'
+    }
+  },
+  neon: {
+    name: 'Neon Dreams',
+    description: 'Vibrant neon colors',
+    preview: 'bg-black text-[#0ff] border border-[#f0f]',
+    category: 'special',
+    colors: {
+      primary: '#00ffff',
+      secondary: '#ff00ff',
+      accent: '#00ff00',
+      background: '#000000',
+      foreground: '#00ffff'
+    }
+  },
+  matrix: {
+    name: 'Matrix',
+    description: 'Enter the matrix',
+    preview: 'bg-black text-[#00ff00] border border-[#00ff00]',
+    category: 'special',
+    colors: {
+      primary: '#00ff00',
+      secondary: '#00cc00',
+      accent: '#00ff41',
+      background: '#000000',
+      foreground: '#00ff00'
+    }
+  },
+  lavender: {
+    name: 'Lavender Fields',
+    description: 'Soft purple tones',
+    preview: 'bg-[#f5f3ff] text-[#5b21b6]',
+    category: 'color',
+    colors: {
+      primary: '#8b5cf6',
+      secondary: '#a78bfa',
+      accent: '#c4b5fd',
+      background: '#f5f3ff',
+      foreground: '#5b21b6'
+    }
+  },
+  midnight: {
+    name: 'Midnight Blue',
+    description: 'Deep midnight colors',
+    preview: 'bg-[#0c1445] text-[#e0e7ff]',
+    category: 'special',
+    colors: {
+      primary: '#4f46e5',
+      secondary: '#818cf8',
+      accent: '#a5b4fc',
+      background: '#0c1445',
+      foreground: '#e0e7ff'
+    }
+  },
+  coral: {
+    name: 'Coral Reef',
+    description: 'Warm coral colors',
+    preview: 'bg-[#fff5f5] text-[#c53030]',
+    category: 'color',
+    colors: {
+      primary: '#f56565',
+      secondary: '#fc8181',
+      accent: '#feb2b2',
+      background: '#fff5f5',
+      foreground: '#c53030'
+    }
+  },
+  mint: {
+    name: 'Fresh Mint',
+    description: 'Cool mint theme',
+    preview: 'bg-[#f0fdf4] text-[#065f46]',
+    category: 'color',
+    colors: {
+      primary: '#10b981',
+      secondary: '#34d399',
+      accent: '#6ee7b7',
+      background: '#f0fdf4',
+      foreground: '#065f46'
+    }
+  },
+  amber: {
+    name: 'Amber Glow',
+    description: 'Warm amber tones',
+    preview: 'bg-[#fffbeb] text-[#78350f]',
+    category: 'color',
+    colors: {
+      primary: '#f59e0b',
+      secondary: '#fbbf24',
+      accent: '#fcd34d',
+      background: '#fffbeb',
+      foreground: '#78350f'
+    }
+  },
+  forest: {
+    name: 'Deep Forest',
+    description: 'Dark forest theme',
+    preview: 'bg-[#064e3b] text-[#d1fae5]',
+    category: 'special',
+    colors: {
+      primary: '#10b981',
+      secondary: '#34d399',
+      accent: '#6ee7b7',
+      background: '#064e3b',
+      foreground: '#d1fae5'
+    }
+  },
+  sakura: {
+    name: 'Cherry Blossom',
+    description: 'Soft pink sakura',
+    preview: 'bg-[#fdf2f8] text-[#831843]',
+    category: 'color',
+    colors: {
+      primary: '#ec4899',
+      secondary: '#f472b6',
+      accent: '#f9a8d4',
+      background: '#fdf2f8',
+      foreground: '#831843'
+    }
+  },
+  arctic: {
+    name: 'Arctic Ice',
+    description: 'Cool icy blue',
+    preview: 'bg-[#f0f9ff] text-[#075985]',
+    category: 'color',
+    colors: {
+      primary: '#0ea5e9',
+      secondary: '#38bdf8',
+      accent: '#7dd3fc',
+      background: '#f0f9ff',
+      foreground: '#075985'
+    }
+  },
+  volcano: {
+    name: 'Volcano',
+    description: 'Fiery red theme',
+    preview: 'bg-[#450a0a] text-[#fecaca]',
+    category: 'special',
+    colors: {
+      primary: '#dc2626',
+      secondary: '#ef4444',
+      accent: '#f87171',
+      background: '#450a0a',
+      foreground: '#fecaca'
+    }
   }
 };
 
@@ -280,21 +475,92 @@ export const ThemeProvider = ({ children }) => {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
+  // Helper function to convert hex to HSL for Tailwind
+  const hexToHSL = (hex) => {
+    // Remove # if present
+    hex = hex.replace('#', '');
+    
+    // Convert to RGB
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    
+    h = Math.round(h * 360);
+    s = Math.round(s * 100);
+    l = Math.round(l * 100);
+    
+    return `${h} ${s}% ${l}%`;
+  };
+
   // Apply theme changes to CSS variables
   useEffect(() => {
     const root = document.documentElement;
     const currentTheme = AVAILABLE_THEMES[theme];
 
     if (currentTheme && currentTheme.colors) {
+      // Convert colors to HSL for Tailwind
+      const primaryHSL = hexToHSL(currentTheme.colors.primary);
+      const secondaryHSL = hexToHSL(currentTheme.colors.secondary);
+      const accentHSL = hexToHSL(currentTheme.colors.accent);
+      const backgroundHSL = currentTheme.colors.background.startsWith('#') 
+        ? hexToHSL(currentTheme.colors.background) 
+        : '0 0% 100%';
+      const foregroundHSL = hexToHSL(currentTheme.colors.foreground);
+
+      // Apply Tailwind CSS variables
+      root.style.setProperty('--primary', primaryHSL);
+      root.style.setProperty('--primary-foreground', '0 0% 100%');
+      root.style.setProperty('--secondary', secondaryHSL);
+      root.style.setProperty('--secondary-foreground', foregroundHSL);
+      root.style.setProperty('--accent', accentHSL);
+      root.style.setProperty('--accent-foreground', foregroundHSL);
+      root.style.setProperty('--background', backgroundHSL);
+      root.style.setProperty('--foreground', foregroundHSL);
+      
+      // Additional theme colors
+      root.style.setProperty('--card', backgroundHSL);
+      root.style.setProperty('--card-foreground', foregroundHSL);
+      root.style.setProperty('--popover', backgroundHSL);
+      root.style.setProperty('--popover-foreground', foregroundHSL);
+      root.style.setProperty('--muted', secondaryHSL);
+      root.style.setProperty('--muted-foreground', '0 0% 45%');
+      root.style.setProperty('--border', `${primaryHSL.split(' ')[0]} 30% 80%`);
+      root.style.setProperty('--input', `${primaryHSL.split(' ')[0]} 30% 80%`);
+      root.style.setProperty('--ring', primaryHSL);
+      
+      // Legacy CSS variables for backward compatibility
       root.style.setProperty('--color-primary', currentTheme.colors.primary);
       root.style.setProperty('--color-secondary', currentTheme.colors.secondary);
       root.style.setProperty('--color-accent', currentTheme.colors.accent);
       root.style.setProperty('--color-background', currentTheme.colors.background);
       root.style.setProperty('--color-foreground', currentTheme.colors.foreground);
+      
+      // Update body background
+      document.body.style.backgroundColor = currentTheme.colors.background;
+      document.body.style.color = currentTheme.colors.foreground;
     }
 
     // Apply custom accent color if set
     if (customAccentColor) {
+      const customAccentHSL = hexToHSL(customAccentColor);
+      root.style.setProperty('--accent', customAccentHSL);
       root.style.setProperty('--color-accent', customAccentColor);
     }
 

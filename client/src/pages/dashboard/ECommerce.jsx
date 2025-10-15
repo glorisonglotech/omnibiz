@@ -272,6 +272,14 @@ const ECommerce = () => {
           <p className="text-muted-foreground">Manage your online store and orders</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="default"
+            className="gap-2 bg-blue-600 hover:bg-blue-700"
+            onClick={() => window.location.href = '/store'}
+          >
+            <Package className="h-4 w-4" />
+            Store Overview
+          </Button>
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">

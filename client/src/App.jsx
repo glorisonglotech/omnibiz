@@ -45,6 +45,7 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import PWAUpdateNotification from "@/components/PWAUpdateNotification";
 import ClientSignup from "@/pages/client/ClientSignup";
 import ClientStorefront from "@/pages/client/ClientStorefront";
+import Store from "@/pages/Store";
 import ProductCatalog from "@/pages/client/ProductCatalog";
 import BookAppointment from "@/pages/client/BookAppointment";
 import MyBookings from "@/pages/client/MyBookings";
@@ -125,8 +126,9 @@ function App() {
                     <Route path="/client/signup/:inviteCode" element={<ClientSignup />} />
                     <Route path="/client/login/:inviteCode" element={<ClientLogin />} />
                     <Route path="/client/store/:inviteCode" element={<ClientStorefront />} />
-                    <Route path="/client/catalog" element={<ProductCatalog />} />
-                    <Route path="/client/book" element={<BookAppointment />} />
+                    <Route path="client/catalog" element={<ProductCatalog />} />
+                    <Route path="store" element={<Store />} />
+                    <Route path="client/book" element={<BookAppointment />} />
                     <Route path="/client/my-bookings" element={<MyBookings />} />
 
                     {/* Dashboard Routes */}

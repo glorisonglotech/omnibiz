@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   BarChart3, 
   Download, 
@@ -12,24 +12,27 @@ import {
   RefreshCw,
   Mail,
   Clock,
-  Eye
+  Eye,
+  AlertCircle,
+  TrendingDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { api } from '@/lib/api';
+import api from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import ActivityHistory from '@/components/ActivityHistory';
 import OrderHistory from '@/components/OrderHistory';
 
 const Reports = () => {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { user, isAuthenticated } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [reportData, setReportData] = useState({
     overview: {},
     trends: {},
@@ -45,29 +48,111 @@ const Reports = () => {
   const [availableReports, setAvailableReports] = useState([]);
 
   useEffect(() => {
-    fetchReportData();
-    loadAvailableReports();
-  }, [filters.timeframe]);
+    if (isAuthenticated) {
+      fetchReportData();
+      loadAvailableReports();
+    }
+  }, [filters.timeframe, isAuthenticated]);
 
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async (showToast = false) => {
+    if (!isAuthenticated) return;
+    
     try {
-      setLoading(true);
-      const [dashboardResponse, analyticsResponse] = await Promise.all([
-        api.get(`/dashboard?timeframe=${filters.timeframe}`),
-        api.get(`/dashboard/analytics/orders?timeframe=${filters.timeframe}`)
+      if (showToast) {
+        setRefreshing(true);
+        toast.info('Refreshing reports...');
+      } else {
+        setLoading(true);
+      }
+      
+      setError(null);
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      // Fetch real data from multiple sources
+      const [ordersRes, invoicesRes, expensesRes] = await Promise.allSettled([
+        api.get('/orders', { headers }),
+        api.get('/invoices', { headers }),
+        api.get('/expenses', { headers })
       ]);
-
+      
+      // Extract data safely
+      const orders = ordersRes.status === 'fulfilled' ? (ordersRes.value?.data || []) : [];
+      const invoices = invoicesRes.status === 'fulfilled' ? (invoicesRes.value?.data || []) : [];
+      const expenses = expensesRes.status === 'fulfilled' ? (expensesRes.value?.data || []) : [];
+      
+      // Ensure arrays
+      const safeOrders = Array.isArray(orders) ? orders : [];
+      const safeInvoices = Array.isArray(invoices) ? invoices : [];
+      const safeExpenses = Array.isArray(expenses) ? expenses : [];
+      
+      // Calculate overview metrics
+      const totalRevenue = safeOrders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+      const totalOrders = safeOrders.length;
+      const uniqueCustomers = new Set(safeOrders.map(o => o.customer?.email).filter(Boolean)).size;
+      const activeServiceRequests = safeInvoices.filter(i => i.paymentStatus === 'pending').length;
+      
+      // Calculate growth rates (compare with previous period)
+      const now = new Date();
+      const periodDays = filters.timeframe === '7d' ? 7 : filters.timeframe === '30d' ? 30 : filters.timeframe === '90d' ? 90 : 365;
+      const periodStart = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
+      const previousPeriodStart = new Date(periodStart.getTime() - periodDays * 24 * 60 * 60 * 1000);
+      
+      const currentPeriodOrders = safeOrders.filter(o => new Date(o.createdAt) >= periodStart);
+      const previousPeriodOrders = safeOrders.filter(o => 
+        new Date(o.createdAt) >= previousPeriodStart && 
+        new Date(o.createdAt) < periodStart
+      );
+      
+      const currentRevenue = currentPeriodOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      const previousRevenue = previousPeriodOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      
+      const revenueGrowth = previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue * 100).toFixed(1) : 0;
+      const ordersGrowth = previousPeriodOrders.length > 0 ? ((currentPeriodOrders.length - previousPeriodOrders.length) / previousPeriodOrders.length * 100).toFixed(1) : 0;
+      
+      const currentUsers = new Set(currentPeriodOrders.map(o => o.customer?.email).filter(Boolean)).size;
+      const previousUsers = new Set(previousPeriodOrders.map(o => o.customer?.email).filter(Boolean)).size;
+      const usersGrowth = previousUsers > 0 ? ((currentUsers - previousUsers) / previousUsers * 100).toFixed(1) : 0;
+      
       setReportData({
-        overview: dashboardResponse.data.data,
-        analytics: analyticsResponse.data.data
+        overview: {
+          totalRevenue,
+          totalOrders,
+          totalUsers: uniqueCustomers,
+          activeServiceRequests,
+          growthRates: {
+            revenue: Number(revenueGrowth),
+            orders: Number(ordersGrowth),
+            users: Number(usersGrowth)
+          }
+        },
+        analytics: {
+          orders: safeOrders,
+          invoices: safeInvoices,
+          expenses: safeExpenses
+        }
       });
-    } catch (error) {
-      console.error('Error fetching report data:', error);
+      
+      console.log('✅ Report data loaded:', {
+        orders: safeOrders.length,
+        invoices: safeInvoices.length,
+        expenses: safeExpenses.length,
+        totalRevenue,
+        growthRates: { revenueGrowth, ordersGrowth, usersGrowth }
+      });
+      
+      if (showToast) {
+        toast.success('Reports refreshed!');
+      }
+    } catch (err) {
+      console.error('❌ Error fetching report data:', err);
+      setError(err.message || 'Failed to load report data');
       toast.error('Failed to load report data');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [filters.timeframe, isAuthenticated]);
 
   const loadAvailableReports = () => {
     const reports = [
@@ -268,13 +353,13 @@ const Reports = () => {
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
-            onClick={fetchReportData}
-            disabled={loading}
+            onClick={() => fetchReportData(true)}
+            disabled={refreshing || loading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
-          <Button onClick={() => handleExportData('csv')}>
+          <Button onClick={() => handleExportData('csv')} disabled={loading}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
@@ -311,21 +396,30 @@ const Reports = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Custom Date Range</label>
-              <DatePickerWithRange
-                date={filters.dateRange}
-                setDate={(range) => setFilters(prev => ({ ...prev, dateRange: range }))}
-              />
+              <label className="text-sm font-medium mb-2 block">Report Type</label>
+              <Select 
+                value={filters.reportType} 
+                onValueChange={(value) => setFilters(prev => ({ ...prev, reportType: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="overview">Overview</SelectItem>
+                  <SelectItem value="detailed">Detailed</SelectItem>
+                  <SelectItem value="summary">Summary</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-end">
               <Button 
-                onClick={fetchReportData} 
+                onClick={() => fetchReportData(true)} 
                 className="w-full"
-                disabled={loading}
+                disabled={loading || refreshing}
               >
                 <BarChart3 className="h-4 w-4 mr-2" />
-                Update Reports
+                {loading ? 'Loading...' : 'Update Reports'}
               </Button>
             </div>
           </div>
@@ -344,6 +438,38 @@ const Reports = () => {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
+          {error ? (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="flex items-center justify-center py-12">
+                <div className="text-center space-y-4">
+                  <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+                  <div>
+                    <p className="font-semibold text-red-700">Failed to Load Report Data</p>
+                    <p className="text-sm text-red-600">{error}</p>
+                  </div>
+                  <Button onClick={() => fetchReportData()} variant="outline">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Retry
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                      <div className="h-8 w-32 bg-gray-200 rounded"></div>
+                      <div className="h-3 w-20 bg-gray-200 rounded"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+          <>
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
@@ -355,10 +481,21 @@ const Reports = () => {
                       {formatCurrency(reportData.overview?.totalRevenue || 0)}
                     </p>
                     <div className="flex items-center mt-1">
-                      <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                      <span className="text-xs text-green-600">
-                        +{reportData.overview?.growthRates?.revenue || 0}%
-                      </span>
+                      {(reportData.overview?.growthRates?.revenue || 0) >= 0 ? (
+                        <>
+                          <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
+                          <span className="text-xs text-green-600">
+                            +{Math.abs(reportData.overview?.growthRates?.revenue || 0)}%
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
+                          <span className="text-xs text-red-600">
+                            {reportData.overview?.growthRates?.revenue}%
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <DollarSign className="h-8 w-8 text-green-600" />
@@ -375,10 +512,21 @@ const Reports = () => {
                       {formatNumber(reportData.overview?.totalOrders || 0)}
                     </p>
                     <div className="flex items-center mt-1">
-                      <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                      <span className="text-xs text-green-600">
-                        +{reportData.overview?.growthRates?.orders || 0}%
-                      </span>
+                      {(reportData.overview?.growthRates?.orders || 0) >= 0 ? (
+                        <>
+                          <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
+                          <span className="text-xs text-green-600">
+                            +{Math.abs(reportData.overview?.growthRates?.orders || 0)}%
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
+                          <span className="text-xs text-red-600">
+                            {reportData.overview?.growthRates?.orders}%
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <ShoppingCart className="h-8 w-8 text-blue-600" />
@@ -395,10 +543,21 @@ const Reports = () => {
                       {formatNumber(reportData.overview?.totalUsers || 0)}
                     </p>
                     <div className="flex items-center mt-1">
-                      <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                      <span className="text-xs text-green-600">
-                        +{reportData.overview?.growthRates?.users || 0}%
-                      </span>
+                      {(reportData.overview?.growthRates?.users || 0) >= 0 ? (
+                        <>
+                          <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
+                          <span className="text-xs text-green-600">
+                            +{Math.abs(reportData.overview?.growthRates?.users || 0)}%
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
+                          <span className="text-xs text-red-600">
+                            {reportData.overview?.growthRates?.users}%
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <Users className="h-8 w-8 text-purple-600" />
@@ -458,10 +617,22 @@ const Reports = () => {
               </div>
             </CardContent>
           </Card>
+          </>
+          )}
         </TabsContent>
 
         {/* Available Reports Tab */}
         <TabsContent value="reports" className="space-y-6">
+          {availableReports.length === 0 ? (
+            <Card>
+              <CardContent className="flex items-center justify-center py-12">
+                <div className="text-center space-y-4">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto" />
+                  <p className="text-muted-foreground">No reports available</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {availableReports.map((report) => {
               const Icon = report.icon;
@@ -499,6 +670,7 @@ const Reports = () => {
               );
             })}
           </div>
+          )}
         </TabsContent>
 
         {/* Orders Tab */}

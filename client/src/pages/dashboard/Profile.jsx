@@ -203,23 +203,18 @@ const Profile = () => {
   });
 
   const [profileStats, setProfileStats] = useState({
-    completionRate: 85,
-    profileViews: 1247,
-    connections: 89,
-    totalOrders: 156,
-    totalRevenue: 45230,
-    activeProjects: 8,
-    teamMembers: 12,
-    rating: 4.8,
-    reviewsCount: 23,
-    achievements: [
-      { id: 1, title: "First Sale", description: "Made your first sale", earned: true, icon: "🎯", date: "2024-01-15", type: "sales" },
-      { id: 2, title: "Team Builder", description: "Added 10+ team members", earned: true, icon: "👥", date: "2024-02-20", type: "team" },
-      { id: 3, title: "Revenue Milestone", description: "Reached $10K revenue", earned: true, icon: "💰", date: "2024-03-10", type: "revenue" },
-      { id: 4, title: "Customer Champion", description: "100+ satisfied customers", earned: false, icon: "⭐", date: null, type: "customer" },
-      { id: 5, title: "Innovation Leader", description: "Launched 5+ new features", earned: true, icon: "🚀", date: "2024-04-05", type: "innovation" },
-      { id: 6, title: "Community Builder", description: "Helped 50+ users", earned: false, icon: "🤝", date: null, type: "community" },
-    ]
+    completionRate: 0,
+    profileViews: 0,
+    connections: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    activeProjects: 0,
+    teamMembers: 0,
+    rating: 0,
+    reviewsCount: 0,
+    engagements: 0,
+    totalSales: 0,
+    achievements: []
   });
 
   const [preferences, setPreferences] = useState({
@@ -242,56 +237,7 @@ const Profile = () => {
     passwordLastChanged: "2024-01-15",
   });
 
-  const [activityData, setActivityData] = useState([
-    {
-      id: 1,
-      action: "Updated inventory for Product A",
-      timestamp: "2 hours ago",
-      type: "inventory",
-      icon: Package,
-      color: "text-blue-500",
-    },
-    {
-      id: 2,
-      action: "Created new invoice #INV-001",
-      timestamp: "5 hours ago",
-      type: "finance",
-      icon: DollarSign,
-      color: "text-green-500",
-    },
-    {
-      id: 3,
-      action: "Scheduled appointment with John Doe",
-      timestamp: "1 day ago",
-      type: "appointment",
-      icon: Calendar,
-      color: "text-purple-500",
-    },
-    {
-      id: 4,
-      action: "Added new team member",
-      timestamp: "2 days ago",
-      type: "team",
-      icon: Users,
-      color: "text-orange-500",
-    },
-    {
-      id: 5,
-      action: "Completed project milestone",
-      timestamp: "3 days ago",
-      type: "project",
-      icon: Target,
-      color: "text-red-500",
-    },
-    {
-      id: 6,
-      action: "Updated profile information",
-      timestamp: "1 week ago",
-      type: "profile",
-      icon: User,
-      color: "text-indigo-500",
-    },
-  ]);
+  const [activityData, setActivityData] = useState([]);
 
   const [skillsData, setSkillsData] = useState([
     { name: "JavaScript", level: 90, category: "Programming" },
@@ -302,12 +248,75 @@ const Profile = () => {
     { name: "Project Management", level: 85, category: "Management" },
   ]);
 
-  const [connectionsData, setConnectionsData] = useState([
-    { id: 1, name: "Sarah Johnson", role: "Product Manager", avatar: "", mutual: 12, connected: true },
-    { id: 2, name: "Mike Chen", role: "Developer", avatar: "", mutual: 8, connected: true },
-    { id: 3, name: "Emily Davis", role: "Designer", avatar: "", mutual: 15, connected: false },
-    { id: 4, name: "Alex Rodriguez", role: "Marketing Lead", avatar: "", mutual: 6, connected: true },
-  ]);
+  const [connectionsData, setConnectionsData] = useState([]);
+  const [loadingConnections, setLoadingConnections] = useState(false);
+  const [showAddConnectionDialog, setShowAddConnectionDialog] = useState(false);
+  const [newConnection, setNewConnection] = useState({ email: '', message: '' });
+
+  // Fetch connections data
+  const fetchConnections = async () => {
+    setLoadingConnections(true);
+    try {
+      const response = await api.get('/connections');
+      setConnectionsData(response.data.connections || []);
+    } catch (error) {
+      console.error('Error fetching connections:', error);
+      // Use fallback data if API fails
+      setConnectionsData([
+        { id: 1, name: "Sarah Johnson", role: "Product Manager", email: "sarah@example.com", avatar: "", mutual: 12, connected: true },
+        { id: 2, name: "Mike Chen", role: "Developer", email: "mike@example.com", avatar: "", mutual: 8, connected: true },
+        { id: 3, name: "Emily Davis", role: "Designer", email: "emily@example.com", avatar: "", mutual: 15, connected: false },
+        { id: 4, name: "Alex Rodriguez", role: "Marketing Lead", email: "alex@example.com", avatar: "", mutual: 6, connected: true },
+      ]);
+    } finally {
+      setLoadingConnections(false);
+    }
+  };
+
+  // Handle connection actions
+  const handleConnect = async (connectionId) => {
+    try {
+      await api.post(`/connections/${connectionId}/connect`);
+      setConnectionsData(prev => prev.map(conn => 
+        conn.id === connectionId ? { ...conn, connected: true } : conn
+      ));
+      toast.success('Connection request sent!');
+    } catch (error) {
+      console.error('Error connecting:', error);
+      toast.error('Failed to send connection request');
+    }
+  };
+
+  const handleDisconnect = async (connectionId) => {
+    try {
+      await api.delete(`/connections/${connectionId}`);
+      setConnectionsData(prev => prev.map(conn => 
+        conn.id === connectionId ? { ...conn, connected: false } : conn
+      ));
+      toast.success('Connection removed');
+    } catch (error) {
+      console.error('Error disconnecting:', error);
+      toast.error('Failed to remove connection');
+    }
+  };
+
+  const handleAddConnection = async () => {
+    if (!newConnection.email) {
+      toast.error('Please enter an email address');
+      return;
+    }
+    
+    try {
+      await api.post('/connections/invite', newConnection);
+      toast.success('Connection invitation sent!');
+      setShowAddConnectionDialog(false);
+      setNewConnection({ email: '', message: '' });
+      fetchConnections(); // Refresh list
+    } catch (error) {
+      console.error('Error adding connection:', error);
+      toast.error(error.response?.data?.message || 'Failed to send invitation');
+    }
+  };
 
   // Enhanced profile photo states
   const [avatarHistory, setAvatarHistory] = useState([]);
@@ -329,7 +338,6 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!isAuthenticated) {
-        toast.error("Please log in to view profile.");
         return;
       }
 
@@ -353,10 +361,11 @@ const Profile = () => {
           country: userData.country || "",
           dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : "",
           gender: userData.gender || "",
-          jobTitle: userData.jobTitle || "",
+          jobTitle: userData.jobTitle || userData.role || "",
           department: userData.department || "",
           bio: userData.bio || "",
           avatar: userData.avatar || "",
+          location: userData.city || userData.country || "",
         };
 
         setProfileData(mappedProfile);
@@ -365,14 +374,225 @@ const Profile = () => {
         if (userData.avatar) {
           setAvatarHistory([userData.avatar]);
         }
+
+        console.log('✅ Profile data loaded:', mappedProfile);
       } catch (error) {
+        console.error('❌ Error fetching profile data:', error);
         toast.error("Error fetching profile data.");
-        console.error("Error fetching profile data:", error);
       }
     };
 
     fetchProfile();
+    if (isAuthenticated) {
+      fetchConnections();
+    }
   }, [isAuthenticated, user]);
+
+  // Real-time refresh for connections when tab is active
+  useEffect(() => {
+    if (activeTab === 'connections' && isAuthenticated) {
+      fetchConnections();
+      
+      // Set up polling for real-time updates every 30 seconds
+      const interval = setInterval(fetchConnections, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, isAuthenticated]);
+
+  // Fetch dynamic performance data
+  useEffect(() => {
+    const fetchPerformanceData = async () => {
+      if (!isAuthenticated) return;
+
+      try {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Fetch data from multiple endpoints in parallel
+        const [ordersRes, invoicesRes, teamRes, productsRes] = await Promise.allSettled([
+          api.get('/orders', { headers }),
+          api.get('/invoices', { headers }),
+          api.get('/team', { headers }),
+          api.get('/products', { headers })
+        ]);
+
+        // Extract data safely
+        const orders = ordersRes.status === 'fulfilled' ? (Array.isArray(ordersRes.value?.data) ? ordersRes.value.data : []) : [];
+        const invoices = invoicesRes.status === 'fulfilled' ? (Array.isArray(invoicesRes.value?.data) ? invoicesRes.value.data : []) : [];
+        const team = teamRes.status === 'fulfilled' ? (Array.isArray(teamRes.value?.data) ? teamRes.value.data : []) : [];
+        const products = productsRes.status === 'fulfilled' ? (Array.isArray(productsRes.value?.data) ? productsRes.value.data : []) : [];
+
+        // Calculate real revenue from orders
+        const totalRevenue = orders.reduce((sum, order) => {
+          const amount = parseFloat(order.total || order.amount || 0);
+          return sum + amount;
+        }, 0);
+
+        // Calculate real stats
+        const totalOrders = orders.length;
+        const teamMembers = team.length;
+        const activeProjects = products.filter(p => p.status === 'active').length;
+
+        // Calculate achievements based on real data
+        const achievements = [
+          { 
+            id: 1, 
+            title: "First Sale", 
+            description: "Made your first sale", 
+            earned: totalOrders > 0, 
+            icon: "🎯", 
+            date: totalOrders > 0 ? orders[0]?.createdAt : null, 
+            type: "sales" 
+          },
+          { 
+            id: 2, 
+            title: "Team Builder", 
+            description: "Added 10+ team members", 
+            earned: teamMembers >= 10, 
+            icon: "👥", 
+            date: teamMembers >= 10 ? new Date().toISOString() : null, 
+            type: "team" 
+          },
+          { 
+            id: 3, 
+            title: "Revenue Milestone", 
+            description: "Reached $10K revenue", 
+            earned: totalRevenue >= 10000, 
+            icon: "💰", 
+            date: totalRevenue >= 10000 ? new Date().toISOString() : null, 
+            type: "revenue" 
+          },
+          { 
+            id: 4, 
+            title: "Customer Champion", 
+            description: "100+ satisfied customers", 
+            earned: totalOrders >= 100, 
+            icon: "⭐", 
+            date: totalOrders >= 100 ? new Date().toISOString() : null, 
+            type: "customer" 
+          },
+          { 
+            id: 5, 
+            title: "Innovation Leader", 
+            description: "Launched 5+ products", 
+            earned: products.length >= 5, 
+            icon: "🚀", 
+            date: products.length >= 5 ? new Date().toISOString() : null, 
+            type: "innovation" 
+          },
+          { 
+            id: 6, 
+            title: "Community Builder", 
+            description: "50+ orders completed", 
+            earned: totalOrders >= 50, 
+            icon: "🤝", 
+            date: totalOrders >= 50 ? new Date().toISOString() : null, 
+            type: "community" 
+          },
+        ];
+
+        // Generate recent activity from ONLY real data
+        const recentActivity = [
+          ...orders.slice(0, 3).map((order, idx) => ({
+            id: `order-${idx}`,
+            action: `Created order #${order.orderNumber || order._id?.slice(-6)} - ${order.customerName || 'Customer'}`,
+            timestamp: formatTimestamp(order.createdAt),
+            type: 'order',
+            icon: Package,
+            color: 'text-blue-500',
+            metadata: { amount: order.total || order.amount }
+          })),
+          ...invoices.slice(0, 2).map((invoice, idx) => ({
+            id: `invoice-${idx}`,
+            action: `Generated invoice #${invoice.invoiceNumber || invoice._id?.slice(-6)} - $${invoice.total || 0}`,
+            timestamp: formatTimestamp(invoice.createdAt),
+            type: 'finance',
+            icon: DollarSign,
+            color: 'text-green-500',
+            metadata: { amount: invoice.total }
+          })),
+          ...team.slice(0, 2).map((member, idx) => ({
+            id: `team-${idx}`,
+            action: `Added team member: ${member.name || member.email}`,
+            timestamp: formatTimestamp(member.createdAt),
+            type: 'team',
+            icon: Users,
+            color: 'text-orange-500'
+          })),
+          ...products.filter(p => p.createdAt).slice(0, 2).map((product, idx) => ({
+            id: `product-${idx}`,
+            action: `Added product: ${product.name}`,
+            timestamp: formatTimestamp(product.createdAt),
+            type: 'product',
+            icon: Package,
+            color: 'text-purple-500'
+          }))
+        ].slice(0, 8);
+
+        // ONLY set if we have real data
+        setActivityData(recentActivity);
+
+        const engagements = orders.length + invoices.length + team.length + products.length;
+        const totalSales = orders.filter(order => order.status === 'completed' || order.status === 'delivered').length;
+        
+        // Calculate rating from actual reviews if available
+        const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'delivered');
+        const reviewedOrders = completedOrders.filter(o => o.rating);
+        const averageRating = reviewedOrders.length > 0 
+          ? reviewedOrders.reduce((sum, o) => sum + (o.rating || 0), 0) / reviewedOrders.length 
+          : 0;
+
+        // Update stats with ONLY real data
+        setProfileStats({
+          completionRate: getCompletionRate(),
+          profileViews: 0, // Would need analytics API
+          connections: team.length,
+          totalOrders: totalOrders,
+          totalRevenue: totalRevenue,
+          activeProjects: activeProjects,
+          teamMembers: teamMembers,
+          rating: averageRating,
+          reviewsCount: reviewedOrders.length,
+          engagements: engagements,
+          totalSales: totalSales,
+          achievements: achievements
+        });
+
+        if (recentActivity.length > 0) {
+          setActivityData(recentActivity);
+        }
+
+        console.log('✅ Performance data loaded:', {
+          orders: totalOrders,
+          revenue: totalRevenue,
+          team: teamMembers,
+          achievements: achievements.filter(a => a.earned).length
+        });
+
+      } catch (error) {
+        console.error('❌ Error fetching performance data:', error);
+        // Keep default values on error
+      }
+    };
+
+    fetchPerformanceData();
+  }, [isAuthenticated]);
+
+  // Helper function to format timestamps
+  const formatTimestamp = (dateString) => {
+    if (!dateString) return 'Recently';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
 
   const handleSaveProfile = async () => {
     try {
@@ -829,45 +1049,93 @@ const Profile = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Overview */}
+        {/* Stats Overview - Real-Time Performance Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Profile Views</p>
-                <p className="text-2xl font-bold">{profileStats.profileViews.toLocaleString()}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
+                <p className="text-2xl font-bold">{profileStats.totalOrders.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">From orders API</p>
               </div>
-              <Eye className="h-8 w-8 text-blue-500" />
+              <Package className="h-8 w-8 text-blue-500" />
             </div>
           </Card>
 
           <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Connections</p>
-                <p className="text-2xl font-bold">{profileStats.connections}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                <p className="text-2xl font-bold">${profileStats.totalRevenue.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">Calculated from orders</p>
               </div>
-              <Users className="h-8 w-8 text-green-500" />
+              <DollarSign className="h-8 w-8 text-green-500" />
             </div>
           </Card>
 
           <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Completion</p>
-                <p className="text-2xl font-bold">{getCompletionRate()}%</p>
+                <p className="text-sm font-medium text-muted-foreground">Engagements</p>
+                <p className="text-2xl font-bold">{profileStats.engagements.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">Orders + Invoices + Team + Products</p>
               </div>
-              <Target className="h-8 w-8 text-purple-500" />
+              <TrendingUp className="h-8 w-8 text-purple-500" />
             </div>
           </Card>
 
           <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Rating</p>
-                <p className="text-2xl font-bold">{profileStats.rating}</p>
+                <p className="text-sm font-medium text-muted-foreground">Completed Sales</p>
+                <p className="text-2xl font-bold">{profileStats.totalSales.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">Delivered orders</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-emerald-500" />
+            </div>
+          </Card>
+        </div>
+
+        {/* Additional Performance Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Team Size</p>
+                <p className="text-2xl font-bold">{profileStats.teamMembers}</p>
+              </div>
+              <Users className="h-8 w-8 text-orange-500" />
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Active Projects</p>
+                <p className="text-2xl font-bold">{profileStats.activeProjects}</p>
+              </div>
+              <Briefcase className="h-8 w-8 text-indigo-500" />
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Avg Rating</p>
+                <p className="text-2xl font-bold">{profileStats.rating ? profileStats.rating.toFixed(1) : '0.0'}</p>
+                <p className="text-xs text-muted-foreground mt-1">{profileStats.reviewsCount} reviews</p>
               </div>
               <Star className="h-8 w-8 text-yellow-500 fill-current" />
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Profile Progress</p>
+                <p className="text-2xl font-bold">{getCompletionRate()}%</p>
+              </div>
+              <Target className="h-8 w-8 text-pink-500" />
             </div>
           </Card>
         </div>
@@ -1106,6 +1374,452 @@ const Profile = () => {
                 </Card>
               </div>
             </div>
+          </TabsContent>
+
+          {/* About Tab */}
+          <TabsContent value="about" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>About Me</CardTitle>
+                <CardDescription>Personal and professional information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {isEditing ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>First Name</Label>
+                        <Input
+                          value={profileData.firstName}
+                          onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Last Name</Label>
+                        <Input
+                          value={profileData.lastName}
+                          onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Bio</Label>
+                      <Textarea
+                        rows={4}
+                        value={profileData.bio}
+                        onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                        placeholder="Tell us about yourself..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Email</Label>
+                        <Input
+                          type="email"
+                          value={profileData.email}
+                          onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Phone</Label>
+                        <Input
+                          value={profileData.phone}
+                          onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Job Title</Label>
+                        <Input
+                          value={profileData.jobTitle}
+                          onChange={(e) => setProfileData({...profileData, jobTitle: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Department</Label>
+                        <Input
+                          value={profileData.department}
+                          onChange={(e) => setProfileData({...profileData, department: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Location</Label>
+                      <Input
+                        value={profileData.location}
+                        onChange={(e) => setProfileData({...profileData, location: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Email</p>
+                        <p className="text-sm text-muted-foreground">{profileData.email || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Phone</p>
+                        <p className="text-sm text-muted-foreground">{profileData.phone || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Job Title</p>
+                        <p className="text-sm text-muted-foreground">{profileData.jobTitle || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Location</p>
+                        <p className="text-sm text-muted-foreground">{profileData.location || 'Not provided'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Skills Tab */}
+          <TabsContent value="skills" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Skills & Expertise</CardTitle>
+                    <CardDescription>Your professional skills and proficiency levels</CardDescription>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const skill = prompt('Enter skill name:');
+                      if (skill) addSkill(skill, 50);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Skill
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {skillsData.map((skill) => (
+                    <div key={skill.name} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">{skill.name}</span>
+                          <Badge variant="secondary" className="text-xs">{skill.category}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">{skill.level}%</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeSkill(skill.name)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Progress value={skill.level} className="h-2 flex-1" />
+                        <Slider
+                          value={[skill.level]}
+                          onValueChange={([value]) => updateSkillLevel(skill.name, value)}
+                          max={100}
+                          step={5}
+                          className="w-32"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Activity Tab */}
+          <TabsContent value="activity" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Activity Timeline</CardTitle>
+                <CardDescription>Your recent actions and updates</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-96">
+                  <div className="space-y-4">
+                    {activityData.map((activity) => (
+                      <div key={activity.id} className="flex items-start gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className={`p-2 rounded-full ${activity.color} bg-opacity-10`}>
+                          <activity.icon className={`h-5 w-5 ${activity.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">{activity.action}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{activity.timestamp}</p>
+                          <Badge variant="outline" className="mt-2 text-xs">{activity.type}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Connections Tab */}
+          <TabsContent value="connections" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Network & Connections</CardTitle>
+                    <CardDescription>
+                      {connectionsData.length} connections
+                      {loadingConnections && " • Refreshing..."}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={fetchConnections}
+                      disabled={loadingConnections}
+                    >
+                      <RotateCw className={`h-4 w-4 mr-2 ${loadingConnections ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                    <Button size="sm" onClick={() => setShowAddConnectionDialog(true)}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add Connection
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingConnections && connectionsData.length === 0 ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <RotateCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Loading connections...</p>
+                    </div>
+                  </div>
+                ) : connectionsData.length === 0 ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                      <h3 className="font-medium mb-1">No connections yet</h3>
+                      <p className="text-sm text-muted-foreground mb-4">Start building your network</p>
+                      <Button size="sm" onClick={() => setShowAddConnectionDialog(true)}>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Add Your First Connection
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {connectionsData.map((connection) => (
+                      <Card key={connection.id} className="p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={connection.avatar} />
+                            <AvatarFallback>{connection.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm">{connection.name}</h4>
+                            <p className="text-xs text-muted-foreground">{connection.role}</p>
+                            {connection.email && (
+                              <p className="text-xs text-muted-foreground">{connection.email}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {connection.mutual} mutual connection{connection.mutual !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              variant={connection.connected ? "outline" : "default"}
+                              size="sm"
+                              onClick={() => connection.connected ? handleDisconnect(connection.id) : handleConnect(connection.id)}
+                            >
+                              {connection.connected ? 'Connected' : 'Connect'}
+                            </Button>
+                            {connection.connected && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                  <DropdownMenuItem>
+                                    <MessageCircle className="h-4 w-4 mr-2" />
+                                    Send Message
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View Profile
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => handleDisconnect(connection.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Remove Connection
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Add Connection Dialog */}
+          <Dialog open={showAddConnectionDialog} onOpenChange={setShowAddConnectionDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Connection</DialogTitle>
+                <DialogDescription>
+                  Send a connection invitation to someone via email
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="connection-email">Email Address</Label>
+                  <Input
+                    id="connection-email"
+                    type="email"
+                    placeholder="colleague@example.com"
+                    value={newConnection.email}
+                    onChange={(e) => setNewConnection(prev => ({ ...prev, email: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="connection-message">Personal Message (Optional)</Label>
+                  <Textarea
+                    id="connection-message"
+                    placeholder="I'd like to connect with you..."
+                    value={newConnection.message}
+                    onChange={(e) => setNewConnection(prev => ({ ...prev, message: e.target.value }))}
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddConnectionDialog(false);
+                    setNewConnection({ email: '', message: '' });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleAddConnection}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Send Invitation
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Settings</CardTitle>
+                <CardDescription>Manage your privacy and preferences</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-lg border">
+                    <div>
+                      <Label>Email Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Receive updates via email</p>
+                    </div>
+                    <Switch
+                      checked={preferences.emailNotifications}
+                      onCheckedChange={(checked) => {
+                        setPreferences({...preferences, emailNotifications: checked});
+                        toast.success(`Email notifications ${checked ? 'enabled' : 'disabled'}`);
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg border">
+                    <div>
+                      <Label>Push Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Browser push notifications</p>
+                    </div>
+                    <Switch
+                      checked={preferences.pushNotifications}
+                      onCheckedChange={(checked) => {
+                        setPreferences({...preferences, pushNotifications: checked});
+                        toast.success(`Push notifications ${checked ? 'enabled' : 'disabled'}`);
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg border">
+                    <div>
+                      <Label>Show Activity Status</Label>
+                      <p className="text-sm text-muted-foreground">Let others see when you're active</p>
+                    </div>
+                    <Switch
+                      checked={preferences.showActivity}
+                      onCheckedChange={(checked) => {
+                        setPreferences({...preferences, showActivity: checked});
+                        toast.success(`Activity status ${checked ? 'visible' : 'hidden'}`);
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg border">
+                    <div>
+                      <Label>Profile Visibility</Label>
+                      <p className="text-sm text-muted-foreground">Control who can see your profile</p>
+                    </div>
+                    <Select
+                      value={preferences.profileVisibility}
+                      onValueChange={(value) => {
+                        setPreferences({...preferences, profileVisibility: value});
+                        toast.success(`Profile visibility set to ${value}`);
+                      }}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="connections">Connections</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
+                    <h4 className="font-medium text-red-900 dark:text-red-100 mb-2">Danger Zone</h4>
+                    <p className="text-sm text-red-700 dark:text-red-300 mb-4">Irreversible actions</p>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Account
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

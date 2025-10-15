@@ -284,8 +284,58 @@ const GUIImplementation = () => {
     return () => clearInterval(clockInterval);
   }, []);
 
-  // Real file download with progress tracking
-  const addDownload = async (url, filename) => {
+  // Auto-execute scheduled downloads (SCHEDULER FIX)
+  useEffect(() => {
+    if (scheduledDownloads.length === 0) return;
+    
+    const checkScheduled = setInterval(() => {
+      const now = new Date().getTime();
+      
+      scheduledDownloads.forEach(scheduled => {
+        const scheduledTime = new Date(scheduled.scheduledTime).getTime();
+        const timeDiff = scheduledTime - now;
+        
+        // If scheduled time has arrived (within 5 seconds window)
+        if (scheduled.status === 'scheduled' && timeDiff <= 5000 && timeDiff >= -5000) {
+          console.log('⏰ Auto-starting scheduled download:', scheduled.filename);
+          
+          // Start the download
+          addDownload(scheduled.url);
+          
+          // Update status to started
+          setScheduledDownloads(prev =>
+            prev.map(s =>
+              s.id === scheduled.id
+                ? { ...s, status: 'started' }
+                : s
+            )
+          );
+          
+          // Show notification
+          const notif = {
+            id: Date.now(),
+            title: 'Scheduled Download Started',
+            message: `${scheduled.filename} is now downloading`,
+            type: 'info'
+          };
+          setNotifications(prev => [...prev, notif]);
+          
+          toast.success(`📥 Starting scheduled download: ${scheduled.filename}`);
+          
+          // Remove from scheduled list after 3 seconds
+          setTimeout(() => {
+            setScheduledDownloads(prev =>
+              prev.filter(s => s.id !== scheduled.id)
+            );
+          }, 3000);
+        }
+      });
+    }, 5000); // Check every 5 seconds
+    
+    return () => clearInterval(checkScheduled);
+  }, [scheduledDownloads]);
+
+  const addDownload = async (url, filename = null) => {
     try {
       const newDownload = {
         id: Date.now(),

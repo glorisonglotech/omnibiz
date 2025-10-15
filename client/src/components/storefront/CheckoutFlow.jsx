@@ -3,16 +3,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Smartphone, CheckCircle2, MapPin, User, Mail, Phone } from "lucide-react";
+import { CheckCircle2, MapPin, User, Mail, Phone, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import PaymentOptions from "@/components/payments/PaymentOptions";
+import api from "@/lib/api";
 
 const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState("mpesa");
-  const [guestCheckout, setGuestCheckout] = useState(true);
+  const [orderNumber, setOrderNumber] = useState("");
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("cash"); // cash, dollar, mpesa, card
   
   const [formData, setFormData] = useState({
     name: "",
@@ -20,20 +22,91 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
     phone: "",
     address: "",
     city: "",
-    mpesaPhone: "",
   });
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmitOrder = () => {
+  const createOrderInDatabase = async (paymentData = null) => {
+    try {
+      const orderNum = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      // Prepare order data
+      const orderData = {
+        orderId: orderNum,
+        customer: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone
+        },
+        items: cartItems.map(item => ({
+          product: item._id || item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          currency: item.currency || 'USD',
+          image: item.image || null // Include product image for order display
+        })),
+        subtotal: cartTotal,
+        total: cartTotal,
+        status: paymentMethod === 'cash' || paymentMethod === 'dollar' ? 'Submitted' : 'Processing',
+        paymentStatus: paymentData ? 'Paid' : 'Pending',
+        deliveryInfo: {
+          address: formData.address,
+          city: formData.city,
+          method: 'delivery',
+          contactPerson: formData.name,
+          contactPhone: formData.phone
+        },
+        paymentMethod: paymentMethod,
+        paymentDetails: paymentData || { method: paymentMethod },
+        orderType: 'standard',
+        priority: 'medium'
+      };
+
+      // Submit order to backend
+      const response = await api.post('/orders', orderData);
+      
+      return { success: true, orderNum, order: response.data };
+    } catch (error) {
+      console.error('Error creating order:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.error || 'Failed to create order' 
+      };
+    }
+  };
+
+  const handlePaymentSuccess = async (paymentData) => {
+    setProcessingPayment(true);
+    const result = await createOrderInDatabase(paymentData);
+    setProcessingPayment(false);
+    
+    if (result.success) {
+      setOrderNumber(result.orderNum);
+      toast({
+        title: "Payment & Order Successful! 🎉",
+        description: `Your order #${result.orderNum} has been confirmed and saved.`,
+      });
+      onClearCart();
+      setStep(4);
+    } else {
+      toast({
+        title: "Order Creation Failed",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePaymentError = (error) => {
+    setProcessingPayment(false);
     toast({
-      title: "Order Placed Successfully! 🎉",
-      description: `Your order #${Math.floor(Math.random() * 10000)} has been confirmed. You'll receive a confirmation email shortly.`,
+      title: "Payment Failed",
+      description: error?.message || "Payment could not be processed. Please try again.",
+      variant: "destructive",
     });
-    onClearCart();
-    setStep(4);
   };
 
   const resetAndClose = () => {
@@ -44,8 +117,9 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
       phone: "",
       address: "",
       city: "",
-      mpesaPhone: "",
     });
+    setOrderNumber("");
+    setProcessingPayment(false);
     onClose();
   };
 
@@ -69,7 +143,7 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                {step > index + 1 ? "✓" : index + 1}
+                {step > index + 1 ? "" : index + 1}
               </div>
               {index < 3 && (
                 <div
@@ -204,51 +278,9 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
         {/* Step 3: Payment */}
         {step === 3 && (
           <div className="space-y-4">
-            <h3 className="font-semibold text-foreground">Choose Payment Method</h3>
+            <h3 className="font-semibold text-foreground">Complete Payment</h3>
             
-            <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3 border border-border rounded-lg p-4 cursor-pointer hover:bg-secondary/20">
-                  <RadioGroupItem value="mpesa" id="mpesa" />
-                  <Label htmlFor="mpesa" className="flex items-center gap-2 cursor-pointer flex-1">
-                    <Smartphone className="h-5 w-5 text-success" />
-                    <div>
-                      <p className="font-semibold text-foreground">M-Pesa</p>
-                      <p className="text-xs text-muted-foreground">Pay via M-Pesa mobile money</p>
-                    </div>
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-3 border border-border rounded-lg p-4 cursor-pointer hover:bg-secondary/20">
-                  <RadioGroupItem value="card" id="card" />
-                  <Label htmlFor="card" className="flex items-center gap-2 cursor-pointer flex-1">
-                    <CreditCard className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-semibold text-foreground">Credit/Debit Card</p>
-                      <p className="text-xs text-muted-foreground">Visa, Mastercard, Amex</p>
-                    </div>
-                  </Label>
-                </div>
-              </div>
-            </RadioGroup>
-
-            {paymentMethod === "mpesa" && (
-              <div className="space-y-2 bg-secondary/20 p-4 rounded-lg">
-                <Label htmlFor="mpesaPhone">M-Pesa Phone Number</Label>
-                <Input
-                  id="mpesaPhone"
-                  name="mpesaPhone"
-                  value={formData.mpesaPhone}
-                  onChange={handleInputChange}
-                  placeholder="+254 700 000000"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">You'll receive an STK push to confirm payment</p>
-              </div>
-            )}
-
-            <Separator />
-            
+            {/* Order Summary */}
             <div className="bg-secondary/20 p-4 rounded-lg space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
@@ -265,12 +297,106 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
-                Back
+            {/* Customer Info Summary */}
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Delivery Details
+              </h4>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>{formData.name}</p>
+                <p>{formData.email}</p>
+                <p>{formData.phone}</p>
+                <p>{formData.address}, {formData.city}</p>
+              </div>
+            </div>
+
+            {/* Important Notice */}
+            <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <div className="text-sm text-blue-600 dark:text-blue-400">
+                <p className="font-semibold">Secure Payment</p>
+                <p className="text-xs">Click below to choose your payment method. You can pay via M-Pesa or credit/debit card.</p>
+              </div>
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="space-y-4">
+              <h4 className="font-semibold">Choose Payment Method</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setPaymentMethod("cash")}
+                  className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === "cash" ? "border-green-600 bg-green-50 dark:bg-green-950/20" : "border-border hover:border-green-300"}`}
+                >
+                  <div className="text-2xl mb-2">💵</div>
+                  <div className="font-semibold">Cash on Delivery</div>
+                  <div className="text-xs text-muted-foreground">Pay when you receive</div>
+                </button>
+
+                <button
+                  onClick={() => setPaymentMethod("dollar")}
+                  className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === "dollar" ? "border-blue-600 bg-blue-50 dark:bg-blue-950/20" : "border-border hover:border-blue-300"}`}
+                >
+                  <div className="text-2xl mb-2">💵</div>
+                  <div className="font-semibold">Dollar Payment</div>
+                  <div className="text-xs text-muted-foreground">USD payment</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Digital Payment Options */}
+            {(paymentMethod === "mpesa" || paymentMethod === "card") ? (
+              <div className="flex flex-col items-center justify-center gap-4 py-4">
+                <PaymentOptions
+                  amount={cartTotal}
+                  description={`Order for ${cartItems.length} items from store`}
+                  currency="KES"
+                  onSuccess={handlePaymentSuccess}
+                  onError={handlePaymentError}
+                  triggerText="Proceed to Payment"
+                  showMpesa={paymentMethod === "mpesa"}
+                  showPaypal={paymentMethod === "card"}
+                  disabled={processingPayment || !formData.name || !formData.email || !formData.phone}
+                />
+              </div>
+            ) : (
+              <Button 
+                className="w-full h-12 text-lg font-bold"
+                onClick={async () => {
+                  setProcessingPayment(true);
+                  const result = await createOrderInDatabase();
+                  setProcessingPayment(false);
+                  
+                  if (result.success) {
+                    setOrderNumber(result.orderNum);
+                    toast({
+                      title: "Order Placed! 🎉",
+                      description: `Your order #${result.orderNum} has been confirmed. Payment method: ${paymentMethod === "cash" ? "Cash on Delivery" : "Dollar Payment"}.`,
+                    });
+                    onClearCart();
+                    setStep(4);
+                  } else {
+                    toast({
+                      title: "Order Failed",
+                      description: result.error,
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                disabled={processingPayment}
+              >
+                {processingPayment ? "Processing..." : `Place Order (${paymentMethod === "cash" ? "Cash on Delivery" : "Dollar Payment"})`}
               </Button>
-              <Button className="flex-1" onClick={handleSubmitOrder}>
-                Place Order
+            )}
+
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                className="flex-1" 
+                onClick={() => setStep(2)}
+                disabled={processingPayment}
+              >
+                Back
               </Button>
             </div>
           </div>

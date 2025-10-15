@@ -13,12 +13,17 @@ const RealTimeSync = ({
   onProductUpdate, 
   onOrderUpdate, 
   onStockUpdate,
+  onManualRefresh,
   pollingInterval = 30000 // 30 seconds
 }) => {
-  const { socket, connected } = useSocket();
+  const socketContext = useSocket();
+  const socket = socketContext?.socket;
+  const connected = socketContext?.connected || false;
+  
   const [lastSync, setLastSync] = useState(new Date());
   const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, error
   const [pendingUpdates, setPendingUpdates] = useState(0);
+  const [mode, setMode] = useState('auto'); // auto or manual
 
   // WebSocket event handlers
   const handleProductUpdate = useCallback((data) => {
@@ -144,15 +149,30 @@ const RealTimeSync = ({
     return `${Math.floor(diff / 3600)}h ago`;
   };
 
+  const handleManualRefresh = async () => {
+    setSyncStatus('syncing');
+    try {
+      await onManualRefresh?.();
+      setLastSync(new Date());
+      setSyncStatus('idle');
+      toast.success('Data refreshed successfully!');
+    } catch (error) {
+      setSyncStatus('error');
+      toast.error('Failed to refresh data');
+    }
+  };
+
   return (
-    <div className="flex items-center gap-3 text-sm">
+    <div className="flex items-center gap-3 text-sm flex-wrap">
       {/* Connection Status */}
       <Badge 
-        variant={connected ? "default" : "destructive"}
+        variant={connected ? "default" : "secondary"}
         className={cn(
-          "gap-2 transition-all",
-          connected && "animate-pulse"
+          "gap-2 transition-all cursor-pointer",
+          connected && "bg-green-600 hover:bg-green-700"
         )}
+        onClick={!connected ? handleManualRefresh : undefined}
+        title={!connected ? "Click to refresh data manually" : "Real-time updates active"}
       >
         {connected ? (
           <>
@@ -161,8 +181,8 @@ const RealTimeSync = ({
           </>
         ) : (
           <>
-            <WifiOff className="h-3 w-3" />
-            Offline
+            <RefreshCw className="h-3 w-3" />
+            Local Mode
           </>
         )}
       </Badge>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,9 @@ import {
   MapPin,
   Calendar,
   Eye,
-  ExternalLink
+  ExternalLink,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { searchAPI } from '@/lib/apiHelpers';
@@ -38,6 +40,13 @@ const Search = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [totalResults, setTotalResults] = useState(0);
+  const [searchError, setSearchError] = useState(null);
+  const [searchPerformed, setSearchPerformed] = useState(false);
+  const [sourceStatus, setSourceStatus] = useState({
+    products: { loaded: false, count: 0, error: null },
+    orders: { loaded: false, count: 0, error: null },
+    customers: { loaded: false, count: 0, error: null }
+  });
 
   useEffect(() => {
     const searchQuery = searchParams.get('q');
@@ -46,11 +55,40 @@ const Search = () => {
       performSearch(searchQuery);
     }
   }, [searchParams]);
+  
+  // Debounced search as user types
+  useEffect(() => {
+    if (!query.trim()) {
+      // Clear results if query is empty
+      setResults({
+        products: [],
+        orders: [],
+        customers: [],
+        transactions: [],
+        locations: [],
+        appointments: [],
+        documents: []
+      });
+      setTotalResults(0);
+      setSearchPerformed(false);
+      return;
+    }
+    
+    // Debounce search - wait 500ms after user stops typing
+    const debounceTimer = setTimeout(() => {
+      performSearch(query);
+    }, 500);
+    
+    return () => clearTimeout(debounceTimer);
+  }, [query]);
 
   const performSearch = async (searchQuery) => {
     if (!searchQuery.trim()) return;
     
     setLoading(true);
+    setSearchError(null);
+    setSearchPerformed(true);
+    
     try {
       const token = localStorage.getItem('token');
       
@@ -61,10 +99,31 @@ const Search = () => {
         searchAPI.searchByCategory('customers', searchQuery)
       ]);
 
+      // Track source status
+      const newSourceStatus = {
+        products: {
+          loaded: productsRes.status === 'fulfilled',
+          count: productsRes.status === 'fulfilled' ? (productsRes.value?.length || 0) : 0,
+          error: productsRes.status === 'rejected' ? productsRes.reason?.message : null
+        },
+        orders: {
+          loaded: ordersRes.status === 'fulfilled',
+          count: ordersRes.status === 'fulfilled' ? (ordersRes.value?.length || 0) : 0,
+          error: ordersRes.status === 'rejected' ? ordersRes.reason?.message : null
+        },
+        customers: {
+          loaded: customersRes.status === 'fulfilled',
+          count: customersRes.status === 'fulfilled' ? (customersRes.value?.length || 0) : 0,
+          error: customersRes.status === 'rejected' ? customersRes.reason?.message : null
+        }
+      };
+      
+      setSourceStatus(newSourceStatus);
+
       const apiResults = {
-        products: productsRes.status === 'fulfilled' ? productsRes.value : [],
-        orders: ordersRes.status === 'fulfilled' ? ordersRes.value : [],
-        customers: customersRes.status === 'fulfilled' ? customersRes.value : [],
+        products: productsRes.status === 'fulfilled' ? (productsRes.value || []) : [],
+        orders: ordersRes.status === 'fulfilled' ? (ordersRes.value || []) : [],
+        customers: customersRes.status === 'fulfilled' ? (customersRes.value || []) : [],
         transactions: [],
         locations: [],
         appointments: [],
@@ -78,13 +137,31 @@ const Search = () => {
       const apiTotal = Object.values(apiResults).reduce((sum, arr) => sum + (arr?.length || 0), 0);
       setTotalResults(apiTotal);
       
+      // Count failed sources
+      const failedSources = Object.values(newSourceStatus).filter(s => !s.loaded).length;
+      const successSources = Object.values(newSourceStatus).filter(s => s.loaded).length;
+      
+      console.log('✅ Search completed:', {
+        query: searchQuery,
+        total: apiTotal,
+        sources: { success: successSources, failed: failedSources },
+        breakdown: {
+          products: newSourceStatus.products.count,
+          orders: newSourceStatus.orders.count,
+          customers: newSourceStatus.customers.count
+        }
+      });
+      
       if (apiTotal > 0) {
-        toast.success(`Found ${apiTotal} results for "${searchQuery}"`);
+        toast.success(`Found ${apiTotal} results for "${searchQuery}" from ${successSources} sources`);
+      } else if (failedSources > 0) {
+        toast.warning(`No results found. ${failedSources} source(s) unavailable.`);
       } else {
         toast.info('No results found. Try different keywords.');
       }
     } catch (error) {
-      console.error('Search API error:', error);
+      console.error('❌ Search error:', error);
+      setSearchError(error.message || 'Search failed');
       toast.error('Search failed. Please check your connection and try again.');
       // Set empty results on error
       setResults({
@@ -106,7 +183,9 @@ const Search = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (query.trim()) {
-      navigate(`/dashboard/search?q=${encodeURIComponent(query.trim())}`);
+      // Immediate search on form submit (Enter key)
+      performSearch(query);
+      navigate(`/dashboard/search?q=${encodeURIComponent(query.trim())}`, { replace: true });
     }
   };
 
@@ -216,6 +295,32 @@ const Search = () => {
               {loading ? 'Searching...' : 'Search'}
             </Button>
           </form>
+          
+          {/* Source Status Feedback */}
+          {searchPerformed && !loading && (
+            <div className="mt-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Data Sources:</p>
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(sourceStatus).map(([source, status]) => (
+                  <div key={source} className="flex items-center gap-2 text-xs">
+                    {status.loaded ? (
+                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <AlertCircle className="h-3 w-3 text-red-600" />
+                    )}
+                    <span className={status.loaded ? 'text-green-600' : 'text-red-600'}>
+                      {source.charAt(0).toUpperCase() + source.slice(1)}
+                    </span>
+                    {status.loaded && status.count > 0 && (
+                      <Badge variant="secondary" className="text-xs px-1 py-0">
+                        {status.count}
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -292,6 +397,17 @@ const Search = () => {
             </TabsContent>
           ))}
         </Tabs>
+      ) : searchError ? (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-red-700 mb-2">Search Error</h3>
+            <p className="text-red-600 mb-4">{searchError}</p>
+            <Button onClick={() => performSearch(query)} variant="outline">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       ) : query && !loading ? (
         <Card>
           <CardContent className="p-8 text-center">

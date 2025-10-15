@@ -16,53 +16,147 @@ export default defineConfig({
         name: 'OmniBiz - Complete Business Management Platform',
         short_name: 'OmniBiz',
         description: 'Your all-in-one business management solution for inventory, e-commerce, payments, and analytics',
-        theme_color: '#000000',
+        theme_color: '#16a34a',
         background_color: '#ffffff',
         display: 'standalone',
+        orientation: 'any',
         scope: '/',
         start_url: '/',
+        categories: ['business', 'finance', 'productivity'],
+        screenshots: [
+          {
+            src: 'screenshots/dashboard.png',
+            sizes: '1280x720',
+            type: 'image/png',
+            label: 'Dashboard Overview'
+          }
+        ],
         icons: [
+          {
+            src: 'icons/icon-72x72.png',
+            sizes: '72x72',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'icons/icon-96x96.png',
+            sizes: '96x96',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'icons/icon-128x128.png',
+            sizes: '128x128',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'icons/icon-144x144.png',
+            sizes: '144x144',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'icons/icon-152x152.png',
+            sizes: '152x152',
+            type: 'image/png',
+            purpose: 'any'
+          },
           {
             src: 'icons/icon-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
+          {
+            src: 'icons/icon-384x384.png',
+            sizes: '384x384',
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'icons/icon-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ],
+        shortcuts: [
+          {
+            name: 'Dashboard',
+            short_name: 'Dashboard',
+            description: 'Go to Dashboard',
+            url: '/dashboard',
+            icons: [{ src: 'icons/dashboard-96.png', sizes: '96x96' }]
+          },
+          {
+            name: 'Orders',
+            short_name: 'Orders',
+            description: 'View Orders',
+            url: '/dashboard/orders',
+            icons: [{ src: 'icons/orders-96.png', sizes: '96x96' }]
+          },
+          {
+            name: 'Inventory',
+            short_name: 'Inventory',
+            description: 'Manage Inventory',
+            url: '/dashboard/inventory',
+            icons: [{ src: 'icons/inventory-96.png', sizes: '96x96' }]
           }
         ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        navigateFallback: null, // Disable offline page for development
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/localhost:5000\/api\//,
+            // Only cache GET requests to API
+            urlPattern: ({ url, request }) => {
+              return url.pathname.startsWith('/api/') && request.method === 'GET';
+            },
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
-              networkTimeoutSeconds: 3,
+              networkTimeoutSeconds: 5,
               cacheableResponse: {
                 statuses: [0, 200]
+              },
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 5 * 60 // 5 minutes
               }
             }
           },
           {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
+            // Cache images
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'images',
+              cacheName: 'images-cache',
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              }
+            }
+          },
+          {
+            // Cache fonts
+            urlPattern: /\.(?:woff|woff2|ttf|eot)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'fonts-cache',
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
               }
             }
           }
         ]
       },
       devOptions: {
-        enabled: false // Disable in development to avoid conflicts
+        enabled: false, // IMPORTANT: Disabled in development to prevent conflicts
+        type: 'module',
+        navigateFallback: 'index.html'
       }
     })
   ],

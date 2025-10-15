@@ -17,7 +17,11 @@ import {
   Trash2, 
   Star,
   Heart,
-  Share2
+  Share2,
+  RefreshCw,
+  Store,
+  ShoppingCart,
+  Warehouse
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
@@ -36,6 +40,7 @@ const Products = () => {
   const [wishlist, setWishlist] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isProductDetailOpen, setIsProductDetailOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
@@ -94,6 +99,13 @@ const Products = () => {
       setProducts([]);
       setFilteredProducts([]);
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchProducts();
+    setIsRefreshing(false);
+    toast.success('Products refreshed!');
   };
 
   useEffect(() => {
@@ -370,7 +382,44 @@ const Products = () => {
           </p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/dashboard/inventory')}
+            className="gap-2"
+          >
+            <Warehouse className="h-4 w-4" />
+            Inventory
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/store')}
+            className="gap-2"
+          >
+            <Store className="h-4 w-4" />
+            Store
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/dashboard/ecommerce')}
+            className="gap-2"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            Orders
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>

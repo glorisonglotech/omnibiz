@@ -186,7 +186,6 @@ const Settings = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       if (!isAuthenticated) {
-        toast.error("Please log in to view settings.");
         return;
       }
 
@@ -198,6 +197,11 @@ const Settings = () => {
         });
 
         const userData = response.data;
+
+        console.log('✅ Settings loaded from server:', {
+          user: userData.name,
+          email: userData.email
+        });
 
         // Enhanced settings mapping with fallbacks
         setSettings(prev => ({
@@ -323,7 +327,18 @@ const Settings = () => {
       });
 
       setHasUnsavedChanges(false);
+      console.log(`✅ ${section.charAt(0).toUpperCase() + section.slice(1)} settings saved:`, sectionSettings);
       toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully!`);
+      
+      // Apply real-time effects based on section
+      if (section === 'general') {
+        // Update document title if business name changed
+        document.title = `${settings.businessName} - Dashboard`;
+      }
+      if (section === 'notifications' && settings.soundNotifications) {
+        // Play a test sound
+        console.log('🔊 Sound notifications enabled');
+      }
     } catch (error) {
       console.error(`Error saving ${section} settings:`, error);
       toast.error(
@@ -473,7 +488,7 @@ const Settings = () => {
 
       {/* Enhanced Tabs with Icons */}
       <Tabs defaultValue="general" value={activeSection} onValueChange={setActiveSection} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             General
@@ -493,6 +508,10 @@ const Settings = () => {
           <TabsTrigger value="privacy" className="flex items-center gap-2">
             <Lock className="h-4 w-4" />
             Privacy
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Performance
           </TabsTrigger>
         </TabsList>
 
@@ -971,6 +990,124 @@ const Settings = () => {
         {/* Enhanced Appearance Settings */}
         <TabsContent value="appearance">
           <ThemeCustomizer />
+        </TabsContent>
+
+        {/* Enhanced Performance Settings */}
+        <TabsContent value="performance">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Performance & Data Settings
+              </CardTitle>
+              <CardDescription>
+                Optimize application performance and data usage
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="space-y-1">
+                    <Label className="flex items-center gap-2">
+                      <Save className="h-4 w-4" />
+                      Auto-Save
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically save changes as you work
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.autoSave}
+                    onCheckedChange={(checked) => {
+                      handleSettingChange("autoSave", checked);
+                      setAutoSave(checked);
+                      console.log(`🔄 Auto-save ${checked ? 'enabled' : 'disabled'}`);
+                      toast.success(`Auto-save ${checked ? 'enabled' : 'disabled'}`);
+                    }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="space-y-1">
+                    <Label className="flex items-center gap-2">
+                      <RefreshCw className="h-4 w-4" />
+                      Background Sync
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Keep data synchronized in the background
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.backgroundSync}
+                    onCheckedChange={(checked) => {
+                      handleSettingChange("backgroundSync", checked);
+                      console.log(`🔄 Background sync ${checked ? 'enabled' : 'disabled'}`);
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="cacheSize" className="flex items-center gap-2">
+                    <Database className="h-4 w-4" />
+                    Cache Size: {settings.cacheSize} MB
+                  </Label>
+                  <Slider
+                    id="cacheSize"
+                    min={50}
+                    max={500}
+                    step={50}
+                    value={[settings.cacheSize]}
+                    onValueChange={([value]) => handleSettingChange("cacheSize", value)}
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Adjust how much data is cached locally (50-500 MB)
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Performance Tips</h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Enable auto-save to prevent data loss</li>
+                        <li>• Background sync keeps your data up-to-date</li>
+                        <li>• Increase cache for faster load times</li>
+                        <li>• Reduce animations if experiencing lag</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t">
+                <Button 
+                  onClick={() => handleSaveSettings("performance")}
+                  disabled={isLoading}
+                  className="flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Save Performance Settings
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    localStorage.clear();
+                    toast.success('Cache cleared! Refresh to see changes.');
+                    console.log('🗑️ Cache cleared');
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear Cache
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Enhanced Privacy Settings */}

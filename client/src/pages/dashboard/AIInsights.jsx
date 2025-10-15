@@ -39,6 +39,252 @@ const AIInsights = () => {
     inventoryOptimization: 78,
     revenueGrowth: 12.5,
   });
+  const [realData, setRealData] = useState({
+    orders: [],
+    products: [],
+    transactions: [],
+    salesData: [],
+    customerData: []
+  });
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [dataError, setDataError] = useState(null);
+
+  // Fetch real data from API
+  useEffect(() => {
+    const fetchRealData = async () => {
+      if (!isAuthenticated) return;
+      
+      setIsLoadingData(true);
+      setDataError(null);
+      
+      try {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+        
+        // Fetch all data in parallel
+        const [ordersRes, productsRes, transactionsRes] = await Promise.all([
+          api.get("/orders", { headers }).catch(() => ({ data: [] })),
+          api.get("/products", { headers }).catch(() => ({ data: [] })),
+          api.get("/transactions", { headers }).catch(() => ({ data: [] }))
+        ]);
+        
+        console.log('✅ Real data loaded:', {
+          orders: ordersRes.data.length,
+          products: productsRes.data.length,
+          transactions: transactionsRes.data.length
+        });
+        
+        setRealData({
+          orders: ordersRes.data || [],
+          products: productsRes.data || [],
+          transactions: transactionsRes.data || [],
+          salesData: generateSalesDataFromOrders(ordersRes.data || []),
+          customerData: generateCustomerDataFromOrders(ordersRes.data || [])
+        });
+        
+        // Generate insights from real data
+        generateRealInsights(ordersRes.data, productsRes.data, transactionsRes.data);
+        
+      } catch (error) {
+        console.error('❌ Error fetching real data:', error);
+        setDataError(error.message);
+        toast.error('Failed to load AI insights data');
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+    
+    fetchRealData();
+    
+    // Refresh every 2 minutes
+    const interval = setInterval(fetchRealData, 120000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  // Generate sales data from orders
+  const generateSalesDataFromOrders = (orders) => {
+    const last30Days = [];
+    const now = new Date();
+    
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dayOrders = orders.filter(order => {
+        const orderDate = new Date(order.date || order.createdAt);
+        return orderDate.toISOString().split('T')[0] === dateStr;
+      });
+      
+      const dayRevenue = dayOrders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+      
+      last30Days.push({
+        date: dateStr,
+        name: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        value: dayRevenue,
+        orders: dayOrders.length,
+        customers: new Set(dayOrders.map(o => o.customer?.email)).size
+      });
+    }
+    
+    return last30Days;
+  };
+
+  // Generate customer behavior data
+  const generateCustomerDataFromOrders = (orders) => {
+    const hourlyData = Array(24).fill(0).map((_, hour) => ({
+      hour,
+      name: `${hour}:00`,
+      value: 0,
+      orders: 0
+    }));
+    
+    orders.forEach(order => {
+      const orderDate = new Date(order.date || order.createdAt);
+      const hour = orderDate.getHours();
+      hourlyData[hour].value += Number(order.total) || 0;
+      hourlyData[hour].orders += 1;
+    });
+    
+    return hourlyData;
+  };
+
+  // Generate insights from real data
+  const generateRealInsights = (orders, products, transactions) => {
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Calculate sales performance
+    const lastMonthOrders = orders.filter(o => {
+      const orderDate = new Date(o.date || o.createdAt);
+      return orderDate >= lastMonth && orderDate < currentMonth;
+    });
+    
+    const currentMonthOrders = orders.filter(o => {
+      const orderDate = new Date(o.date || o.createdAt);
+      return orderDate >= currentMonth;
+    });
+    
+    const lastMonthRevenue = lastMonthOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const currentMonthRevenue = currentMonthOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const growthPercent = lastMonthRevenue > 0 
+      ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue * 100).toFixed(1)
+      : 0;
+    
+    // Check low stock products
+    const lowStockProducts = products.filter(p => 
+      (p.stockQuantity || 0) <= (p.reorderLevel || 5)
+    );
+    
+    // Find peak sales hours
+    const hourlyOrders = {};
+    orders.forEach(order => {
+      const hour = new Date(order.date || order.createdAt).getHours();
+      hourlyOrders[hour] = (hourlyOrders[hour] || 0) + 1;
+    });
+    const peakHours = Object.entries(hourlyOrders)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([hour]) => hour);
+    
+    const realInsights = [
+      {
+        id: 1,
+        type: "sales",
+        title: "Sales Performance Analysis",
+        description: `Your sales have ${growthPercent >= 0 ? 'increased' : 'decreased'} by ${Math.abs(growthPercent)}% this month compared to last month (${currentMonthOrders.length} orders vs ${lastMonthOrders.length}).`,
+        confidence: 95,
+        impact: Math.abs(growthPercent) > 20 ? "high" : "medium",
+        trend: growthPercent >= 0 ? "up" : "down",
+      },
+      {
+        id: 2,
+        type: "inventory",
+        title: "Inventory Optimization",
+        description: lowStockProducts.length > 0
+          ? `${lowStockProducts.length} products are running low on stock and need immediate restocking.`
+          : "All products are adequately stocked. Inventory levels are optimal.",
+        confidence: 92,
+        impact: lowStockProducts.length > 5 ? "high" : lowStockProducts.length > 0 ? "medium" : "low",
+        trend: lowStockProducts.length > 0 ? "warning" : "neutral",
+      },
+      {
+        id: 3,
+        type: "customer",
+        title: "Customer Behavior Pattern",
+        description: peakHours.length > 0
+          ? `Peak sales hours are between ${peakHours[0]}:00-${peakHours[1] || peakHours[0] + 2}:00. Consider staffing optimization during these hours.`
+          : "Analyzing customer patterns to identify peak sales periods.",
+        confidence: 88,
+        impact: "medium",
+        trend: "neutral",
+      },
+    ];
+    
+    // Generate recommendations
+    const realRecommendations = [];
+    
+    if (growthPercent > 15) {
+      realRecommendations.push({
+        id: 1,
+        title: "Increase Marketing Budget",
+        description: `With ${growthPercent}% growth, increasing marketing spend by 20% could boost revenue further.`,
+        priority: "high",
+        category: "marketing",
+      });
+    }
+    
+    if (lowStockProducts.length > 0) {
+      realRecommendations.push({
+        id: 2,
+        title: "Restock Critical Items",
+        description: `${lowStockProducts.length} products need immediate restocking: ${lowStockProducts.slice(0, 3).map(p => p.name).join(', ')}.`,
+        priority: "high",
+        category: "inventory",
+      });
+    }
+    
+    // Check for underperforming products
+    const productsWithOrders = products.map(p => {
+      const productOrders = orders.filter(o => 
+        o.items?.some(item => (item.product === p._id || item.name === p.name))
+      );
+      return { ...p, orderCount: productOrders.length };
+    }).sort((a, b) => a.orderCount - b.orderCount);
+    
+    if (productsWithOrders.length > 0 && productsWithOrders[0].orderCount === 0) {
+      const underperformingCount = productsWithOrders.filter(p => p.orderCount === 0).length;
+      realRecommendations.push({
+        id: 3,
+        title: "Optimize Product Pricing",
+        description: `${underperformingCount} products have no recent sales. Consider price adjustments or promotions.`,
+        priority: "medium",
+        category: "pricing",
+      });
+    }
+    
+    // Update analytics state
+    setAnalytics({
+      salesTrend: growthPercent >= 0 ? "up" : "down",
+      customerSatisfaction: orders.length > 0 ? 85 : 70,
+      inventoryOptimization: products.length > 0 
+        ? ((products.length - lowStockProducts.length) / products.length * 100).toFixed(0)
+        : 78,
+      revenueGrowth: parseFloat(growthPercent),
+    });
+    
+    setInsights(realInsights);
+    setRecommendations(realRecommendations.length > 0 ? realRecommendations : [
+      {
+        id: 1,
+        title: "Continue Current Strategy",
+        description: "Your business is performing well. Maintain current operations.",
+        priority: "low",
+        category: "general",
+      }
+    ]);
+  };
 
   useEffect(() => {
     const fetchAIInsights = async () => {
@@ -50,7 +296,7 @@ const AIInsights = () => {
       try {
         const token = localStorage.getItem("token");
         
-        // Simulate AI insights data (replace with actual API calls)
+        // This is now handled by generateRealInsights
         const mockInsights = [
           {
             id: 1,
@@ -187,28 +433,176 @@ const AIInsights = () => {
           </Button>
           <Button
             className="bg-green-500 cursor-pointer hover:bg-green-400"
+            disabled={isLoadingData}
             onClick={async () => {
-              toast.info('Generating fresh AI insights...');
-              // Simulate AI insight generation
-              setTimeout(() => {
-                setInsights([
-                  ...insights,
-                  {
-                    id: Date.now(),
-                    type: "realtime",
-                    title: "Real-time Market Analysis",
-                    description: "Current market conditions suggest a 23% increase in demand for your top products.",
-                    confidence: 94,
+              toast.info('Analyzing your business data...', { duration: 2000 });
+              
+              try {
+                // Fetch fresh data
+                const token = localStorage.getItem("token");
+                const headers = { Authorization: `Bearer ${token}` };
+                
+                const [ordersRes, productsRes] = await Promise.all([
+                  api.get("/orders", { headers }),
+                  api.get("/products", { headers })
+                ]);
+                
+                const orders = ordersRes.data || [];
+                const products = productsRes.data || [];
+                
+                // Generate advanced insights
+                const newInsights = [];
+                
+                // 1. Top performing products
+                const productSales = {};
+                orders.forEach(order => {
+                  order.items?.forEach(item => {
+                    const productId = item.product || item.name;
+                    productSales[productId] = (productSales[productId] || 0) + (item.quantity || 1);
+                  });
+                });
+                
+                const topProducts = Object.entries(productSales)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 3);
+                
+                if (topProducts.length > 0) {
+                  const productNames = topProducts.map(([id, qty]) => {
+                    const product = products.find(p => p._id === id || p.name === id);
+                    return product?.name || 'Unknown';
+                  });
+                  
+                  newInsights.push({
+                    id: Date.now() + 1,
+                    type: "sales",
+                    title: "Top Performing Products",
+                    description: `Your best sellers are: ${productNames.join(', ')}. Focus marketing efforts on these products.`,
+                    confidence: 96,
                     impact: "high",
                     trend: "up",
+                  });
+                }
+                
+                // 2. Revenue velocity
+                const last7Days = orders.filter(o => {
+                  const orderDate = new Date(o.date || o.createdAt);
+                  const daysAgo = (new Date() - orderDate) / (1000 * 60 * 60 * 24);
+                  return daysAgo <= 7;
+                });
+                
+                const last14Days = orders.filter(o => {
+                  const orderDate = new Date(o.date || o.createdAt);
+                  const daysAgo = (new Date() - orderDate) / (1000 * 60 * 60 * 24);
+                  return daysAgo > 7 && daysAgo <= 14;
+                });
+                
+                const last7Revenue = last7Days.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+                const last14Revenue = last14Days.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+                const velocityChange = last14Revenue > 0 
+                  ? ((last7Revenue - last14Revenue) / last14Revenue * 100).toFixed(1)
+                  : 0;
+                
+                newInsights.push({
+                  id: Date.now() + 2,
+                  type: "sales",
+                  title: "Revenue Velocity",
+                  description: `Revenue ${velocityChange >= 0 ? 'accelerated' : 'decelerated'} by ${Math.abs(velocityChange)}% in the last 7 days. ${velocityChange >= 10 ? 'Excellent momentum!' : velocityChange < 0 ? 'Consider promotional campaigns.' : 'Steady performance.'}`,
+                  confidence: 93,
+                  impact: Math.abs(velocityChange) > 15 ? "high" : "medium",
+                  trend: velocityChange >= 0 ? "up" : "down",
+                });
+                
+                // 3. Customer retention
+                const customerOrders = {};
+                orders.forEach(order => {
+                  const email = order.customer?.email;
+                  if (email) {
+                    customerOrders[email] = (customerOrders[email] || 0) + 1;
                   }
-                ]);
-                toast.success('New AI insights generated successfully!');
-              }, 2000);
+                });
+                
+                const repeatCustomers = Object.values(customerOrders).filter(count => count > 1).length;
+                const totalCustomers = Object.keys(customerOrders).length;
+                const retentionRate = totalCustomers > 0 
+                  ? ((repeatCustomers / totalCustomers) * 100).toFixed(1)
+                  : 0;
+                
+                newInsights.push({
+                  id: Date.now() + 3,
+                  type: "customer",
+                  title: "Customer Retention Analysis",
+                  description: `${retentionRate}% of customers are repeat buyers (${repeatCustomers} out of ${totalCustomers}). ${retentionRate > 30 ? 'Strong loyalty!' : retentionRate > 15 ? 'Good retention.' : 'Focus on loyalty programs.'}`,
+                  confidence: 91,
+                  impact: "medium",
+                  trend: retentionRate > 25 ? "up" : "neutral",
+                });
+                
+                // 4. Inventory turnover
+                const productsWithSales = products.map(p => {
+                  const sales = Object.entries(productSales).find(([id]) => 
+                    id === p._id || id === p.name
+                  );
+                  return {
+                    ...p,
+                    salesCount: sales ? sales[1] : 0,
+                    turnoverRate: p.stockQuantity > 0 ? (sales?.[1] || 0) / p.stockQuantity : 0
+                  };
+                }).sort((a, b) => b.turnoverRate - a.turnoverRate);
+                
+                const slowMovers = productsWithSales.filter(p => 
+                  p.salesCount === 0 && p.stockQuantity > 0
+                ).length;
+                
+                if (slowMovers > 0) {
+                  newInsights.push({
+                    id: Date.now() + 4,
+                    type: "inventory",
+                    title: "Inventory Turnover Alert",
+                    description: `${slowMovers} products have no sales activity. Consider discounts or bundling to improve turnover.`,
+                    confidence: 89,
+                    impact: slowMovers > 5 ? "high" : "medium",
+                    trend: "warning",
+                  });
+                }
+                
+                // 5. Order value trends
+                const avgOrderValue = orders.length > 0
+                  ? orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0) / orders.length
+                  : 0;
+                
+                const recentAvg = last7Days.length > 0
+                  ? last7Days.reduce((sum, o) => sum + (Number(o.total) || 0), 0) / last7Days.length
+                  : 0;
+                
+                const avgChange = avgOrderValue > 0
+                  ? ((recentAvg - avgOrderValue) / avgOrderValue * 100).toFixed(1)
+                  : 0;
+                
+                newInsights.push({
+                  id: Date.now() + 5,
+                  type: "sales",
+                  title: "Average Order Value Trend",
+                  description: `Recent avg order value is $${recentAvg.toFixed(2)} (${avgChange >= 0 ? '+' : ''}${avgChange}% vs overall avg of $${avgOrderValue.toFixed(2)}). ${avgChange > 10 ? 'Customers are spending more!' : avgChange < -10 ? 'Consider upselling strategies.' : 'Stable spending patterns.'}`,
+                  confidence: 90,
+                  impact: Math.abs(avgChange) > 15 ? "high" : "medium",
+                  trend: avgChange >= 0 ? "up" : "down",
+                });
+                
+                // Add new insights to existing ones
+                setInsights([...insights, ...newInsights]);
+                
+                toast.success(`Generated ${newInsights.length} new AI insights!`, {
+                  description: 'Advanced analysis complete'
+                });
+                
+              } catch (error) {
+                console.error('Error generating insights:', error);
+                toast.error('Failed to generate insights. Please try again.');
+              }
             }}
           >
             <Zap className="mr-2 h-4 w-4" />
-            Generate Insights
+            {isLoadingData ? 'Loading...' : 'Generate Insights'}
           </Button>
         </div>
       </div>
@@ -264,31 +658,31 @@ const AIInsights = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ComprehensiveGraphs
           title="Predictive Sales Trends"
-          description="AI-powered sales forecasting and trends"
+          description="Real-time sales data and forecasting"
           type="area"
-          data={generateMockGraphData('growth', 30)}
+          data={isLoadingData ? generateMockGraphData('growth', 30) : realData.salesData}
           height={350}
           autoRefresh={true}
-          refreshInterval={45000}
+          refreshInterval={120000}
         />
 
         <ComprehensiveGraphs
           title="Customer Behavior Analysis"
-          description="AI insights into customer patterns"
+          description="Hourly sales patterns from actual orders"
           type="line"
-          data={generateMockGraphData('trend', 30)}
+          data={isLoadingData ? generateMockGraphData('trend', 30) : realData.customerData}
           height={350}
           autoRefresh={true}
-          refreshInterval={45000}
+          refreshInterval={120000}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ComprehensiveGraphs
           title="Market Opportunities"
-          description="AI-identified growth opportunities"
+          description="Monthly revenue trends"
           type="bar"
-          data={generateMockGraphData('growth', 12)}
+          data={isLoadingData ? generateMockGraphData('growth', 12) : realData.salesData.slice(-12)}
           height={300}
         />
 

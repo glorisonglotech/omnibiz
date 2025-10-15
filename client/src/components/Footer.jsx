@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   const [footerData, setFooterData] = useState({});
@@ -21,24 +22,24 @@ const Footer = () => {
             <h4 className="font-medium mb-4">Features</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-primary">
+                <Link to="/features" className="hover:text-primary">
                   Inventory Management
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-primary">
+                <Link to="/features" className="hover:text-primary">
                   E-commerce
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-primary">
+                <Link to="/features" className="hover:text-primary">
                   Appointments
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-primary">
+                <Link to="/features" className="hover:text-primary">
                   Finance
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -47,19 +48,19 @@ const Footer = () => {
             <h4 className="font-medium mb-4">Company</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-primary">
+                <Link to="/about" className="hover:text-primary">
                   About
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-primary">
+                <Link to="/contact" className="hover:text-primary">
                   Contact
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-primary">
+                <Link to="/contact" className="hover:text-primary">
                   Support
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -68,14 +69,14 @@ const Footer = () => {
             <h4 className="font-medium mb-4">Legal</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-primary">
+                <Link to="/privacy" className="hover:text-primary">
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-primary">
+                <Link to="/terms" className="hover:text-primary">
                   Terms of Service
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

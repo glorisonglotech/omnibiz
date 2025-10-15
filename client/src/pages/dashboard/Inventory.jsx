@@ -252,9 +252,28 @@ const Inventory = () => {
     (p) => p.stockQuantity <= p.reorderLevel && p.stockQuantity > 0
   ).length;
   const outOfStockItems = products.filter((p) => p.stockQuantity === 0).length;
-  const totalValue = products
-    .reduce((sum, p) => sum + p.price * p.stockQuantity, 0)
-    .toLocaleString();
+  
+  // Calculate total inventory value (price * stockQuantity for all products)
+  const totalValue = products.reduce((sum, p) => {
+    const price = Number(p.price) || 0;
+    const stock = Number(p.stockQuantity) || Number(p.stock) || 0;
+    const itemValue = price * stock;
+    
+    // Debug logging to show calculation breakdown
+    console.log(`📦 Product: ${p.name}`);
+    console.log(`   Price: $${price}`);
+    console.log(`   Stock: ${stock} units`);
+    console.log(`   Value: $${itemValue.toFixed(2)}`);
+    console.log('---');
+    
+    return sum + itemValue;
+  }, 0);
+  
+  console.log('💰 TOTAL INVENTORY VALUE:', `$${totalValue.toFixed(2)}`);
+  console.log('📊 Total Products:', products.length);
+  console.log('=====================================');
+  
+  const formattedTotalValue = totalValue.toFixed(2);
 
   return (
     <div className="space-y-6">
@@ -421,7 +440,9 @@ const Inventory = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalProducts}</div>
-            <p className="text-xs text-muted-foreground">+12 from last month</p>
+            <p className="text-xs text-muted-foreground">
+              {totalProducts === 0 ? 'No products yet' : `${totalProducts} total products`}
+            </p>
           </CardContent>
         </Card>
 
@@ -461,8 +482,10 @@ const Inventory = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalValue}</div>
-            <p className="text-xs text-muted-foreground">Inventory worth</p>
+            <div className="text-2xl font-bold">${formattedTotalValue}</div>
+            <p className="text-xs text-muted-foreground">
+              {totalProducts > 0 ? `Value of ${totalProducts} products` : 'No inventory value'}
+            </p>
           </CardContent>
         </Card>
       </div>

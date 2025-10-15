@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import {
   ShoppingCart,
   Package,
@@ -158,12 +159,16 @@ function Features() {
             Start your free trial today and see the difference.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-green-500 text-white px-8 py-3 rounded-lg font-medium cursor-pointer hover:bg-green-400  transition-colors duration-200">
-              Start Free Trial
-            </button>
-            <button className="border border-input px-8 py-3 rounded-lg  cursor-pointer font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
-              Schedule Demo
-            </button>
+            <Link to="/signup">
+              <button className="bg-green-500 text-white px-8 py-3 rounded-lg font-medium cursor-pointer hover:bg-green-400  transition-colors duration-200">
+                Start Free Trial
+              </button>
+            </Link>
+            <Link to="/contact">
+              <button className="border border-input px-8 py-3 rounded-lg  cursor-pointer font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+                Schedule Demo
+              </button>
+            </Link>
           </div>
         </div>
       </div>

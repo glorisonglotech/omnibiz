@@ -15,6 +15,7 @@ import AIInsights from "./pages/dashboard/AIInsights";
 import Locations from "./pages/dashboard/Locations";
 import Settings from "./pages/dashboard/Settings";
 import Profile from "./pages/dashboard/Profile";
+import Wallet from "./pages/dashboard/Wallet";
 import Products from "./pages/dashboard/Products";
 import Checkout from "./pages/dashboard/Checkout";
 import SplashScreen from "./pages/SplashScreen";
@@ -22,6 +23,8 @@ import FeaturesPage from "./pages/Features";
 import Pricing from "./pages/Pricing";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import Help from "./pages/Help";
 import Analytics from "./pages/dashboard/Analytics";
 import Maps from "./pages/dashboard/Maps";
@@ -119,6 +122,8 @@ function App() {
                     <Route path="/pricing" element={<Pricing />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/about" element={<About />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
                     <Route path="/loginpage" element={<LoginPage />} />
                     <Route path="/signup" element={<SignupPage />} />
                     
@@ -126,9 +131,10 @@ function App() {
                     <Route path="/client/signup/:inviteCode" element={<ClientSignup />} />
                     <Route path="/client/login/:inviteCode" element={<ClientLogin />} />
                     <Route path="/client/store/:inviteCode" element={<ClientStorefront />} />
-                    <Route path="client/catalog" element={<ProductCatalog />} />
-                    <Route path="store" element={<Store />} />
-                    <Route path="client/book" element={<BookAppointment />} />
+                    <Route path="/client/catalog" element={<ProductCatalog />} />
+                    <Route path="/store" element={<Store />} />
+                    <Route path="/store/:inviteCode" element={<Store />} />
+                    <Route path="/client/book" element={<BookAppointment />} />
                     <Route path="/client/my-bookings" element={<MyBookings />} />
 
                     {/* Dashboard Routes */}
@@ -146,6 +152,7 @@ function App() {
                       <Route path="locations" element={<Locations />} />
                       <Route path="settings" element={<Settings />} />
                       <Route path="profile" element={<Profile />} />
+                      <Route path="wallet" element={<Wallet />} />
                       <Route path="products" element={<Products />} />
                       <Route path="checkout" element={<Checkout />} />
                       <Route path="help" element={<Help />} />

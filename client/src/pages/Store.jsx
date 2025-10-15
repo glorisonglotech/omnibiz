@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import ProductDetails from "@/components/ProductDetails";
 
 const Store = () => {
   const navigate = useNavigate();
@@ -35,6 +36,8 @@ const Store = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -74,6 +77,16 @@ const Store = () => {
     if (stock > 20) return { label: "In Stock", variant: "default" };
     if (stock > 0) return { label: "Low Stock", variant: "secondary" };
     return { label: "Out of Stock", variant: "destructive" };
+  };
+
+  const handleViewDetails = (product) => {
+    setSelectedProduct(product);
+    setIsDetailsOpen(true);
+  };
+
+  const handleCloseDetails = () => {
+    setIsDetailsOpen(false);
+    setTimeout(() => setSelectedProduct(null), 300);
   };
 
   return (
@@ -265,7 +278,11 @@ const Store = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full" variant="outline">
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => handleViewDetails(product)}
+                  >
                     <Eye className="h-4 w-4 mr-2" />
                     View Details
                   </Button>
@@ -297,7 +314,11 @@ const Store = () => {
                       <span className="text-2xl font-bold text-green-600">
                         ${product.price?.toFixed(2) || "0.00"}
                       </span>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewDetails(product)}
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </Button>
@@ -309,6 +330,13 @@ const Store = () => {
           })}
         </div>
       )}
+
+      {/* Product Details Dialog */}
+      <ProductDetails
+        product={selectedProduct}
+        isOpen={isDetailsOpen}
+        onClose={handleCloseDetails}
+      />
     </div>
   );
 };

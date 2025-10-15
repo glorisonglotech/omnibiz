@@ -629,6 +629,27 @@ export const supportAPI = {
     }
   },
 
+  getSupportAgents: async () => {
+    try {
+      const response = await api.get('/support/agents');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching support agents:', error);
+      // Return default agent if API fails
+      return [
+        {
+          id: 1,
+          name: 'Support Team',
+          role: 'Customer Support',
+          avatar: '/api/placeholder/40/40',
+          status: 'online',
+          rating: 4.9,
+          specialties: ['General Support', 'Technical Help']
+        }
+      ];
+    }
+  },
+
   sendMessage: async (ticketId, message) => {
     try {
       const response = await api.post(`/support/tickets/${ticketId}/messages`, { message });

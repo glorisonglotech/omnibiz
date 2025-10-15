@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -12,6 +13,7 @@ const QuickActions = lazy(() => import("@/components/ecommerce/QuickActions"));
 const EnhancedProductForm = lazy(() => import("@/components/ecommerce/EnhancedProductForm"));
 const EnhancedOrderForm = lazy(() => import("@/components/ecommerce/EnhancedOrderForm"));
 const RealTimeSync = lazy(() => import("@/components/ecommerce/RealTimeSync"));
+const ModernOrderCard = lazy(() => import("@/components/ecommerce/ModernOrderCard"));
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +37,8 @@ import {
   Copy,
   Share2,
   Send,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -66,14 +70,20 @@ const defaultProduct = {
   price: "",
   supplierName: "",
   description: "",
+  currency: "USD", // Default currency
 };
 
 const ECommerce = () => {
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { refreshFinancialData } = useFinancial();
 
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [ordersError, setOrdersError] = useState(null);
+  const [productsError, setProductsError] = useState(null);
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false);
@@ -92,45 +102,74 @@ const ECommerce = () => {
   const [inviteLink, setInviteLink] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Fetch orders
+  // Consolidated fetch functions
+  const fetchOrdersData = async () => {
+    if (!isAuthenticated) return;
+    
+    setIsLoadingOrders(true);
+    setOrdersError(null);
+    
+    try {
+      const response = await api.get("/orders", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      
+      console.log('✅ Orders loaded:', response.data.length);
+      setOrders(response.data || []);
+      
+      if (response.data.length === 0) {
+        toast.info('No orders yet. Create your first order!', { duration: 3000 });
+      }
+    } catch (error) {
+      console.error("❌ Error fetching orders:", error);
+      setOrdersError(error.response?.data?.message || error.message || 'Failed to load orders');
+      toast.error("Failed to load orders. Click refresh to retry.");
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  // Fetch orders on mount
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!isAuthenticated) {
-        toast.error("Please log in to view your orders.");
-        return;
-      }
-      try {
-        const response = await api.get("/orders", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        setOrders(response.data || []);
-      } catch (error) {
-        toast.error("We couldn't load your orders right now.");
-        // eslint-disable-next-line no-console
-        console.error("Error fetching orders:", error);
-      }
-    };
-    fetchOrders();
+    fetchOrdersData();
   }, [isAuthenticated]);
 
-  // Fetch products
-  useEffect(() => {
-    const fetchProducts = async () => {
-      if (!isAuthenticated) return;
-      try {
-        const response = await api.get("/products", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        setProducts(response.data || []);
-      } catch (error) {
-        console.error("Error fetching products:", error);
+  const fetchProductsData = async () => {
+    if (!isAuthenticated) return;
+    
+    setIsLoadingProducts(true);
+    setProductsError(null);
+    
+    try {
+      const response = await api.get("/products", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      
+      console.log('✅ Products loaded:', response.data.length);
+      setProducts(response.data || []);
+      
+      if (response.data.length === 0) {
+        toast.info('No products yet. Add your first product!', { duration: 3000 });
       }
-    };
-    fetchProducts();
+    } catch (error) {
+      console.error("❌ Error fetching products:", error);
+      setProductsError(error.response?.data?.message || error.message || 'Failed to load products');
+      toast.error("Failed to load products. Click refresh to retry.");
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  // Manual refresh handler for RealTimeSync
+  const handleManualRefresh = async () => {
+    toast.info('Refreshing data...', { duration: 1000 });
+    await Promise.all([fetchProductsData(), fetchOrdersData()]);
+    toast.success('Data refreshed successfully!');
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchProductsData();
   }, [isAuthenticated]);
 
   const handleEditClick = (order) => {
@@ -439,6 +478,34 @@ const ECommerce = () => {
   const totalOrders = orders.length;
   const revenue = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
   const avgOrderValue = totalOrders ? (revenue / totalOrders).toFixed(2) : "0.00";
+  
+  // Calculate top products from orders
+  const topProducts = (() => {
+    const productSales = {};
+    
+    orders.forEach(order => {
+      order.items?.forEach(item => {
+        const productId = item.product || item.name;
+        if (!productSales[productId]) {
+          productSales[productId] = {
+            name: item.name || 'Unknown Product',
+            sales: 0,
+            revenue: 0
+          };
+        }
+        productSales[productId].sales += item.quantity || 1;
+        productSales[productId].revenue += (item.price || 0) * (item.quantity || 1);
+      });
+    });
+    
+    return Object.values(productSales)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 4)
+      .map(p => ({
+        ...p,
+        revenue: `$${p.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      }));
+  })();
 
   // Loading fallback
   const LoadingFallback = () => (
@@ -461,6 +528,7 @@ const ECommerce = () => {
                 onProductUpdate={handleProductRealTimeUpdate}
                 onOrderUpdate={handleOrderRealTimeUpdate}
                 onStockUpdate={handleStockRealTimeUpdate}
+                onManualRefresh={handleManualRefresh}
               />
             </Suspense>
           </div>
@@ -478,12 +546,8 @@ const ECommerce = () => {
             variant="default"
             className="gap-2 bg-blue-600 hover:bg-blue-700"
             onClick={() => {
-              if (user?.inviteCode) {
-                window.location.href = `/store/${user.inviteCode}`;
-              } else {
-                setActiveView('products');
-                toast.info('View your products and generate an invite link');
-              }
+              navigate('/store');
+              toast.success('Opening store overview...');
             }}
           >
             <Package className="h-4 w-4" />
@@ -540,10 +604,10 @@ const ECommerce = () => {
             onClick={() => {
               if (user?.inviteCode) {
                 window.open(`/store/${user.inviteCode}`, '_blank');
-                toast.success('Opening your store in a new tab...');
+                toast.success('Opening your client store in a new tab...');
               } else {
-                // Generate invite code first
-                toast.info('Generate an invite link first to access your store');
+                window.open('/store', '_blank');
+                toast.info('Opening store view...');
               }
             }}
           >
@@ -601,7 +665,7 @@ const ECommerce = () => {
       {/* Conditional Views */}
       {activeView === 'overview' && (
         <>
-          {/* Stats Cards */}
+          {/* Stats Cards with Loading States */}
           <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -609,8 +673,24 @@ const ECommerce = () => {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalOrders}</div>
-            <p className="text-xs text-green-600">+8.1% from last month</p>
+            {isLoadingOrders ? (
+              <div className="space-y-2">
+                <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-24 bg-gray-100 rounded animate-pulse"></div>
+              </div>
+            ) : ordersError ? (
+              <div>
+                <div className="text-lg font-bold text-red-600">Error</div>
+                <Button size="sm" variant="link" onClick={fetchOrdersData} className="p-0 h-auto text-xs">
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{totalOrders}</div>
+                <p className="text-xs text-muted-foreground">Total orders placed</p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -619,91 +699,164 @@ const ECommerce = () => {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${revenue.toLocaleString()}</div>
-            <p className="text-xs text-green-600">+12.3% from last month</p>
+            {isLoadingOrders ? (
+              <div className="space-y-2">
+                <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-20 bg-gray-100 rounded animate-pulse"></div>
+              </div>
+            ) : ordersError ? (
+              <div>
+                <div className="text-lg font-bold text-red-600">Error</div>
+                <Button size="sm" variant="link" onClick={fetchOrdersData} className="p-0 h-auto text-xs">
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">${revenue.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Total revenue earned</p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3.2%</div>
-            <p className="text-xs text-green-600">+0.5% from last month</p>
+            {isLoadingProducts ? (
+              <div className="space-y-2">
+                <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-24 bg-gray-100 rounded animate-pulse"></div>
+              </div>
+            ) : productsError ? (
+              <div>
+                <div className="text-lg font-bold text-red-600">Error</div>
+                <Button size="sm" variant="link" onClick={fetchProductsData} className="p-0 h-auto text-xs">
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{products.length}</div>
+                <p className="text-xs text-muted-foreground">Active products</p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg. Order Value</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${avgOrderValue}</div>
-            <p className="text-xs text-green-600">+4.2% from last month</p>
+            {isLoadingOrders ? (
+              <div className="space-y-2">
+                <div className="h-8 w-20 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-24 bg-gray-100 rounded animate-pulse"></div>
+              </div>
+            ) : ordersError ? (
+              <div>
+                <div className="text-lg font-bold text-red-600">Error</div>
+                <Button size="sm" variant="link" onClick={fetchOrdersData} className="p-0 h-auto text-xs">
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">${avgOrderValue}</div>
+                <p className="text-xs text-muted-foreground">Average per order</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recent Orders */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
-            <CardDescription>Latest customer orders</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order, index) => (
-                  <TableRow key={order._id || order.id || `order-${index}`}>
-                    <TableCell className="font-medium">{order.orderId || order.id}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{order.customer?.name}</p>
-                        <p className="text-sm text-muted-foreground">{order.customer?.email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {order.date
-                        ? new Date(order.date).toLocaleDateString()
-                        : ""}
-                    </TableCell>
-                    <TableCell>${Number(order.total || 0).toFixed(2)}</TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => handleViewClick(order)}>
-                          View
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleEditClick(order)}>
-                          Edit
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+        {/* Recent Orders with Modern Cards */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Recent Orders</CardTitle>
+                  <CardDescription>Latest customer orders with product details</CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={fetchOrdersData}
+                  disabled={isLoadingOrders}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {isLoadingOrders ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+                    <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                    <div className="h-20 bg-gray-100 rounded"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : ordersError ? (
+            <Card className="border-red-200">
+              <CardContent className="p-8 text-center">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-red-700 mb-2">Failed to Load Orders</h3>
+                <p className="text-sm text-muted-foreground mb-4">{ordersError}</p>
+                <Button onClick={fetchOrdersData} variant="outline">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+              </CardContent>
+            </Card>
+          ) : orders.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Orders Yet</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Create your first order to get started!
+                </p>
+                <Button onClick={() => setIsAddOrderOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Order
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <Suspense fallback={<LoadingFallback />}>
+                {orders.slice(0, 5).map((order) => (
+                  <ModernOrderCard
+                    key={order._id || order.id}
+                    order={order}
+                    onView={handleViewClick}
+                    onEdit={handleEditClick}
+                  />
                 ))}
-                {orders.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
-                      No orders yet.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              </Suspense>
+              {orders.length > 5 && (
+                <div className="text-center py-4">
+                  <Button variant="outline" onClick={() => setActiveView('analytics')}>
+                    View All {orders.length} Orders
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         {/* Top Products (static content preserved) */}
         <Card>
           <CardHeader>
@@ -711,24 +864,44 @@ const ECommerce = () => {
             <CardDescription>Best selling items this month</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {[
-                { name: "Premium Hair Shampoo", sales: 156, revenue: "$4,680" },
-                { name: "Hair Styling Gel", sales: 142, revenue: "$2,268" },
-                { name: "Organic Face Mask", sales: 98, revenue: "$4,410" },
-                { name: "Professional Hair Dryer", sales: 67, revenue: "$13,393" },
-              ].map((product, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">{product.sales} sales</p>
+            {isLoadingOrders ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center justify-between animate-pulse">
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">{product.revenue}</p>
+                ))}
+              </div>
+            ) : ordersError ? (
+              <div className="text-center py-8 text-red-600">
+                <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                <p className="text-sm">{ordersError}</p>
+              </div>
+            ) : topProducts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm font-medium">No product sales yet</p>
+                <p className="text-xs mt-2">Top sellers will appear here</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {topProducts.map((product, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">{product.sales} sales</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-foreground">{product.revenue}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

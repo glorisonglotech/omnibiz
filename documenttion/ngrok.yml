@@ -1,0 +1,8 @@
+version: "2"
+authtoken: your_ngrok_authtoken_here
+region: us
+tunnels:
+  omnibiz:
+    addr: 5000
+    proto: http
+    hostname: your-custom-subdomain.ngrok.io  # Optional: reserve a subdomain

@@ -25,7 +25,8 @@ import {
   Download,
   ExternalLink,
   Plus,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,8 @@ const HelpSupport = () => {
   const [isVideoCall, setIsVideoCall] = useState(false);
   const [isCreateTicketOpen, setIsCreateTicketOpen] = useState(false);
   const [newTicket, setNewTicket] = useState({ subject: '', description: '', priority: 'medium' });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [peerConnection, setPeerConnection] = useState(null);
@@ -139,64 +142,69 @@ const HelpSupport = () => {
     scrollToBottom();
   }, [chatMessages]);
 
-  const initializeSupport = () => {
-    // Mock support agents
-    const agents = [
-      {
-        id: 1,
-        name: 'Sarah Johnson',
-        role: 'Senior Support Specialist',
-        avatar: '/api/placeholder/40/40',
-        status: 'online',
-        rating: 4.9,
-        specialties: ['Technical Issues', 'Account Management']
-      },
-      {
-        id: 2,
-        name: 'Mike Chen',
-        role: 'Technical Support',
-        avatar: '/api/placeholder/40/40',
-        status: 'online',
-        rating: 4.8,
-        specialties: ['API Integration', 'Billing']
-      },
-      {
-        id: 3,
-        name: 'Emma Davis',
-        role: 'Customer Success',
-        avatar: '/api/placeholder/40/40',
-        status: 'busy',
-        rating: 4.9,
-        specialties: ['Onboarding', 'Training']
-      }
-    ];
-    setSupportAgents(agents);
-    setActiveAgent(agents[0]);
-    setChatStatus('online');
+  const initializeSupport = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch real support agents from API
+      const agents = await supportAPI.getSupportAgents().catch(() => {
+        // Fallback to basic agent data if API fails
+        return [
+          {
+            id: 1,
+            name: 'Support Team',
+            role: 'Customer Support',
+            avatar: '/api/placeholder/40/40',
+            status: 'online',
+            rating: 4.9,
+            specialties: ['General Support', 'Technical Help']
+          }
+        ];
+      });
+      
+      setSupportAgents(agents);
+      setActiveAgent(agents[0]);
+      setChatStatus(agents[0]?.status || 'online');
 
-    // Initialize chat with welcome message
-    setChatMessages([
-      {
+      // Initialize chat with welcome message
+      const welcomeMessage = {
         id: 1,
         sender: 'agent',
-        message: `Hi ${user?.name || 'there'}! I'm Sarah, your support specialist. How can I help you today?`,
+        message: `Hi ${user?.name || 'there'}! I'm ${agents[0]?.name}, your support specialist. How can I help you today?`,
         timestamp: new Date(),
         agent: agents[0]
-      }
-    ]);
+      };
+      
+      setChatMessages([welcomeMessage]);
+      
+      console.log('✅ Support initialized:', {
+        agents: agents.length,
+        activeAgent: agents[0]?.name
+      });
+    } catch (err) {
+      console.error('❌ Error initializing support:', err);
+      setError('Failed to connect to support. Please try again later.');
+      toast.error('Failed to initialize support system');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadFAQs = async () => {
     try {
       const faqs = await supportAPI.getFAQs();
-      setFaqItems(faqs);
+      setFaqItems(Array.isArray(faqs) ? faqs : []);
+      
+      console.log('✅ FAQs loaded:', faqs.length);
     } catch (error) {
+      console.error('❌ Error loading FAQs:', error);
       // Fallback to mock data if API fails
       const mockFaqs = [
         {
           id: 1,
           question: 'How do I reset my password?',
-          answer: 'You can reset your password by clicking on "Forgot Password" on the login page...',
+          answer: 'You can reset your password by clicking on "Forgot Password" on the login page. Enter your email and follow the instructions sent to your inbox.',
           category: 'Account',
           helpful: 45,
           views: 234
@@ -204,7 +212,7 @@ const HelpSupport = () => {
         {
           id: 2,
           question: 'How to integrate with third-party APIs?',
-          answer: 'Our API integration guide provides step-by-step instructions...',
+          answer: 'Our API integration guide provides step-by-step instructions. Visit the Developer section in Settings for API keys and documentation.',
           category: 'Technical',
           helpful: 38,
           views: 189
@@ -212,10 +220,26 @@ const HelpSupport = () => {
         {
           id: 3,
           question: 'What payment methods do you accept?',
-          answer: 'We accept all major credit cards, PayPal, and bank transfers...',
+          answer: 'We accept all major credit cards (Visa, Mastercard, Amex), PayPal, M-Pesa, and bank transfers. All transactions are encrypted and secure.',
           category: 'Billing',
           helpful: 52,
           views: 312
+        },
+        {
+          id: 4,
+          question: 'How do I export my data?',
+          answer: 'Navigate to Reports > Export Data. Choose your format (CSV, PDF, Excel) and date range. Your export will download automatically.',
+          category: 'Data',
+          helpful: 29,
+          views: 156
+        },
+        {
+          id: 5,
+          question: 'Can I customize my dashboard?',
+          answer: 'Yes! Click the Settings icon on your dashboard. You can rearrange widgets, choose themes, and customize which metrics to display.',
+          category: 'Customization',
+          helpful: 67,
+          views: 421
         }
       ];
       setFaqItems(mockFaqs);
@@ -225,30 +249,13 @@ const HelpSupport = () => {
   const loadTickets = async () => {
     try {
       const apiTickets = await supportAPI.getTickets();
-      setTickets(apiTickets);
+      setTickets(Array.isArray(apiTickets) ? apiTickets : []);
+      
+      console.log('✅ Tickets loaded:', apiTickets.length);
     } catch (error) {
-      // Fallback to mock data if API fails
-      const mockTickets = [
-        {
-          id: 'TKT-001',
-          subject: 'API Integration Issue',
-          status: 'open',
-          priority: 'high',
-          created: new Date(Date.now() - 86400000),
-          lastUpdate: new Date(Date.now() - 3600000),
-          agent: 'Mike Chen'
-        },
-        {
-          id: 'TKT-002',
-          subject: 'Billing Question',
-          status: 'resolved',
-          priority: 'medium',
-          created: new Date(Date.now() - 172800000),
-          lastUpdate: new Date(Date.now() - 7200000),
-          agent: 'Sarah Johnson'
-        }
-      ];
-      setTickets(mockTickets);
+      console.error('❌ Error loading tickets:', error);
+      // Fallback to empty array if API fails
+      setTickets([]);
     }
   };
 
@@ -575,11 +582,46 @@ const HelpSupport = () => {
     faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading support system...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="text-center space-y-4">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+              <div>
+                <p className="font-semibold text-red-700">Support System Error</p>
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+              <Button onClick={initializeSupport} variant="outline">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Help & Support</h1>
-        <p className="text-muted-foreground mt-2">Get instant help from our support team</p>
+        <p className="text-muted-foreground mt-2">Get instant help from our support team • {connected ? '🟢 Connected' : '🔴 Offline'}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

@@ -21,7 +21,8 @@ import {
   PieChart,
   FileText,
   TrendingUp,
-  Monitor
+  Monitor,
+  Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -150,6 +151,22 @@ function DashboardSidebar() {
               {!isCollapsed && <span>Profile</span>}
             </Link>
 
+            {/* Wallet Link */}
+            <Link
+              to="/dashboard/wallet"
+              className={cn(
+                "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                location.pathname === "/dashboard/wallet"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
+              )}
+            >
+              <Wallet
+                className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "mr-3")}
+              />
+              {!isCollapsed && <span>Wallet</span>}
+            </Link>
+
             {/* Help Link */}
             <Link
               to="/dashboard/help"
@@ -193,7 +210,7 @@ function DashboardSidebar() {
                   <p className="text-sm font-medium text-foreground truncate">
                     {userName} {/* Display the user's name */}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">Admin</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.role || 'User'}</p>
                 </div>
               </div>
             </div>

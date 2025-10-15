@@ -7,8 +7,12 @@ const {
   getLocationById,
   updateLocation,
   deleteLocation,
-  getLocationStats
+  getLocationStats,
+  seedDefaultLocations
 } = require('../controllers/locationController');
+
+// POST /api/locations/seed - Seed default locations (must come before /:id routes)
+router.post('/seed', protect, seedDefaultLocations);
 
 // GET /api/locations/stats - Get location statistics
 router.get('/stats', protect, getLocationStats);

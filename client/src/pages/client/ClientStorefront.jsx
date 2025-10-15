@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import api from "@/lib/api";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,14 +38,39 @@ const ClientStorefront = () => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [activeTab, setActiveTab] = useState("shop");
 
-  // Simulated store owner info
-  const storeOwner = {
-    businessName: "Premium Beauty Store",
-    ownerName: "Sarah Johnson",
-  };
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [storeOwner, setStoreOwner] = useState({
+    businessName: "OmniBiz Store",
+    ownerName: "Store Owner",
+  });
 
-  // Simulated products with enhanced details (will be fetched from backend)
-  const products = [
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get("/products");
+        setProducts(response.data || []);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        toast({
+          title: "Error loading products",
+          description: "Could not load products. Please refresh the page.",
+          variant: "destructive",
+        });
+        // Fallback to sample products
+        setProducts(sampleProducts);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [inviteCode]);
+
+  // Sample products as fallback
+  const sampleProducts = [
     {
       id: "1",
       name: "Premium Hair Shampoo",
@@ -138,12 +164,15 @@ const ClientStorefront = () => {
   });
 
   const addToCart = (product) => {
-    const existingItem = cart.find((item) => item.id === product.id);
+    const productId = product._id || product.id;
+    const availableStock = product.stockQuantity || product.stock || 0;
+    
+    const existingItem = cart.find((item) => (item._id || item.id) === productId);
     if (existingItem) {
-      if (existingItem.quantity < product.stock) {
+      if (existingItem.quantity < availableStock) {
         setCart(
           cart.map((item) =>
-            item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+            (item._id || item.id) === productId ? { ...item, quantity: item.quantity + 1 } : item
           )
         );
         toast({
@@ -153,12 +182,12 @@ const ClientStorefront = () => {
       } else {
         toast({
           title: "Stock limit reached",
-          description: `Only ${product.stock} available`,
+          description: `Only ${availableStock} available`,
           variant: "destructive",
         });
       }
     } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
+      setCart([...cart, { ...product, _id: productId, id: productId, quantity: 1, stock: availableStock, stockQuantity: availableStock }]);
       toast({
         title: "Added to cart! 🛍️",
         description: `${product.name} added to your cart`,
@@ -167,19 +196,21 @@ const ClientStorefront = () => {
   };
 
   const updateQuantity = (productId, change) => {
-    const item = cart.find((item) => item.id === productId);
+    const item = cart.find((item) => (item._id || item.id) === productId);
     if (!item) return;
 
+    const availableStock = item.stockQuantity || item.stock || 0;
     const newQuantity = item.quantity + change;
+    
     if (newQuantity === 0) {
       removeFromCart(productId);
       return;
     }
 
-    if (newQuantity > item.stock) {
+    if (newQuantity > availableStock) {
       toast({
         title: "Stock limit reached",
-        description: `Only ${item.stock} available`,
+        description: `Only ${availableStock} available`,
         variant: "destructive",
       });
       return;
@@ -187,14 +218,14 @@ const ClientStorefront = () => {
 
     setCart(
       cart.map((item) =>
-        item.id === productId ? { ...item, quantity: newQuantity } : item
+        (item._id || item.id) === productId ? { ...item, quantity: newQuantity } : item
       )
     );
   };
 
   const removeFromCart = (productId) => {
-    const item = cart.find((item) => item.id === productId);
-    setCart(cart.filter((item) => item.id !== productId));
+    const item = cart.find((item) => (item._id || item.id) === productId);
+    setCart(cart.filter((item) => (item._id || item.id) !== productId));
     if (item) {
       toast({
         title: "Removed from cart",
@@ -327,7 +358,7 @@ const ClientStorefront = () => {
                       ) : (
                         <>
                           {cart.map((item) => (
-                            <Card key={item.id} className="glass-card">
+                            <Card key={item._id || item.id} className="glass-card">
                               <CardContent className="p-4">
                                 <div className="flex gap-4">
                                   <div className="h-16 w-16 rounded bg-muted flex items-center justify-center">
@@ -389,61 +420,75 @@ const ClientStorefront = () => {
               </div>
             </div>
 
-            {/* Products Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => (
-                <Card 
-                  key={product.id} 
-                  className="group glass-card cursor-pointer"
-                  onClick={() => setSelectedProduct(product)}
-                >
-                  <CardHeader className="p-0">
-                    <div className="aspect-square bg-gradient-to-br from-secondary/30 to-primary/10 rounded-t-lg flex items-center justify-center overflow-hidden">
-                      <Package className="h-20 w-20 text-primary/40 product-card-image" />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <CardTitle className="text-base line-clamp-1">{product.name}</CardTitle>
-                      <Badge variant={product.stock > 10 ? "default" : "secondary"} className="shrink-0">
-                        {product.stock} left
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                      {product.description}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold text-primary">
-                        KES {product.price.toFixed(2)}
-                      </span>
-                      <Badge variant="outline">{product.category}</Badge>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-4 pt-0">
-                    <Button
-                      className="w-full gap-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addToCart(product);
-                      }}
-                      disabled={product.stock === 0}
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-
-            {filteredProducts.length === 0 && (
+            {/* Loading State */}
+            {loading ? (
               <div className="text-center py-12">
-                <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No products found</h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filters
-                </p>
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading products...</p>
               </div>
+            ) : (
+              <>
+                {/* Products Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredProducts.map((product) => (
+                    <Card 
+                      key={product._id || product.id} 
+                      className="group glass-card cursor-pointer"
+                      onClick={() => setSelectedProduct(product)}
+                    >
+                      <CardHeader className="p-0">
+                        <div className="aspect-square bg-gradient-to-br from-secondary/30 to-primary/10 rounded-t-lg flex items-center justify-center overflow-hidden">
+                          {product.image ? (
+                            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Package className="h-20 w-20 text-primary/40 product-card-image" />
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <CardTitle className="text-base line-clamp-1">{product.name}</CardTitle>
+                          <Badge variant={(product.stockQuantity || product.stock) > 10 ? "default" : "secondary"} className="shrink-0">
+                            {product.stockQuantity || product.stock} left
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                          {product.description}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg font-bold text-primary">
+                            KES {product.price.toFixed(2)}
+                          </span>
+                          <Badge variant="outline">{product.category}</Badge>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="p-4 pt-0">
+                        <Button
+                          className="w-full gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(product);
+                          }}
+                          disabled={(product.stockQuantity || product.stock) === 0}
+                        >
+                          <ShoppingCart className="h-4 w-4" />
+                          {(product.stockQuantity || product.stock) === 0 ? "Out of Stock" : "Add to Cart"}
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+
+                {filteredProducts.length === 0 && !loading && (
+                  <div className="text-center py-12">
+                    <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No products found</h3>
+                    <p className="text-muted-foreground">
+                      Try adjusting your search or filters
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
 

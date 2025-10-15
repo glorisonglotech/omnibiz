@@ -39,28 +39,28 @@ function About() {
 
   const team = [
     {
-      name: "Sarah Johnson",
+      name: "Daniel Ndk",
       role: "CEO & Founder",
-      image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop&crop=face",
-      bio: "Former McKinsey consultant with 15+ years in business operations and technology."
+      image: "https://images.unsplash.com/photo-1531384441138-2736e62e0919?w=400&h=400&fit=crop&crop=face",
+      bio: "Visionary leader driving innovation and growth in business management solutions."
     },
     {
-      name: "Michael Chen",
-      role: "CTO",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
-      bio: "Ex-Google engineer passionate about building scalable solutions for businesses."
+      name: "Glorison Ouma",
+      role: "CTO & Co-Founder",
+      image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face",
+      bio: "Technology expert passionate about building scalable, intelligent solutions for businesses."
     },
     {
-      name: "Emily Rodriguez",
-      role: "Head of Product",
-      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face",
-      bio: "Product strategist with deep expertise in user experience and business workflows."
+      name: "Mr Timothy Ndala",
+      role: "Head of Operations",
+      image: "https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?w=400&h=400&fit=crop&crop=face",
+      bio: "Operations strategist ensuring seamless business workflows and customer success."
     },
     {
-      name: "David Kim",
-      role: "Head of Customer Success",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-      bio: "Customer advocate ensuring every business gets maximum value from our platform."
+      name: "David Kamau",
+      role: "Head of Product Development",
+      image: "https://images.unsplash.com/photo-1508341591423-4347099e1f19?w=400&h=400&fit=crop&crop=face",
+      bio: "Product innovator focused on delivering exceptional user experiences and features."
     }
   ];
 

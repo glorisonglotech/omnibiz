@@ -1,38 +1,33 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Truck, CheckCircle2, Clock } from "lucide-react";
-
-const mockOrders = [
-  {
-    id: "ORD-1001",
-    date: "2025-10-12",
-    total: 1450,
-    status: "delivered",
-    items: [
-      { name: "Premium Hair Shampoo", quantity: 2 },
-      { name: "Organic Face Mask", quantity: 1 },
-    ],
-    trackingNumber: "TRK-ABC123",
-  },
-  {
-    id: "ORD-1002",
-    date: "2025-10-13",
-    total: 875,
-    status: "shipped",
-    items: [{ name: "Hair Styling Gel", quantity: 3 }],
-    trackingNumber: "TRK-XYZ789",
-  },
-  {
-    id: "ORD-1003",
-    date: "2025-10-14",
-    total: 2200,
-    status: "processing",
-    items: [{ name: "Professional Hair Dryer", quantity: 1 }],
-  },
-];
+import { Package, Truck, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import api from "@/lib/api";
 
 const OrderHistory = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get('/orders');
+      setOrders(response.data || []);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Failed to load orders. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusIcon = (status) => {
     switch (status) {
       case "pending":
@@ -47,60 +42,124 @@ const OrderHistory = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
+      case "draft":
       case "pending":
         return "secondary";
+      case "submitted":
       case "processing":
+      case "under_review":
         return "default";
+      case "approved":
       case "shipped":
         return "default";
       case "delivered":
         return "outline";
+      case "cancelled":
+      case "rejected":
+        return "destructive";
+      default:
+        return "secondary";
     }
   };
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-foreground">Order History</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-foreground">Order History</h2>
+        <Button variant="outline" size="sm" onClick={fetchOrders} disabled={loading}>
+          {loading ? "Refreshing..." : "Refresh"}
+        </Button>
+      </div>
       
-      {mockOrders.map((order) => (
-        <Card key={order.id} className="glass-card">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Order {order.id}</CardTitle>
-              <Badge variant={getStatusColor(order.status)} className="gap-1">
-                {getStatusIcon(order.status)}
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">{new Date(order.date).toLocaleDateString()}</p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2">
-              {order.items.map((item, index) => (
-                <div key={index} className="text-sm">
-                  <span className="text-foreground">{item.name}</span>
-                  <span className="text-muted-foreground"> × {item.quantity}</span>
-                </div>
-              ))}
-            </div>
-            
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              <span className="font-semibold text-foreground">Total: KES {order.total.toFixed(2)}</span>
-              <div className="flex gap-2">
-                {order.trackingNumber && (
-                  <Button variant="outline" size="sm">
-                    Track Order
-                  </Button>
-                )}
-                <Button variant="ghost" size="sm">
-                  View Details
-                </Button>
-              </div>
-            </div>
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your orders...</p>
+        </div>
+      ) : error ? (
+        <Card className="glass-card">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">{error}</h3>
+            <Button onClick={fetchOrders}>Try Again</Button>
           </CardContent>
         </Card>
-      ))}
+      ) : orders.length === 0 ? (
+        <Card className="glass-card">
+          <CardContent className="p-8 text-center">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No orders yet</h3>
+            <p className="text-muted-foreground">Your order history will appear here</p>
+          </CardContent>
+        </Card>
+      ) : (
+        orders.map((order) => (
+          <Card key={order._id} className="glass-card">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Order {order.orderId}</CardTitle>
+                <div className="flex gap-2">
+                  <Badge variant={getStatusColor(order.status?.toLowerCase())} className="gap-1">
+                    {getStatusIcon(order.status?.toLowerCase())}
+                    {order.status}
+                  </Badge>
+                  <Badge variant={order.paymentStatus === 'Paid' ? 'default' : 'secondary'}>
+                    {order.paymentStatus}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>{new Date(order.date || order.createdAt).toLocaleDateString()}</span>
+                <span>{order.customer?.name}</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                {order.items && order.items.length > 0 ? (
+                  order.items.map((item, index) => (
+                    <div key={index} className="text-sm flex justify-between">
+                      <span className="text-foreground">
+                        {item.name || 'Product'} × {item.quantity}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {item.currency || '$'} {(item.price * item.quantity).toFixed(2)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No items</p>
+                )}
+              </div>
+              
+              {order.deliveryInfo?.address && (
+                <div className="text-xs text-muted-foreground pt-2 border-t border-border">
+                  <strong>Delivery:</strong> {order.deliveryInfo.address}, {order.deliveryInfo.city}
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <div>
+                  <span className="font-semibold text-foreground">Total: </span>
+                  <span className="text-lg font-bold text-green-600">
+                    ${order.total?.toFixed(2) || '0.00'}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {order.trackingNumber && (
+                    <Button variant="outline" size="sm">
+                      Track
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm">
+                    Details
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      )}
     </div>
   );
 };

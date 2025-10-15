@@ -78,6 +78,14 @@ const Finances = () => {
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [invoices, setInvoices] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [calculatedMetrics, setCalculatedMetrics] = useState({
+    revenueGrowth: 0,
+    expenseGrowth: 0,
+    profitGrowth: 0,
+    pendingCount: 0
+  });
   const [newInvoice, setNewInvoice] = useState({
     clientName: "",
     clientEmail: "",
@@ -100,30 +108,178 @@ const Finances = () => {
   });
 
   useEffect(() => {
-    const fetchInvoices = async () => {
+    const fetchFinancialData = async () => {
       if (!isAuthenticated) {
         return;
       }
 
       try {
         const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
 
-        // Fetch invoices (financial summary and transactions are handled by FinancialContext)
-        const invoicesResponse = await api.get("/invoices", {
-          headers: { Authorization: `Bearer ${token}` },
+        // Fetch all financial data in parallel
+        const [invoicesRes, expensesRes, ordersRes] = await Promise.all([
+          api.get("/invoices", { headers }).catch(() => ({ data: [] })),
+          api.get("/expenses", { headers }).catch(() => ({ data: [] })),
+          api.get("/orders", { headers }).catch(() => ({ data: [] }))
+        ]);
+
+        const invoicesList = extractInvoices(invoicesRes.data).map(normalizeInvoice);
+        const expensesList = expensesRes.data || [];
+        const ordersList = ordersRes.data || [];
+        
+        setInvoices(invoicesList);
+        setExpenses(expensesList);
+        setOrders(ordersList);
+        
+        // Calculate growth metrics
+        calculateGrowthMetrics(invoicesList, expensesList, ordersList);
+        
+        console.log('✅ Financial data loaded:', {
+          invoices: invoicesList.length,
+          expenses: expensesList.length,
+          orders: ordersList.length
         });
-        const list = extractInvoices(invoicesResponse.data).map(
-          normalizeInvoice
-        );
-        setInvoices(list);
       } catch (error) {
-        toast.error("Error fetching invoices.");
-        console.error("Error fetching invoices:", error);
+        toast.error("Error fetching financial data.");
+        console.error("Error fetching financial data:", error);
       }
     };
 
-    fetchInvoices(); // Run the function when the component mounts or when `isAuthenticated` changes
+    fetchFinancialData();
+    
+    // Auto-refresh every 2 minutes
+    const interval = setInterval(fetchFinancialData, 120000);
+    return () => clearInterval(interval);
   }, [isAuthenticated]);
+  
+  // Generate revenue vs expenses data for graphs
+  const generateRevenueExpenseData = (ordersList, expensesList) => {
+    const monthlyData = {};
+    const months = [];
+    
+    // Get last 12 months
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      months.push(monthKey);
+      monthlyData[monthKey] = { name: monthName, revenue: 0, expenses: 0, profit: 0 };
+    }
+    
+    // Aggregate orders by month
+    ordersList.forEach(order => {
+      const date = new Date(order.createdAt || order.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (monthlyData[monthKey]) {
+        monthlyData[monthKey].revenue += Number(order.total) || 0;
+      }
+    });
+    
+    // Aggregate expenses by month
+    expensesList.forEach(expense => {
+      const date = new Date(expense.createdAt || expense.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (monthlyData[monthKey]) {
+        monthlyData[monthKey].expenses += Number(expense.amount) || 0;
+      }
+    });
+    
+    // Calculate profit
+    Object.values(monthlyData).forEach(month => {
+      month.profit = month.revenue - month.expenses;
+    });
+    
+    return Object.values(monthlyData);
+  };
+  
+  // Generate daily cash flow data
+  const generateCashFlowData = (ordersList, expensesList) => {
+    const last30Days = [];
+    const now = new Date();
+    
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dayOrders = ordersList.filter(order => {
+        const orderDate = new Date(order.createdAt || order.date);
+        return orderDate.toISOString().split('T')[0] === dateStr;
+      });
+      
+      const dayExpenses = expensesList.filter(expense => {
+        const expenseDate = new Date(expense.createdAt || expense.date);
+        return expenseDate.toISOString().split('T')[0] === dateStr;
+      });
+      
+      const dayRevenue = dayOrders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+      const dayExpense = dayExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+      
+      last30Days.push({
+        date: dateStr,
+        name: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        value: dayRevenue - dayExpense,
+        revenue: dayRevenue,
+        expenses: dayExpense
+      });
+    }
+    
+    return last30Days;
+  };
+
+  // Calculate growth metrics from real data
+  const calculateGrowthMetrics = (invoicesList, expensesList, ordersList) => {
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Revenue from orders (current vs last month)
+    const lastMonthRevenue = ordersList
+      .filter(o => new Date(o.createdAt) >= lastMonth && new Date(o.createdAt) < currentMonth)
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    
+    const currentMonthRevenue = ordersList
+      .filter(o => new Date(o.createdAt) >= currentMonth)
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    
+    const revenueGrowth = lastMonthRevenue > 0
+      ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue * 100).toFixed(1)
+      : 0;
+    
+    // Expenses (current vs last month)
+    const lastMonthExpenses = expensesList
+      .filter(e => new Date(e.createdAt) >= lastMonth && new Date(e.createdAt) < currentMonth)
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    
+    const currentMonthExpenses = expensesList
+      .filter(e => new Date(e.createdAt) >= currentMonth)
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    
+    const expenseGrowth = lastMonthExpenses > 0
+      ? ((currentMonthExpenses - lastMonthExpenses) / lastMonthExpenses * 100).toFixed(1)
+      : 0;
+    
+    // Profit growth
+    const lastMonthProfit = lastMonthRevenue - lastMonthExpenses;
+    const currentMonthProfit = currentMonthRevenue - currentMonthExpenses;
+    const profitGrowth = lastMonthProfit > 0
+      ? ((currentMonthProfit - lastMonthProfit) / lastMonthProfit * 100).toFixed(1)
+      : 0;
+    
+    // Pending invoices count
+    const pendingCount = invoicesList.filter(inv => 
+      inv.paymentStatus === 'pending' || inv.paymentStatus === 'unpaid'
+    ).length;
+    
+    setCalculatedMetrics({
+      revenueGrowth: Number(revenueGrowth),
+      expenseGrowth: Number(expenseGrowth),
+      profitGrowth: Number(profitGrowth),
+      pendingCount
+    });
+  };
 
   // Add Expense Handler
   const handleExpenseSubmit = async () => {
@@ -393,8 +549,8 @@ const Finances = () => {
             <div className="text-2xl font-bold text-success">
               {financialSummary.totalRevenue}
             </div>
-            <p className="text-xs text-muted-foreground">
-              +12% from last month
+            <p className={`text-xs ${calculatedMetrics.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {calculatedMetrics.revenueGrowth >= 0 ? '+' : ''}{calculatedMetrics.revenueGrowth}% from last month
             </p>
           </CardContent>
         </Card>
@@ -410,7 +566,9 @@ const Finances = () => {
             <div className="text-2xl font-bold text-destructive">
               {financialSummary.totalExpenses}
             </div>
-            <p className="text-xs text-muted-foreground">+5% from last month</p>
+            <p className={`text-xs ${calculatedMetrics.expenseGrowth >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {calculatedMetrics.expenseGrowth >= 0 ? '+' : ''}{calculatedMetrics.expenseGrowth}% from last month
+            </p>
           </CardContent>
         </Card>
 
@@ -423,8 +581,8 @@ const Finances = () => {
             <div className="text-2xl font-bold text-primary">
               {financialSummary.netProfit}
             </div>
-            <p className="text-xs text-muted-foreground">
-              +18% from last month
+            <p className={`text-xs ${calculatedMetrics.profitGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {calculatedMetrics.profitGrowth >= 0 ? '+' : ''}{calculatedMetrics.profitGrowth}% from last month
             </p>
           </CardContent>
         </Card>
@@ -440,7 +598,9 @@ const Finances = () => {
             <div className="text-2xl font-bold text-warning">
               {financialSummary.pendingInvoices}
             </div>
-            <p className="text-xs text-muted-foreground">5 invoices pending</p>
+            <p className="text-xs text-muted-foreground">
+              {calculatedMetrics.pendingCount} invoice{calculatedMetrics.pendingCount !== 1 ? 's' : ''} pending
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -449,58 +609,90 @@ const Finances = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ComprehensiveGraphs
           title="Revenue vs Expenses"
-          description="Monthly financial performance comparison"
+          description="Last 12 months from real orders and expenses"
           type="composed"
-          data={generateMockGraphData('growth', 12)}
+          data={generateRevenueExpenseData(orders, expenses)}
           height={350}
           autoRefresh={true}
-          refreshInterval={60000}
+          refreshInterval={120000}
         />
 
         <ComprehensiveGraphs
           title="Profit Trends"
-          description="Net profit analysis over time"
+          description="Net profit calculated from revenue - expenses"
           type="area"
-          data={generateMockGraphData('growth', 30)}
+          data={generateRevenueExpenseData(orders, expenses).map(d => ({
+            name: d.name,
+            value: d.profit,
+            profit: d.profit
+          }))}
           height={350}
           autoRefresh={true}
-          refreshInterval={60000}
+          refreshInterval={120000}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ComprehensiveGraphs
           title="Expense Categories"
-          description="Breakdown of business expenses"
+          description="Breakdown of business expenses from real data"
           type="pie"
-          data={[
-            { name: 'Operations', value: 40 },
-            { name: 'Marketing', value: 25 },
-            { name: 'Staff', value: 20 },
-            { name: 'Equipment', value: 10 },
-            { name: 'Other', value: 5 }
-          ]}
+          data={(() => {
+            const categories = {};
+            expenses.forEach(exp => {
+              const cat = exp.category || 'Other';
+              categories[cat] = (categories[cat] || 0) + (Number(exp.amount) || 0);
+            });
+            return Object.entries(categories).length > 0
+              ? Object.entries(categories).map(([name, value]) => ({ name, value }))
+              : [
+                  { name: 'No expenses yet', value: 1 }
+                ];
+          })()}
           height={300}
           showControls={false}
         />
 
         <ComprehensiveGraphs
           title="Cash Flow"
-          description="Daily cash flow patterns"
+          description="Last 30 days: Revenue - Expenses"
           type="line"
-          data={generateMockGraphData('trend', 30)}
+          data={generateCashFlowData(orders, expenses)}
           height={300}
+          autoRefresh={true}
+          refreshInterval={120000}
         />
 
         <ComprehensiveGraphs
           title="Invoice Status"
-          description="Payment status distribution"
+          description="Payment status distribution from real invoices"
           type="bar"
-          data={[
-            { name: 'Paid', value: 65 },
-            { name: 'Pending', value: 25 },
-            { name: 'Overdue', value: 10 }
-          ]}
+          data={(() => {
+            const statusCount = {
+              paid: 0,
+              pending: 0,
+              overdue: 0
+            };
+            invoices.forEach(inv => {
+              const status = inv.paymentStatus?.toLowerCase() || 'pending';
+              if (status === 'paid' || status === 'completed') {
+                statusCount.paid++;
+              } else if (status === 'overdue') {
+                statusCount.overdue++;
+              } else {
+                statusCount.pending++;
+              }
+            });
+            return invoices.length > 0
+              ? [
+                  { name: 'Paid', value: statusCount.paid },
+                  { name: 'Pending', value: statusCount.pending },
+                  { name: 'Overdue', value: statusCount.overdue }
+                ]
+              : [
+                  { name: 'No invoices yet', value: 1 }
+                ];
+          })()}
           height={300}
           showControls={false}
         />
@@ -729,44 +921,79 @@ const Finances = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ComprehensiveGraphs
             title="Revenue vs Expenses"
+            description="Monthly comparison from real data"
             defaultType="bar"
+            data={generateRevenueExpenseData(orders, expenses)}
             height={350}
             autoRefresh={true}
-            refreshInterval={30000}
+            refreshInterval={120000}
           />
           <ComprehensiveGraphs
             title="Profit Trends"
+            description="Net profit over time"
             defaultType="line"
+            data={generateRevenueExpenseData(orders, expenses).map(d => ({
+              name: d.name,
+              value: d.profit
+            }))}
             height={350}
             autoRefresh={true}
-            refreshInterval={30000}
+            refreshInterval={120000}
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ComprehensiveGraphs
             title="Expense Categories"
+            description="Real expense breakdown"
             defaultType="pie"
+            data={(() => {
+              const categories = {};
+              expenses.forEach(exp => {
+                const cat = exp.category || 'Other';
+                categories[cat] = (categories[cat] || 0) + (Number(exp.amount) || 0);
+              });
+              return Object.entries(categories).length > 0
+                ? Object.entries(categories).map(([name, value]) => ({ name, value }))
+                : [{ name: 'No data', value: 1 }];
+            })()}
             height={350}
             autoRefresh={false}
-            refreshInterval={60000}
+            refreshInterval={120000}
           />
           <ComprehensiveGraphs
             title="Cash Flow Analysis"
+            description="Daily cash flow from operations"
             defaultType="area"
+            data={generateCashFlowData(orders, expenses)}
             height={350}
             autoRefresh={true}
-            refreshInterval={45000}
+            refreshInterval={120000}
           />
         </div>
 
         <div className="w-full">
           <ComprehensiveGraphs
             title="Invoice Status Overview"
+            description="Invoice payment status distribution"
             defaultType="composed"
+            data={(() => {
+              const statusCount = { paid: 0, pending: 0, overdue: 0 };
+              invoices.forEach(inv => {
+                const status = inv.paymentStatus?.toLowerCase() || 'pending';
+                if (status === 'paid' || status === 'completed') statusCount.paid++;
+                else if (status === 'overdue') statusCount.overdue++;
+                else statusCount.pending++;
+              });
+              return [
+                { name: 'Paid', value: statusCount.paid },
+                { name: 'Pending', value: statusCount.pending },
+                { name: 'Overdue', value: statusCount.overdue }
+              ];
+            })()}
             height={400}
             autoRefresh={true}
-            refreshInterval={20000}
+            refreshInterval={120000}
           />
         </div>
       </div>

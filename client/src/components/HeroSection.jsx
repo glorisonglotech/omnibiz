@@ -6,6 +6,7 @@ import {
   ArrowRightIcon,
 } from "@heroicons/react/24/solid";
 import { Button } from "./ui/button";
+import { Link } from "react-router-dom";
 
 function HeroSection() {
   return (
@@ -41,12 +42,16 @@ function HeroSection() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-10">
-          <Button className="bg-green-500 text-white px-10 py-6 hover:bg-green-400 flex items-center justify-center gap-2">
-            Start free trial <ArrowRightIcon className="w-5 h-5" />
-          </Button>
-          <Button className="px-10 py-6 border border-gray-400 text-gray-200">
-            Learn more
-          </Button>
+          <Link to="/signup">
+            <Button className="bg-green-500 text-white px-10 py-6 hover:bg-green-400 flex items-center justify-center gap-2">
+              Start free trial <ArrowRightIcon className="w-5 h-5" />
+            </Button>
+          </Link>
+          <Link to="/features">
+            <Button className="px-10 py-6 border border-gray-400 text-gray-200">
+              Learn more
+            </Button>
+          </Link>
         </div>
 
         <p className="text-sm text-gray-500">

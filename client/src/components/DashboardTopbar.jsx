@@ -1,4 +1,4 @@
-import { Search, Settings, LogOut, User, Moon, Sun, Monitor } from "lucide-react";
+import { Search, Settings, LogOut, User, Moon, Sun, Monitor, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -180,6 +180,13 @@ const DashboardTopbar = () => {
               >
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer"
+                onClick={() => navigate('/dashboard/wallet')}
+              >
+                <Wallet className="mr-2 h-4 w-4" />
+                <span>Wallet</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer"

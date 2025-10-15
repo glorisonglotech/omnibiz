@@ -101,10 +101,22 @@ const Locations = () => {
       const dbLocations = locationsResponse.data;
       const dbStats = statsResponse.data;
 
-      // If no locations in database, use sample data
+      // If no locations in database, show empty state
       if (dbLocations.length === 0) {
-        // Enhanced mock locations data with real-time metrics
-      const mockLocations = [
+        setLocations([]);
+        setLocationStats({
+          totalLocations: 0,
+          activeLocations: 0,
+          totalEmployees: 0,
+          totalInventory: 0,
+          totalRevenue: 0,
+          averagePerformance: 0,
+        });
+        return;
+      }
+
+      // ORIGINAL MOCK DATA KEPT FOR FALLBACK (commented out)
+      /*const mockLocations = [
         {
           id: 1,
           name: "Main Store",
@@ -195,50 +207,51 @@ const Locations = () => {
         },
       ];
 
-        setLocations(mockLocations);
+      setLocations(mockLocations);
 
-        // Calculate overall statistics
-        const stats = {
-          totalLocations: mockLocations.length,
-          activeLocations: mockLocations.filter(loc => loc.status === 'active').length,
-          totalEmployees: mockLocations.reduce((sum, loc) => sum + loc.employees, 0),
-          totalInventory: mockLocations.reduce((sum, loc) => sum + loc.inventory, 0),
-          totalRevenue: mockLocations.reduce((sum, loc) => sum + loc.dailyRevenue, 0),
-          averagePerformance: Math.round(
-            mockLocations.reduce((sum, loc) => sum + loc.performance, 0) / mockLocations.length
-          ),
-        };
+      // Calculate overall statistics
+      const stats = {
+        totalLocations: mockLocations.length,
+        activeLocations: mockLocations.filter(loc => loc.status === 'active').length,
+        totalEmployees: mockLocations.reduce((sum, loc) => sum + loc.employees, 0),
+        totalInventory: mockLocations.reduce((sum, loc) => sum + loc.inventory, 0),
+        totalRevenue: mockLocations.reduce((sum, loc) => sum + loc.dailyRevenue, 0),
+        averagePerformance: Math.round(
+          mockLocations.reduce((sum, loc) => sum + loc.performance, 0) / mockLocations.length
+        ),
+      };
 
-        setLocationStats(stats);
-        toast.info('No locations found. Showing sample data.');
-      } else {
-        // Transform database locations to match frontend format
-        const transformedLocations = dbLocations.map(location => ({
-          id: location._id,
-          name: location.name,
-          address: location.address,
-          city: location.city,
-          state: location.state,
-          zipCode: location.zipCode,
-          phone: location.phone,
-          email: location.email,
-          manager: location.manager,
-          operatingHours: location.operatingHours,
-          status: location.status,
-          employees: location.employees,
-          inventory: location.inventory,
-          description: location.description,
-          dailyRevenue: location.dailyRevenue,
-          monthlyRevenue: location.dailyRevenue * 30, // Estimate
-          performance: location.performance,
-          todayOrders: location.dailyOrders,
-          activeCustomers: location.dailyCustomers,
-          lastUpdated: location.updatedAt,
-        }));
+      setLocationStats(stats);
+      toast.info('No locations found. Showing sample data.');
+      */
 
-        setLocations(transformedLocations);
-        setLocationStats(dbStats);
-      }
+      // Transform database locations to match frontend format
+      const transformedLocations = dbLocations.map(location => ({
+        id: location._id,
+        name: location.name,
+        address: location.address,
+        city: location.city,
+        state: location.state,
+        zipCode: location.zipCode,
+        phone: location.phone,
+        email: location.email,
+        manager: location.manager,
+        operatingHours: location.operatingHours,
+        status: location.status,
+        employees: location.employees,
+        inventory: location.inventory,
+        description: location.description,
+        dailyRevenue: location.dailyRevenue,
+        monthlyRevenue: location.dailyRevenue * 30, // Estimate
+        performance: location.performance,
+        todayOrders: location.dailyOrders,
+        activeCustomers: location.dailyCustomers,
+        lastUpdated: location.updatedAt,
+      }));
+
+      setLocations(transformedLocations);
+      setLocationStats(dbStats);
+      console.log('✅ Loaded', transformedLocations.length, 'real-time locations from database');
     } catch (error) {
       toast.error("Error fetching locations data.");
       console.error("Error fetching locations:", error);
@@ -267,6 +280,25 @@ const Locations = () => {
     await fetchLocationsData();
     setRefreshing(false);
     toast.success("Location data refreshed!");
+  };
+
+  // Seed default locations
+  const handleSeedLocations = async () => {
+    try {
+      setRefreshing(true);
+      const response = await api.post('/locations/seed');
+      toast.success(`${response.data.count} default locations added to database!`);
+      await fetchLocationsData(); // Reload data
+    } catch (error) {
+      if (error.response?.status === 400) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error seeding locations. Please try again.");
+      }
+      console.error("Error seeding locations:", error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleAddLocation = async () => {
@@ -492,14 +524,28 @@ const Locations = () => {
         </Card>
       </div>
 
-      {/* Add Location Dialog */}
-      <Dialog open={isAddLocationOpen} onOpenChange={setIsAddLocationOpen}>
-        <DialogTrigger asChild>
-          <Button className="bg-green-500 cursor-pointer hover:bg-green-400">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Location
+      {/* Action Buttons */}
+      <div className="flex items-center gap-3">
+        {locations.length === 0 && (
+          <Button
+            variant="outline"
+            onClick={handleSeedLocations}
+            disabled={refreshing}
+            className="border-blue-500 text-blue-600 hover:bg-blue-50"
+          >
+            <Package className="mr-2 h-4 w-4" />
+            {refreshing ? 'Seeding...' : 'Seed Demo Locations'}
           </Button>
-        </DialogTrigger>
+        )}
+        
+        {/* Add Location Dialog */}
+        <Dialog open={isAddLocationOpen} onOpenChange={setIsAddLocationOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-green-500 cursor-pointer hover:bg-green-400">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Location
+            </Button>
+          </DialogTrigger>
         <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Add New Location</DialogTitle>
@@ -637,8 +683,35 @@ const Locations = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+      </div>
+
+      {/* Empty State */}
+      {locations.length === 0 && (
+        <Card className="p-12">
+          <CardContent className="flex flex-col items-center justify-center text-center space-y-4">
+            <MapPin className="h-16 w-16 text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold mb-2">No Locations Found</h3>
+              <p className="text-muted-foreground mb-4">
+                Get started by adding your first location or seed demo data
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={handleSeedLocations} disabled={refreshing}>
+                <Package className="mr-2 h-4 w-4" />
+                Seed Demo Locations
+              </Button>
+              <Button variant="outline" onClick={() => setIsAddLocationOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Your First Location
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Locations Table */}
+      {locations.length > 0 && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -793,6 +866,7 @@ const Locations = () => {
           </Table>
         </CardContent>
       </Card>
+      )}
 
       {/* View Location Details Dialog */}
       <Dialog open={isViewLocationOpen} onOpenChange={setIsViewLocationOpen}>

@@ -598,7 +598,40 @@ export const ThemeProvider = ({ children }) => {
 
   }, [theme, customAccentColor, fontSize, borderRadius, compactMode, highContrast, reducedMotion, animations]);
 
-  // Load theme preferences from server on mount
+  // Load theme preferences from localStorage immediately (for instant load)
+  useEffect(() => {
+    const loadFromLocalStorage = () => {
+      try {
+        const savedTheme = localStorage.getItem('app-theme');
+        const savedSettings = localStorage.getItem('app-theme-settings');
+        
+        if (savedTheme) {
+          setTheme(savedTheme);
+        }
+        
+        if (savedSettings) {
+          const settings = JSON.parse(savedSettings);
+          if (settings.sidebarCollapsed !== undefined) setSidebarCollapsed(settings.sidebarCollapsed);
+          if (settings.compactMode !== undefined) setCompactMode(settings.compactMode);
+          if (settings.highContrast !== undefined) setHighContrast(settings.highContrast);
+          if (settings.reducedMotion !== undefined) setReducedMotion(settings.reducedMotion);
+          if (settings.customAccentColor) setCustomAccentColor(settings.customAccentColor);
+          if (settings.animations !== undefined) setAnimations(settings.animations);
+          if (settings.fontSize) setFontSize(settings.fontSize);
+          if (settings.borderRadius) setBorderRadius(settings.borderRadius);
+          if (settings.soundEnabled !== undefined) setSoundEnabled(settings.soundEnabled);
+          if (settings.autoSave !== undefined) setAutoSave(settings.autoSave);
+        }
+      } catch (error) {
+        console.error('Error loading theme from localStorage:', error);
+      }
+    };
+
+    // Load immediately from localStorage
+    loadFromLocalStorage();
+  }, []);
+
+  // Load theme preferences from server on mount (secondary)
   useEffect(() => {
     const loadUserThemePreferences = async () => {
       try {
@@ -610,28 +643,62 @@ export const ThemeProvider = ({ children }) => {
           
           const themePrefs = response.data.themePreferences;
           if (themePrefs) {
-            setTheme(themePrefs.theme || 'light');
-            setSidebarCollapsed(themePrefs.sidebarCollapsed || false);
-            setCompactMode(themePrefs.compactMode || false);
-            setHighContrast(themePrefs.highContrast || false);
-            setReducedMotion(themePrefs.reducedMotion || false);
-            setCustomAccentColor(themePrefs.customAccentColor || '#3b82f6');
-            setAnimations(themePrefs.animations !== undefined ? themePrefs.animations : true);
-            setFontSize(themePrefs.fontSize || 'medium');
-            setBorderRadius(themePrefs.borderRadius || 'medium');
-            setSoundEnabled(themePrefs.soundEnabled !== undefined ? themePrefs.soundEnabled : true);
-            setAutoSave(themePrefs.autoSave !== undefined ? themePrefs.autoSave : true);
+            // Update state from server
+            if (themePrefs.theme) setTheme(themePrefs.theme);
+            if (themePrefs.sidebarCollapsed !== undefined) setSidebarCollapsed(themePrefs.sidebarCollapsed);
+            if (themePrefs.compactMode !== undefined) setCompactMode(themePrefs.compactMode);
+            if (themePrefs.highContrast !== undefined) setHighContrast(themePrefs.highContrast);
+            if (themePrefs.reducedMotion !== undefined) setReducedMotion(themePrefs.reducedMotion);
+            if (themePrefs.customAccentColor) setCustomAccentColor(themePrefs.customAccentColor);
+            if (themePrefs.animations !== undefined) setAnimations(themePrefs.animations);
+            if (themePrefs.fontSize) setFontSize(themePrefs.fontSize);
+            if (themePrefs.borderRadius) setBorderRadius(themePrefs.borderRadius);
+            if (themePrefs.soundEnabled !== undefined) setSoundEnabled(themePrefs.soundEnabled);
+            if (themePrefs.autoSave !== undefined) setAutoSave(themePrefs.autoSave);
+            
+            // Also save to localStorage
+            localStorage.setItem('app-theme', themePrefs.theme || 'light');
+            localStorage.setItem('app-theme-settings', JSON.stringify(themePrefs));
           }
         }
       } catch (error) {
-        console.log('Could not load user theme preferences:', error.message);
+        console.log('Could not load user theme preferences from server:', error.message);
       } finally {
         setIsInitialized(true);
       }
     };
 
-    loadUserThemePreferences();
+    // Load from server after a short delay (let localStorage load first)
+    const timer = setTimeout(() => {
+      loadUserThemePreferences();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
+
+  // Save to localStorage immediately on any theme change
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    try {
+      localStorage.setItem('app-theme', theme);
+      localStorage.setItem('app-theme-settings', JSON.stringify({
+        theme,
+        sidebarCollapsed,
+        compactMode,
+        highContrast,
+        reducedMotion,
+        customAccentColor,
+        animations,
+        fontSize,
+        borderRadius,
+        soundEnabled,
+        autoSave
+      }));
+    } catch (error) {
+      console.error('Error saving theme to localStorage:', error);
+    }
+  }, [theme, sidebarCollapsed, compactMode, highContrast, reducedMotion, customAccentColor, animations, fontSize, borderRadius, soundEnabled, autoSave, isInitialized]);
 
   // Sync theme settings to server after initialization (debounced)
   useEffect(() => {

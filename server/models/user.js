@@ -53,6 +53,21 @@ const userSchema = new mongoose.Schema(
     analytics: { type: Boolean, default: true },
     isActive: { type: Boolean, default: true },
     lastLogin: Date,
+
+    // Theme and Appearance Settings
+    themePreferences: {
+      theme: { type: String, default: 'light' },
+      sidebarCollapsed: { type: Boolean, default: false },
+      compactMode: { type: Boolean, default: false },
+      highContrast: { type: Boolean, default: false },
+      reducedMotion: { type: Boolean, default: false },
+      customAccentColor: { type: String, default: '#3b82f6' },
+      animations: { type: Boolean, default: true },
+      fontSize: { type: String, default: 'medium' },
+      borderRadius: { type: String, default: 'medium' },
+      soundEnabled: { type: Boolean, default: true },
+      autoSave: { type: Boolean, default: true }
+    },
     role: {
       type: String,
       enum: ['super_admin', 'admin', 'manager', 'staff', 'client'],

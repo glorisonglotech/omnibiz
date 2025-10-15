@@ -35,6 +35,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { supportAPI } from '@/lib/apiHelpers';
 
 const HelpSupport = () => {
   const { user } = useAuth();
@@ -110,58 +111,70 @@ const HelpSupport = () => {
     ]);
   };
 
-  const loadFAQs = () => {
-    const faqs = [
-      {
-        id: 1,
-        question: 'How do I reset my password?',
-        answer: 'You can reset your password by clicking on "Forgot Password" on the login page...',
-        category: 'Account',
-        helpful: 45,
-        views: 234
-      },
-      {
-        id: 2,
-        question: 'How to integrate with third-party APIs?',
-        answer: 'Our API integration guide provides step-by-step instructions...',
-        category: 'Technical',
-        helpful: 38,
-        views: 189
-      },
-      {
-        id: 3,
-        question: 'What payment methods do you accept?',
-        answer: 'We accept all major credit cards, PayPal, and bank transfers...',
-        category: 'Billing',
-        helpful: 52,
-        views: 312
-      }
-    ];
-    setFaqItems(faqs);
+  const loadFAQs = async () => {
+    try {
+      const faqs = await supportAPI.getFAQs();
+      setFaqItems(faqs);
+    } catch (error) {
+      // Fallback to mock data if API fails
+      const mockFaqs = [
+        {
+          id: 1,
+          question: 'How do I reset my password?',
+          answer: 'You can reset your password by clicking on "Forgot Password" on the login page...',
+          category: 'Account',
+          helpful: 45,
+          views: 234
+        },
+        {
+          id: 2,
+          question: 'How to integrate with third-party APIs?',
+          answer: 'Our API integration guide provides step-by-step instructions...',
+          category: 'Technical',
+          helpful: 38,
+          views: 189
+        },
+        {
+          id: 3,
+          question: 'What payment methods do you accept?',
+          answer: 'We accept all major credit cards, PayPal, and bank transfers...',
+          category: 'Billing',
+          helpful: 52,
+          views: 312
+        }
+      ];
+      setFaqItems(mockFaqs);
+    }
   };
 
-  const loadTickets = () => {
-    const mockTickets = [
-      {
-        id: 'TKT-001',
-        subject: 'API Integration Issue',
-        status: 'open',
-        priority: 'high',
-        created: new Date(Date.now() - 86400000),
-        lastUpdate: new Date(Date.now() - 3600000),
-        agent: 'Mike Chen'
-      },
-      {
-        id: 'TKT-002',
-        subject: 'Billing Question',
-        status: 'resolved',
-        priority: 'medium',
-        created: new Date(Date.now() - 172800000),
-        lastUpdate: new Date(Date.now() - 7200000),
-        agent: 'Sarah Johnson'
-      }
-    ];
-    setTickets(mockTickets);
+  const loadTickets = async () => {
+    try {
+      const apiTickets = await supportAPI.getTickets();
+      setTickets(apiTickets);
+    } catch (error) {
+      // Fallback to mock data if API fails
+      const mockTickets = [
+        {
+          id: 'TKT-001',
+          subject: 'API Integration Issue',
+          status: 'open',
+          priority: 'high',
+          created: new Date(Date.now() - 86400000),
+          lastUpdate: new Date(Date.now() - 3600000),
+          agent: 'Mike Chen'
+        },
+        {
+          id: 'TKT-002',
+          subject: 'Billing Question',
+          status: 'resolved',
+          priority: 'medium',
+          created: new Date(Date.now() - 172800000),
+          lastUpdate: new Date(Date.now() - 7200000),
+          agent: 'Sarah Johnson'
+        }
+      ];
+      setTickets(mockTickets);
+    }
   };
 
   const sendMessage = () => {
@@ -249,8 +262,8 @@ const HelpSupport = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Help & Support</h1>
-        <p className="text-gray-600 mt-2">Get instant help from our support team</p>
+        <h1 className="text-3xl font-bold text-foreground">Help & Support</h1>
+        <p className="text-muted-foreground mt-2">Get instant help from our support team</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -287,8 +300,8 @@ const HelpSupport = () => {
                 {supportAgents.map(agent => (
                   <div
                     key={agent.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                      activeAgent?.id === agent.id ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
+                    className={`p-3 rounded-lg cursor-pointer transition-colors border ${
+                      activeAgent?.id === agent.id ? 'bg-primary/10 border-primary' : 'hover:bg-muted border-transparent'
                     }`}
                     onClick={() => setActiveAgent(agent)}
                   >
@@ -305,10 +318,10 @@ const HelpSupport = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm">{agent.name}</p>
-                        <p className="text-xs text-gray-500">{agent.role}</p>
+                        <p className="text-xs text-muted-foreground">{agent.role}</p>
                         <div className="flex items-center gap-1 mt-1">
-                          <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                          <span className="text-xs text-gray-600">{agent.rating}</span>
+                          <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                          <span className="text-xs text-muted-foreground">{agent.rating}</span>
                         </div>
                       </div>
                     </div>
@@ -337,9 +350,9 @@ const HelpSupport = () => {
                       <p className="font-medium">{activeAgent?.name}</p>
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${
-                          chatStatus === 'online' ? 'bg-green-500' : 'bg-gray-400'
+                          chatStatus === 'online' ? 'bg-green-500' : 'bg-muted-foreground'
                         }`} />
-                        <span className="text-sm text-gray-600 capitalize">{chatStatus}</span>
+                        <span className="text-sm text-muted-foreground capitalize">{chatStatus}</span>
                       </div>
                     </div>
                   </div>
@@ -376,8 +389,8 @@ const HelpSupport = () => {
                       >
                         <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                           message.sender === 'user'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-foreground'
                         }`}>
                           {message.sender === 'agent' && (
                             <div className="flex items-center gap-2 mb-1">
@@ -405,11 +418,11 @@ const HelpSupport = () => {
                     ))}
                     {isTyping && (
                       <div className="flex justify-start">
-                        <div className="bg-gray-100 px-4 py-2 rounded-lg">
+                        <div className="bg-muted px-4 py-2 rounded-lg">
                           <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                           </div>
                         </div>
                       </div>
@@ -470,9 +483,9 @@ const HelpSupport = () => {
                   <div key={faq.id} className="border rounded-lg p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-900 mb-2">{faq.question}</h3>
-                        <p className="text-gray-600 text-sm mb-3">{faq.answer}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <h3 className="font-medium text-foreground mb-2">{faq.question}</h3>
+                        <p className="text-muted-foreground text-sm mb-3">{faq.answer}</p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <Badge variant="secondary">{faq.category}</Badge>
                           <span className="flex items-center gap-1">
                             <ThumbsUp className="h-4 w-4" />
@@ -520,7 +533,7 @@ const HelpSupport = () => {
                         {ticket.priority}
                       </Badge>
                     </div>
-                    <div className="text-right text-sm text-gray-600">
+                    <div className="text-right text-sm text-muted-foreground">
                       <p>Assigned to: {ticket.agent}</p>
                       <p>Last update: {ticket.lastUpdate.toLocaleDateString()}</p>
                     </div>
@@ -539,27 +552,27 @@ const HelpSupport = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-blue-600" />
+                  <Phone className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium">Phone Support</p>
-                    <p className="text-sm text-gray-600">+1 (555) 123-4567</p>
-                    <p className="text-xs text-gray-500">Available 24/7</p>
+                    <p className="text-sm text-muted-foreground">+1 (555) 123-4567</p>
+                    <p className="text-xs text-muted-foreground">Available 24/7</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Mail className="h-5 w-5 text-green-600" />
                   <div>
                     <p className="font-medium">Email Support</p>
-                    <p className="text-sm text-gray-600">support@omnibiz.com</p>
-                    <p className="text-xs text-gray-500">Response within 2 hours</p>
+                    <p className="text-sm text-muted-foreground">support@omnibiz.com</p>
+                    <p className="text-xs text-muted-foreground">Response within 2 hours</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Video className="h-5 w-5 text-purple-600" />
                   <div>
                     <p className="font-medium">Video Support</p>
-                    <p className="text-sm text-gray-600">Schedule a call</p>
-                    <p className="text-xs text-gray-500">Mon-Fri 9AM-6PM EST</p>
+                    <p className="text-sm text-muted-foreground">Schedule a call</p>
+                    <p className="text-xs text-muted-foreground">Mon-Fri 9AM-6PM EST</p>
                   </div>
                 </div>
               </CardContent>
@@ -596,8 +609,8 @@ const HelpSupport = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
-                <p className="text-white">Video call interface would be here</p>
+              <div className="aspect-video bg-background border-2 border-border rounded-lg flex items-center justify-center">
+                <p className="text-muted-foreground">Video call interface would be here</p>
               </div>
             </CardContent>
           </Card>

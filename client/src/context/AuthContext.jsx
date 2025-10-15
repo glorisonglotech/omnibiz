@@ -51,6 +51,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token); // Save token to localStorage
       setUser(user); // Set user details in state immediately
       setIsAuthenticated(true); // Set authentication state to true immediately
+      
+      // Trigger theme preferences load by dispatching a custom event
+      window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: { user } }));
+      
       return { success: true };
     } catch (error) {
       console.error('Login failed', error);

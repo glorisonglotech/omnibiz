@@ -93,49 +93,8 @@ export const useThemeSync = () => {
     availableThemes
   ]);
 
-  useEffect(() => {
-    const settings = {
-      theme,
-      compactMode,
-      highContrast,
-      reducedMotion,
-      animations,
-      customAccentColor,
-      fontSize,
-      borderRadius,
-      soundEnabled
-    };
-    localStorage.setItem('omnibiz-theme-settings', JSON.stringify(settings));
-  }, [
-    theme,
-    compactMode,
-    highContrast,
-    reducedMotion,
-    animations,
-    customAccentColor,
-    fontSize,
-    borderRadius,
-    soundEnabled
-  ]);
-
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('omnibiz-theme-settings');
-    if (savedSettings) {
-      try {
-        const settings = JSON.parse(savedSettings);
-        if (settings.theme && availableThemes[settings.theme]) {
-          setTheme(settings.theme);
-        } else {
-          setTheme('green');
-        }
-      } catch (error) {
-        console.error('Failed to load theme settings:', error);
-        setTheme('green');
-      }
-    } else {
-      setTheme('green');
-    }
-  }, [setTheme, availableThemes]);
+  // Note: Theme settings are now synced to server via ThemeContext
+  // This hook now focuses on UI synchronization only
 
   const resetToDefaults = () => {
     setTheme('light');

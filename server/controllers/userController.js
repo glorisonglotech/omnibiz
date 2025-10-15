@@ -110,7 +110,31 @@ exports.updateSettings = async (req, res) => {
       case 'privacy':
         updateData = {
           dataSharing: settings.dataSharing,
-          analytics: settings.analytics
+          analytics: settings.analytics,
+          crashReporting: settings.crashReporting,
+          usageStatistics: settings.usageStatistics
+        };
+        break;
+      case 'appearance':
+        updateData = {
+          themePreferences: {
+            theme: settings.theme,
+            sidebarCollapsed: settings.sidebarCollapsed,
+            compactMode: settings.compactMode,
+            highContrast: settings.highContrast,
+            reducedMotion: settings.reducedMotion,
+            customAccentColor: settings.customAccentColor,
+            animations: settings.animations,
+            fontSize: settings.fontSize,
+            borderRadius: settings.borderRadius,
+            soundEnabled: settings.soundNotifications !== undefined ? settings.soundNotifications : settings.soundEnabled,
+            autoSave: settings.autoSave
+          }
+        };
+        break;
+      case 'performance':
+        updateData = {
+          'themePreferences.autoSave': settings.autoSave
         };
         break;
       default:

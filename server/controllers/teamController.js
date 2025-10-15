@@ -15,20 +15,24 @@ exports.createTeamMember = async (req, res) => {
   }
 };
 
-// Get all team members
+// Get all team members (filtered by current user)
 exports.getAllTeamMembers = async (req, res) => {
   try {
-    const teamMembers = await TeamMember.find().populate("userId");
+    // Only fetch team members that belong to the authenticated user
+    const teamMembers = await TeamMember.find({ userId: req.user._id }).populate("userId");
     res.json(teamMembers);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// Get a single team member by ID
+// Get a single team member by ID (only if belongs to current user)
 exports.getTeamMemberById = async (req, res) => {
   try {
-    const teamMember = await TeamMember.findById(req.params.id).populate("userId");
+    const teamMember = await TeamMember.findOne({ 
+      _id: req.params.id, 
+      userId: req.user._id 
+    }).populate("userId");
     if (!teamMember) {
       return res.status(404).json({ error: "Team member not found" });
     }
@@ -38,16 +42,16 @@ exports.getTeamMemberById = async (req, res) => {
   }
 };
 
-// Update a team member
+// Update a team member (only if belongs to current user)
 exports.updateTeamMember = async (req, res) => {
   try {
-    const teamMember = await TeamMember.findByIdAndUpdate(
-      req.params.id,
+    const teamMember = await TeamMember.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user._id },
       req.body,
       { new: true, runValidators: true }
     );
     if (!teamMember) {
-      return res.status(404).json({ error: "Team member not found" });
+      return res.status(404).json({ error: "Team member not found or you don't have permission" });
     }
     res.json(teamMember);
   } catch (error) {
@@ -55,12 +59,15 @@ exports.updateTeamMember = async (req, res) => {
   }
 };
 
-// Delete a team member
+// Delete a team member (only if belongs to current user)
 exports.deleteTeamMember = async (req, res) => {
   try {
-    const teamMember = await TeamMember.findByIdAndDelete(req.params.id);
+    const teamMember = await TeamMember.findOneAndDelete({ 
+      _id: req.params.id, 
+      userId: req.user._id 
+    });
     if (!teamMember) {
-      return res.status(404).json({ error: "Team member not found" });
+      return res.status(404).json({ error: "Team member not found or you don't have permission" });
     }
     res.json({ message: "Team member deleted successfully" });
   } catch (error) {

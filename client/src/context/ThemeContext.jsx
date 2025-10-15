@@ -222,6 +222,7 @@ export const ThemeProvider = ({ children }) => {
   const [customAccentColor, setCustomAccentColor] = useState('#3b82f6');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [autoSave, setAutoSave] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Font size options
   const FONT_SIZES = {
@@ -330,6 +331,77 @@ export const ThemeProvider = ({ children }) => {
     }
 
   }, [theme, customAccentColor, fontSize, borderRadius, compactMode, highContrast, reducedMotion, animations]);
+
+  // Load theme preferences from server on mount
+  useEffect(() => {
+    const loadUserThemePreferences = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const response = await api.get('/user/profile', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          const themePrefs = response.data.themePreferences;
+          if (themePrefs) {
+            setTheme(themePrefs.theme || 'light');
+            setSidebarCollapsed(themePrefs.sidebarCollapsed || false);
+            setCompactMode(themePrefs.compactMode || false);
+            setHighContrast(themePrefs.highContrast || false);
+            setReducedMotion(themePrefs.reducedMotion || false);
+            setCustomAccentColor(themePrefs.customAccentColor || '#3b82f6');
+            setAnimations(themePrefs.animations !== undefined ? themePrefs.animations : true);
+            setFontSize(themePrefs.fontSize || 'medium');
+            setBorderRadius(themePrefs.borderRadius || 'medium');
+            setSoundEnabled(themePrefs.soundEnabled !== undefined ? themePrefs.soundEnabled : true);
+            setAutoSave(themePrefs.autoSave !== undefined ? themePrefs.autoSave : true);
+          }
+        }
+      } catch (error) {
+        console.log('Could not load user theme preferences:', error.message);
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+
+    loadUserThemePreferences();
+  }, []);
+
+  // Sync theme settings to server after initialization (debounced)
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const syncTimer = setTimeout(async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          await api.put('/user/settings', {
+            section: 'appearance',
+            settings: {
+              theme,
+              sidebarCollapsed,
+              compactMode,
+              highContrast,
+              reducedMotion,
+              customAccentColor,
+              animations,
+              fontSize,
+              borderRadius,
+              soundEnabled,
+              autoSave
+            }
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+      } catch (error) {
+        console.log('Could not sync theme preferences:', error.message);
+      }
+    }, 1000); // Debounce by 1 second
+
+    return () => clearTimeout(syncTimer);
+  }, [isInitialized, theme, sidebarCollapsed, compactMode, highContrast, reducedMotion, 
+      customAccentColor, animations, fontSize, borderRadius, soundEnabled, autoSave]);
 
   const themeContextValue = {
     // Theme options

@@ -20,7 +20,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '@/lib/api';
+import { searchAPI } from '@/lib/apiHelpers';
 
 const Search = () => {
   const [searchParams] = useSearchParams();
@@ -52,8 +52,29 @@ const Search = () => {
     
     setLoading(true);
     try {
-      // Simulate comprehensive search across all modules
-      const mockResults = {
+      // Try to fetch real data from API
+      const apiResults = await searchAPI.search(searchQuery);
+      
+      if (apiResults && Object.keys(apiResults).length > 0) {
+        setResults(apiResults);
+        const total = Object.values(apiResults).reduce((sum, arr) => sum + arr.length, 0);
+        setTotalResults(total);
+        toast.success(`Found ${total} results for "${searchQuery}"`);
+      } else {
+        // Fallback to mock data if API returns empty
+        useMockData(searchQuery);
+      }
+    } catch (error) {
+      // Fallback to mock data if API fails
+      console.log('Using mock data for search');
+      useMockData(searchQuery);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const useMockData = (searchQuery) => {
+    const mockResults = {
         products: [
           { id: 1, name: 'Wireless Headphones', category: 'Electronics', price: 99.99, stock: 25 },
           { id: 2, name: 'Smartphone Case', category: 'Accessories', price: 19.99, stock: 50 }
@@ -84,27 +105,25 @@ const Search = () => {
         ]
       };
 
-      // Filter results based on search query
-      const filteredResults = {};
-      Object.keys(mockResults).forEach(category => {
-        filteredResults[category] = mockResults[category].filter(item => {
-          const searchText = JSON.stringify(item).toLowerCase();
-          return searchText.includes(searchQuery.toLowerCase());
-        });
+    // Filter results based on search query
+    const filteredResults = {};
+    Object.keys(mockResults).forEach(category => {
+      filteredResults[category] = mockResults[category].filter(item => {
+        const searchText = JSON.stringify(item).toLowerCase();
+        return searchText.includes(searchQuery.toLowerCase());
       });
+    });
 
-      setResults(filteredResults);
-      
-      // Calculate total results
-      const total = Object.values(filteredResults).reduce((sum, arr) => sum + arr.length, 0);
-      setTotalResults(total);
-      
+    setResults(filteredResults);
+    
+    // Calculate total results
+    const total = Object.values(filteredResults).reduce((sum, arr) => sum + arr.length, 0);
+    setTotalResults(total);
+    
+    if (total > 0) {
       toast.success(`Found ${total} results for "${searchQuery}"`);
-    } catch (error) {
-      toast.error('Search failed. Please try again.');
-      console.error('Search error:', error);
-    } finally {
-      setLoading(false);
+    } else {
+      toast.info('No results found. Try different keywords.');
     }
   };
 

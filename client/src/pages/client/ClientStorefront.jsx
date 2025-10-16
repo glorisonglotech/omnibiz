@@ -27,13 +27,15 @@ import CheckoutFlow  from "@/components/storefront/CheckoutFlow";
 import  OrderHistory  from "@/components/storefront/OrderHistory";
 import  LiveChatWidget  from "@/components/storefront/LiveChatWidget";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCart } from "@/context/CartContext";
+import { useSocket } from "@/context/SocketContext";
 
 const ClientStorefront = () => {
   const { inviteCode } = useParams();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [cart, setCart] = useState([]);
+  const { items: cart, add: addCartItem, update: updateCartQty, remove: removeCartItem, clear: clearCart, total: cartTotal, count: cartItemCount } = useCart();
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [activeTab, setActiveTab] = useState("shop");
@@ -170,11 +172,7 @@ const ClientStorefront = () => {
     const existingItem = cart.find((item) => (item._id || item.id) === productId);
     if (existingItem) {
       if (existingItem.quantity < availableStock) {
-        setCart(
-          cart.map((item) =>
-            (item._id || item.id) === productId ? { ...item, quantity: item.quantity + 1 } : item
-          )
-        );
+      updateCartQty(productId, existingItem.quantity + 1);
         toast({
           title: "Updated cart",
           description: `${product.name} quantity increased`,
@@ -187,7 +185,7 @@ const ClientStorefront = () => {
         });
       }
     } else {
-      setCart([...cart, { ...product, _id: productId, id: productId, quantity: 1, stock: availableStock, stockQuantity: availableStock }]);
+      addCartItem({ ...product, _id: productId, id: productId, stock: availableStock, stockQuantity: availableStock }, 1);
       toast({
         title: "Added to cart! 🛍️",
         description: `${product.name} added to your cart`,
@@ -198,7 +196,6 @@ const ClientStorefront = () => {
   const updateQuantity = (productId, change) => {
     const item = cart.find((item) => (item._id || item.id) === productId);
     if (!item) return;
-
     const availableStock = item.stockQuantity || item.stock || 0;
     const newQuantity = item.quantity + change;
     
@@ -216,16 +213,12 @@ const ClientStorefront = () => {
       return;
     }
 
-    setCart(
-      cart.map((item) =>
-        (item._id || item.id) === productId ? { ...item, quantity: newQuantity } : item
-      )
-    );
+    updateCartQty(productId, newQuantity);
   };
 
   const removeFromCart = (productId) => {
     const item = cart.find((item) => (item._id || item.id) === productId);
-    setCart(cart.filter((item) => (item._id || item.id) !== productId));
+    removeCartItem(productId);
     if (item) {
       toast({
         title: "Removed from cart",
@@ -234,16 +227,13 @@ const ClientStorefront = () => {
     }
   };
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  // totals now from context
 
   const handleCheckout = () => {
     setShowCheckout(true);
   };
 
-  const clearCart = () => {
-    setCart([]);
-  };
+  // clear via context
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/10 to-background smooth-scroll">

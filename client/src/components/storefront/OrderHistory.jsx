@@ -4,22 +4,37 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Package, Truck, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import api from "@/lib/api";
+import { useSocket } from "@/context/SocketContext";
 
 const OrderHistory = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const { socket } = useSocket();
+
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => fetchOrders();
+    socket.on('order_updated', handler);
+    return () => {
+      socket.off('order_updated', handler);
+    };
+  }, [socket]);
 
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get('/orders');
-      setOrders(response.data || []);
+      // Prefer client endpoint which returns paginated structure
+      const response = await api.get('/client/orders');
+      const data = response.data;
+      const list = Array.isArray(data) ? data : (data.orders || []);
+      setOrders(list);
     } catch (err) {
       console.error('Error fetching orders:', err);
       setError('Failed to load orders. Please try again.');

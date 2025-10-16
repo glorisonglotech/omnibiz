@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { toast } from "sonner";
+import api from "@/lib/api";
 
 const services = [
   { id: 1, name: "Premium Hair Treatment", duration: "1 hour", price: 2500 },
@@ -39,7 +40,7 @@ const BookAppointment = () => {
   });
   const [step, setStep] = useState(1);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!selectedService || !date || !selectedTime) {
@@ -47,16 +48,39 @@ const BookAppointment = () => {
       return;
     }
 
-    toast.success("Appointment booked successfully! We'll send you a confirmation shortly.", {
-      icon: <CheckCircle className="h-5 w-5" />,
-    });
+    try {
+      // Build payload aligning to server model
+      const payload = {
+        customerName: formData.name,
+        service: services.find(s => s.id.toString() === selectedService)?.name || selectedService,
+        time: new Date(`${date?.toISOString().split('T')[0]}T${selectedTime.replace(' ', '')}`),
+        durationMinutes: parseInt((services.find(s => s.id.toString() === selectedService)?.duration || '0').replace(/[^0-9]/g, ''), 10) || 60,
+        notes: formData.notes,
+        email: formData.email
+      };
 
-    // Reset form
-    setStep(1);
-    setDate(undefined);
-    setSelectedService("");
-    setSelectedTime("");
-    setFormData({ name: "", phone: "", email: "", notes: "" });
+      const token = localStorage.getItem('token');
+      const inviteCode = window.location.pathname.split('/').pop();
+      if (token) {
+        await api.post('/appointments', payload);
+      } else {
+        await api.post('/public/appointments', { ...payload, inviteCode });
+      }
+
+      toast.success("Appointment booked successfully! We'll send you a confirmation shortly.", {
+        icon: <CheckCircle className="h-5 w-5" />,
+      });
+
+      // Reset form
+      setStep(1);
+      setDate(undefined);
+      setSelectedService("");
+      setSelectedTime("");
+      setFormData({ name: "", phone: "", email: "", notes: "" });
+    } catch (err) {
+      console.error('Failed to book appointment', err);
+      toast.error('Failed to book appointment. Please try again.');
+    }
   };
 
   const selectedServiceData = services.find(s => s.id.toString() === selectedService);

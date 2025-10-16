@@ -66,7 +66,15 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
       };
 
       // Submit order to backend
-      const response = await api.post('/orders', orderData);
+      // If user is authenticated, use client endpoint, otherwise public endpoint requires inviteCode
+      const token = localStorage.getItem('token');
+      const inviteCode = window.location.pathname.split('/').pop();
+      let response;
+      if (token) {
+        response = await api.post('/client/orders', orderData);
+      } else {
+        response = await api.post('/public/orders', { ...orderData, inviteCode });
+      }
       
       return { success: true, orderNum, order: response.data };
     } catch (error) {

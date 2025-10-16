@@ -39,13 +39,22 @@ const createTransporter = async () => {
   try {
     let config;
     
+    // Choose config with guards and feedback
     if (process.env.NODE_ENV === 'production') {
-      // Use SMTP in production
-      config = emailConfig.smtp;
+      const hasSmtpCreds = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+      if (hasSmtpCreds) {
+        config = emailConfig.smtp;
+        console.log('📧 Email: using SMTP (production)');
+      } else {
+        console.warn('⚠️ Email: NODE_ENV=production but SMTP credentials are missing. Falling back to Ethereal test account.');
+      }
     } else if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       // Use Gmail if credentials are provided
       config = emailConfig.gmail;
-    } else {
+      console.log('📧 Email: using Gmail (development)');
+    }
+
+    if (!config) {
       // Use Ethereal for development/testing
       const testAccount = await nodemailer.createTestAccount();
       config = {
@@ -57,8 +66,8 @@ const createTransporter = async () => {
           pass: testAccount.pass
         }
       };
-      console.log('📧 Using Ethereal Email for testing');
-      console.log('📧 Test account:', testAccount.user);
+      console.log('📧 Email: using Ethereal (auto-generated test account)');
+      console.log('📧 Test account user:', testAccount.user);
     }
     
     const transporter = nodemailer.createTransport(config);
@@ -70,6 +79,7 @@ const createTransporter = async () => {
     return transporter;
   } catch (error) {
     console.error('❌ Email service connection failed:', error.message);
+    console.error('❌ Email hint: check SMTP_HOST/SMTP_USER/SMTP_PASS for production or EMAIL_USER/EMAIL_PASS for Gmail.');
     return null;
   }
 };

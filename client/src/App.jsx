@@ -42,6 +42,7 @@ import ThemeSync from "@/components/ThemeSync";
 import { FinancialProvider } from "@/context/FinancialContext";
 import { PWAProvider } from "@/context/PWAContext";
 import { SocketProvider } from "@/context/SocketContext";
+import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "@/components/ui/sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
@@ -110,6 +111,7 @@ function App() {
           <AuthProvider>
             <SocketProvider>
               <FinancialProvider>
+                <CartProvider>
                 <BrowserRouter>
                   <ThemeSync />
                   <Toaster richColors position="top-center" />
@@ -171,6 +173,7 @@ function App() {
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>
+                </CartProvider>
               </FinancialProvider>
             </SocketProvider>
           </AuthProvider>

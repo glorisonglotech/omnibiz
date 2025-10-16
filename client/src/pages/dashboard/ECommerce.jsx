@@ -110,12 +110,14 @@ const ECommerce = () => {
     setOrdersError(null);
     
     try {
-      const response = await api.get("/orders", {
+      // Use client endpoint which returns paginated structure
+      const response = await api.get("/client/orders", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      
-      console.log('✅ Orders loaded:', response.data.length);
-      setOrders(response.data || []);
+      const data = response.data;
+      const list = Array.isArray(data) ? data : (data.orders || []);
+      console.log('✅ Orders loaded:', list.length);
+      setOrders(list);
       
       if (response.data.length === 0) {
         toast.info('No orders yet. Create your first order!', { duration: 3000 });
@@ -398,7 +400,7 @@ const ECommerce = () => {
   const handleOrderSubmit = async (orderData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await api.post('/orders', orderData, {
+      const response = await api.post('/client/orders', orderData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'

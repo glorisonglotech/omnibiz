@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import packageJson from '../../../package.json';
+import packageJson from '../../package.json';
 
 // Update Service for managing app updates and notifications
 class UpdateService {

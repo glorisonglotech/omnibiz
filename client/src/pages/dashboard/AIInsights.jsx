@@ -31,6 +31,7 @@ import RealTimeAIInsights from "@/components/RealTimeAIInsights";
 
 const AIInsights = () => {
   const { user, isAuthenticated, loading } = useAuth();
+  const { socket, connected } = useSocket();
   const [insights, setInsights] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [analytics, setAnalytics] = useState({
@@ -95,6 +96,20 @@ const AIInsights = () => {
     };
     
     fetchRealData();
+    
+    // Setup Socket.IO listener for real-time AI insights
+    if (socket && connected) {
+      socket.on('ai_insights_updated', (data) => {
+        console.log('✅ AI insights updated via socket:', data);
+        if (data.insights) {
+          setInsights(prev => [...data.insights, ...prev].slice(0, 10));
+        }
+        if (data.recommendations) {
+          setRecommendations(data.recommendations);
+        }
+        toast.success('AI insights updated!');
+      });
+    }
     
     // Refresh every 2 minutes
     const interval = setInterval(fetchRealData, 120000);

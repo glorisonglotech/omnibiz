@@ -1,4 +1,5 @@
 const Appointment = require("../models/appointment");
+const { getIO } = require('../config/socket');
 
 // Create a new appointment
 exports.createAppointment = async (req, res) => {
@@ -9,6 +10,19 @@ exports.createAppointment = async (req, res) => {
     });
 
     await appointment.save();
+    
+    // Emit Socket.IO event for real-time update
+    try {
+      const io = getIO();
+      io.emit('appointment_created', {
+        appointment,
+        userId: req.user._id,
+        timestamp: new Date()
+      });
+    } catch (socketError) {
+      console.error('Socket.IO emission error:', socketError);
+    }
+    
     res.status(201).json(appointment);
   } catch (error) {
     console.error("Error creating appointment:", error);
@@ -69,6 +83,18 @@ exports.updateAppointment = async (req, res) => {
       return res.status(404).json({ error: "Appointment not found or unauthorized" });
     }
 
+    // Emit Socket.IO event for real-time update
+    try {
+      const io = getIO();
+      io.emit('appointment_updated', {
+        appointment,
+        userId: req.user._id,
+        timestamp: new Date()
+      });
+    } catch (socketError) {
+      console.error('Socket.IO emission error:', socketError);
+    }
+
     res.json(appointment);
   } catch (error) {
     console.error("Error updating appointment:", error);
@@ -86,6 +112,18 @@ exports.deleteAppointment = async (req, res) => {
 
     if (!appointment) {
       return res.status(404).json({ error: "Appointment not found or unauthorized" });
+    }
+
+    // Emit Socket.IO event for real-time update
+    try {
+      const io = getIO();
+      io.emit('appointment_deleted', {
+        appointmentId: req.params.id,
+        userId: req.user._id,
+        timestamp: new Date()
+      });
+    } catch (socketError) {
+      console.error('Socket.IO emission error:', socketError);
     }
 
     res.json({ message: "Appointment deleted successfully" });

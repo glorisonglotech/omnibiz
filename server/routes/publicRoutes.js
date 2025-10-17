@@ -3,8 +3,9 @@ const router = express.Router();
 const Order = require('../models/order');
 const Appointment = require('../models/appointment');
 const User = require('../models/user');
-const { notificationHelpers } = require('../config/socket');
+const { notificationHelpers, getIO } = require('../config/socket');
 const { emailService } = require('../config/email');
+const { notificationService } = require('../services/notificationService');
 
 // Helper: find store owner by inviteCode
 async function findOwnerByInviteCode(inviteCode) {
@@ -81,7 +82,13 @@ router.post('/orders', async (req, res) => {
 // POST /api/public/appointments - Guest appointment booking (storefront)
 router.post('/appointments', async (req, res) => {
   try {
-    const { inviteCode, customerName, service, time, durationMinutes, notes, email } = req.body;
+    const { inviteCode, customerName, customerEmail, customerPhone, service, time, durationMinutes, notes, price } = req.body;
+    
+    // Validate required fields
+    if (!customerName || !service || !time) {
+      return res.status(400).json({ message: 'Customer name, service, and time are required' });
+    }
+
     const owner = await findOwnerByInviteCode(inviteCode);
     if (!owner) {
       return res.status(400).json({ message: 'Invalid or missing inviteCode' });
@@ -92,26 +99,77 @@ router.post('/appointments', async (req, res) => {
       customerName,
       service,
       time,
-      durationMinutes,
+      durationMinutes: durationMinutes || 30,
       status: 'Pending',
-      notes
+      notes: notes || ''
     });
 
     await appointment.save();
 
-    // Notify admins/owner via sockets
-    notificationHelpers.notifyAdmins({
-      title: 'New Appointment Request',
-      message: `${customerName} requested ${service} at ${new Date(time).toLocaleString()}`
-    });
-
-    // Email confirmations (best-effort)
-    if (email) {
-      emailService.sendEmail(email, 'Appointment Received', `<p>Hi ${customerName}, your appointment request for ${service} has been received.</p>`);
+    // Emit Socket.IO event for real-time update
+    try {
+      const io = getIO();
+      io.to(`user_${owner._id}`).emit('appointment_created', {
+        appointment,
+        userId: owner._id,
+        timestamp: new Date()
+      });
+      
+      // Notify all admins
+      io.to('admins').emit('appointment_created', {
+        appointment,
+        userId: owner._id,
+        timestamp: new Date()
+      });
+    } catch (socketError) {
+      console.error('Socket.IO emission error:', socketError);
     }
-    emailService.sendEmail(owner.email, 'New Appointment Request', `<p>${customerName} requested ${service}.</p>`);
 
-    return res.status(201).json({ message: 'Appointment created successfully', appointment });
+    // Send notifications
+    try {
+      // Email to customer
+      if (customerEmail) {
+        await notificationService.sendEmail({
+          to: customerEmail,
+          subject: 'Appointment Request Received - OmniBiz',
+          html: `
+            <h2>Appointment Request Received</h2>
+            <p>Hi ${customerName},</p>
+            <p>Thank you for booking an appointment with us!</p>
+            <p><strong>Service:</strong> ${service}</p>
+            <p><strong>Date & Time:</strong> ${new Date(time).toLocaleString()}</p>
+            <p><strong>Duration:</strong> ${durationMinutes || 30} minutes</p>
+            ${price ? `<p><strong>Price:</strong> $${price}</p>` : ''}
+            <p>We will confirm your appointment shortly.</p>
+            <p>Best regards,<br>${owner.businessName || owner.name}</p>
+          `
+        });
+      }
+
+      // SMS to customer (if phone provided and SMS enabled)
+      if (customerPhone) {
+        await notificationService.sendSMS({
+          to: customerPhone,
+          message: `Appointment request received for ${service} on ${new Date(time).toLocaleDateString()} at ${new Date(time).toLocaleTimeString()}. We'll confirm shortly. - ${owner.businessName || owner.name}`
+        });
+      }
+
+      // Notify owner
+      await notificationService.sendCustomNotification({
+        user: owner,
+        title: 'New Appointment Request',
+        message: `${customerName} requested ${service} on ${new Date(time).toLocaleString()}. Duration: ${durationMinutes || 30} minutes.`,
+        includeEmail: true,
+        includeSMS: false
+      });
+    } catch (notifError) {
+      console.error('Notification error:', notifError);
+    }
+
+    return res.status(201).json({ 
+      message: 'Appointment request submitted successfully! We will confirm shortly.',
+      appointment 
+    });
   } catch (error) {
     console.error('Public appointment error:', error);
     return res.status(400).json({ message: error.message || 'Failed to create appointment' });

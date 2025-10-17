@@ -51,6 +51,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/mpesa', mpesaRoutes);
 app.use('/api/team', teamRouter);
 app.use('/api/products', productRouter);
+app.use('/api/inventory', productRouter); // Alias for products
 app.use('/api/orders', orderRouter);
 app.use('/api/invoices', invoiceRouter);
 app.use('/api/expenses', expenseRouter);
@@ -61,6 +62,8 @@ app.use('/api/payments', paymentRouter);
 app.use('/api/locations', locationRouter);
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/client', require('./routes/clientRoutes'));
+app.use('/api/support', require('./routes/supportRoutes'));
+app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/public', require('./routes/publicRoutes'));
 app.use('/api/wallet', require('./routes/walletRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));

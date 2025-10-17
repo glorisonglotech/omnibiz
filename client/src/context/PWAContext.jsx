@@ -30,9 +30,12 @@ export const PWAProvider = ({ children }) => {
 
     // Service Worker registration and update handling
     const registerSW = async () => {
-      if ('serviceWorker' in navigator) {
+      if ('serviceWorker' in navigator && import.meta.env.PROD) {
         try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
+          const registration = await navigator.serviceWorker.register('/sw.js', {
+            type: 'module',
+            scope: '/'
+          });
           setRegistration(registration);
 
           // Check for updates

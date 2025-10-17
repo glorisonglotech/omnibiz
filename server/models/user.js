@@ -132,7 +132,11 @@ const userSchema = new mongoose.Schema(
       email: { type: Boolean, default: false },
       phone: { type: Boolean, default: false },
       business: { type: Boolean, default: false }
-    }
+    },
+    
+    // Password Reset
+    resetPasswordToken: String,
+    resetPasswordExpires: Date
   },
   { timestamps: true }
 );

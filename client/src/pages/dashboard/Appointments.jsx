@@ -33,12 +33,21 @@ import {
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 
 const statusOptions = ["Confirmed", "Pending", "Cancelled"];
 
 const Appointments = () => {
   const { user, isAuthenticated, loading } = useAuth();
-  const [selectedDate, setSelectedDate] = useState("2024-01-15");
+  const { socket, connected } = useSocket();
+  
+  // Use today's date by default
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+  
+  const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [appointments, setAppointments] = useState([]);
   const [totalAppointments, setTotalAppointments] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -47,6 +56,8 @@ const Appointments = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [cancelledCount, setCancelledCount] = useState(0);
   const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [popularServices, setPopularServices] = useState([]);
 
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false);
   const [editAppointment, setEditAppointment] = useState(null);
@@ -64,7 +75,6 @@ const Appointments = () => {
   useEffect(() => {
     const fetchAppointments = async () => {
       if (!isAuthenticated) {
-        toast.error("Please log in to view appointments.");
         return;
       }
       try {
@@ -80,6 +90,58 @@ const Appointments = () => {
 
     if (selectedDate) fetchAppointments();
   }, [selectedDate, isAuthenticated]);
+
+  // Fetch team members for staff availability
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const { data } = await api.get('/team', {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        setTeamMembers(data);
+      } catch (error) {
+        console.error("Error fetching team members:", error);
+      }
+    };
+
+    fetchTeamMembers();
+  }, [isAuthenticated]);
+
+  // Socket.IO real-time updates
+  useEffect(() => {
+    if (!socket || !connected) return;
+
+    // Listen for new appointments
+    socket.on('appointment_created', (data) => {
+      console.log('New appointment created:', data);
+      setAppointments((prev) => [data.appointment, ...prev]);
+      toast.success('New appointment added in real-time!');
+    });
+
+    // Listen for appointment updates
+    socket.on('appointment_updated', (data) => {
+      console.log('Appointment updated:', data);
+      setAppointments((prev) =>
+        prev.map((apt) => (apt._id === data.appointment._id ? data.appointment : apt))
+      );
+      toast.info('Appointment updated in real-time');
+    });
+
+    // Listen for appointment deletions
+    socket.on('appointment_deleted', (data) => {
+      console.log('Appointment deleted:', data);
+      setAppointments((prev) => prev.filter((apt) => apt._id !== data.appointmentId));
+      toast.info('Appointment removed');
+    });
+
+    // Cleanup listeners on unmount
+    return () => {
+      socket.off('appointment_created');
+      socket.off('appointment_updated');
+      socket.off('appointment_deleted');
+    };
+  }, [socket, connected]);
 
   const recalcStats = (list) => {
     const norm = (s = "") => s.trim().toLowerCase();
@@ -97,7 +159,34 @@ const Appointments = () => {
 
   useEffect(() => {
     recalcStats(appointments);
+    calculatePopularServices(appointments);
   }, [appointments]);
+
+  // Calculate popular services from real data
+  const calculatePopularServices = (appointmentsList) => {
+    if (appointmentsList.length === 0) {
+      setPopularServices([]);
+      return;
+    }
+
+    const serviceCounts = {};
+    appointmentsList.forEach((apt) => {
+      const service = apt.service || 'Unknown';
+      serviceCounts[service] = (serviceCounts[service] || 0) + 1;
+    });
+
+    const total = appointmentsList.length;
+    const servicesArray = Object.entries(serviceCounts)
+      .map(([service, count]) => ({
+        service,
+        count,
+        percentage: ((count / total) * 100).toFixed(0),
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+
+    setPopularServices(servicesArray);
+  };
 
   const handleNewAppointmentChange = (field, value) => {
     setNewAppointment((prev) => ({
@@ -137,19 +226,19 @@ const Appointments = () => {
       };
 
       const token = localStorage.getItem("token");
-      const response = await api.post("/appointments", payload, {
+      const { data } = await api.post("/appointments", payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
 
-      setAppointments((prev) => [response.data, ...prev]);
+      setAppointments((prev) => [data, ...prev]);
       setIsAddAppointmentOpen(false);
       setNewAppointment({
         customerName: "",
         service: "",
-        time: "",
+        time: getTodayDate(),
         durationMinutes: "",
         status: "Pending",
         notes: "",
@@ -320,6 +409,12 @@ const formatForDatetimeLocal = (date) => {
           <p className="text-muted-foreground">Manage bookings and calendar</p>
         </div>
         <div className="flex space-x-2">
+          <Input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-auto"
+          />
           <Button variant="outline">
             <Filter className="mr-2 h-4 w-4" />
             Filter
@@ -482,9 +577,15 @@ const formatForDatetimeLocal = (date) => {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Today's Schedule - January 15, 2024</CardTitle>
+            <CardTitle>
+              Today's Schedule - {new Date(selectedDate).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </CardTitle>
             <CardDescription>
-              View and manage daily appointments
+              View and manage daily appointments {connected && <Badge variant="outline" className="ml-2 bg-green-100 text-green-800">● Live</Badge>}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -722,18 +823,16 @@ const formatForDatetimeLocal = (date) => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Hair Cut & Style</span>
-                <span className="text-sm font-medium">45%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Hair Coloring</span>
-                <span className="text-sm font-medium">30%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Beard Trim</span>
-                <span className="text-sm font-medium">25%</span>
-              </div>
+              {popularServices.length > 0 ? (
+                popularServices.map((service, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <span className="text-sm">{service.service}</span>
+                    <span className="text-sm font-medium">{service.percentage}%</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No service data available</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -744,18 +843,18 @@ const formatForDatetimeLocal = (date) => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Sarah Johnson</span>
-                <Badge variant="default">Available</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">David Smith</span>
-                <Badge variant="secondary">Busy</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Emma Thompson</span>
-                <Badge variant="default">Available</Badge>
-              </div>
+              {teamMembers.length > 0 ? (
+                teamMembers.slice(0, 3).map((member) => (
+                  <div key={member._id} className="flex items-center justify-between">
+                    <span className="text-sm">{member.name}</span>
+                    <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
+                      {member.status === 'active' ? 'Available' : member.status || 'Unknown'}
+                    </Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No team members found</p>
+              )}
             </div>
           </CardContent>
         </Card>

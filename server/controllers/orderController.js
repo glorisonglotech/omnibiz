@@ -1,6 +1,7 @@
 const Order = require("../models/order");
 const asyncHandler = require("../middlewares/asyncHandler");
 const Transaction = require("../models/transaction");
+const { updateStockAfterOrder } = require("./inventoryController");
 
 // Create transaction from order
 const createTransactionFromOrder = async (orderId, userId) => {

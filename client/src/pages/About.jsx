@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Link } from 'react-router-dom';
+import glorison from '@/assets/glorison.jpg'
 
 function About() {
   const values = [
@@ -47,7 +48,7 @@ function About() {
     {
       name: "Glorison Ouma",
       role: "CTO & Co-Founder",
-      image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face",
+      image: glorison,
       bio: "Technology expert passionate about building scalable, intelligent solutions for businesses."
     },
     {

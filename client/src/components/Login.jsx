@@ -47,6 +47,7 @@ const handleLogin = async (e) => {
       toast.success("Login successful! Welcome to OmniBiz Pro.");
       // Navigate to the dashboard after successful login
       navigate('/dashboard');
+       window.location.reload();
     } else {
       toast.error(result.error || "Login failed. Please try again.");
     }

@@ -1,8 +1,10 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const { WebRTCSignaling } = require('../services/webrtcSignaling');
 
 let io;
+let webrtcSignaling;
 
 // Initialize Socket.IO
 const initializeSocket = (server) => {
@@ -40,9 +42,15 @@ const initializeSocket = (server) => {
     }
   });
 
+  // Initialize WebRTC signaling
+  webrtcSignaling = new WebRTCSignaling(io);
+
   // Handle connections
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.user.email} (${socket.user.role})`);
+    
+    // Initialize WebRTC handlers for this socket
+    webrtcSignaling.initializeHandlers(socket);
     
     // Join user to their personal room
     socket.join(`user_${socket.userId}`);
@@ -261,5 +269,6 @@ const notificationHelpers = {
 module.exports = {
   initializeSocket,
   getIO,
-  notificationHelpers
+  notificationHelpers,
+  getWebRTCSignaling: () => webrtcSignaling
 };

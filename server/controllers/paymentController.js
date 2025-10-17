@@ -1,6 +1,9 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const Transaction = require('../models/transaction');
+const { getIO } = require('../config/socket');
+const { notificationService } = require('../services/notificationService');
+const User = require('../models/user');
 
 // M-Pesa Configuration
 const MPESA_CONFIG = {
@@ -108,6 +111,20 @@ exports.initiateMpesaPayment = async (req, res) => {
       
       await transaction.save();
 
+      // Emit Socket.IO event for real-time update
+      try {
+        const io = getIO();
+        io.to(`user_${userId}`).emit('payment_initiated', {
+          transactionId,
+          amount,
+          gateway: 'mpesa',
+          status: 'pending',
+          timestamp: new Date()
+        });
+      } catch (socketError) {
+        console.error('Socket.IO emission error:', socketError);
+      }
+
       res.json({
         success: true,
         message: 'STK push sent successfully',
@@ -147,21 +164,71 @@ exports.mpesaCallback = async (req, res) => {
       const phoneNumber = items.find(item => item.Name === 'PhoneNumber')?.Value;
       
       // Update transaction status
-      await Transaction.findOneAndUpdate(
+      const updatedTransaction = await Transaction.findOneAndUpdate(
         { reference: { $regex: CheckoutRequestID } },
         { 
           status: 'completed',
           notes: `M-Pesa payment completed. Receipt: ${mpesaReceiptNumber}`
+        },
+        { new: true }
+      ).populate('userId');
+      
+      if (updatedTransaction) {
+        // Emit Socket.IO event for real-time update
+        try {
+          const io = getIO();
+          io.to(`user_${updatedTransaction.userId._id}`).emit('payment_completed', {
+            transaction: updatedTransaction,
+            gateway: 'mpesa',
+            receipt: mpesaReceiptNumber,
+            timestamp: new Date()
+          });
+        } catch (socketError) {
+          console.error('Socket.IO emission error:', socketError);
         }
-      );
+
+        // Send notification
+        try {
+          await notificationService.sendPaymentConfirmation(
+            {
+              amount,
+              currency: 'KES',
+              transactionId: mpesaReceiptNumber,
+              gateway: 'M-Pesa'
+            },
+            updatedTransaction.userId
+          );
+        } catch (notifError) {
+          console.error('Notification error:', notifError);
+        }
+      }
       
       console.log('M-Pesa payment successful:', { amount, mpesaReceiptNumber, phoneNumber });
     } else {
       // Payment failed
-      await Transaction.findOneAndUpdate(
+      const failedTransaction = await Transaction.findOneAndUpdate(
         { reference: { $regex: CheckoutRequestID } },
-        { status: 'failed' }
-      );
+        { 
+          status: 'failed',
+          notes: `M-Pesa payment failed: ${ResultDesc}`
+        },
+        { new: true }
+      ).populate('userId');
+      
+      if (failedTransaction) {
+        // Emit Socket.IO event for real-time update
+        try {
+          const io = getIO();
+          io.to(`user_${failedTransaction.userId._id}`).emit('payment_failed', {
+            transaction: failedTransaction,
+            gateway: 'mpesa',
+            reason: ResultDesc,
+            timestamp: new Date()
+          });
+        } catch (socketError) {
+          console.error('Socket.IO emission error:', socketError);
+        }
+      }
       
       console.log('M-Pesa payment failed:', ResultDesc);
     }
@@ -287,6 +354,20 @@ exports.createPayPalOrder = async (req, res) => {
       
       await transaction.save();
 
+      // Emit Socket.IO event for real-time update
+      try {
+        const io = getIO();
+        io.to(`user_${userId}`).emit('payment_initiated', {
+          transactionId: response.data.id,
+          amount,
+          gateway: 'paypal',
+          status: 'pending',
+          timestamp: new Date()
+        });
+      } catch (socketError) {
+        console.error('Socket.IO emission error:', socketError);
+      }
+
       res.json({
         success: true,
         orderID: response.data.id
@@ -337,13 +418,47 @@ exports.capturePayPalOrder = async (req, res) => {
 
     if (response.data.status === 'COMPLETED') {
       // Update transaction status
-      await Transaction.findOneAndUpdate(
+      const updatedTransaction = await Transaction.findOneAndUpdate(
         { reference: orderID, userId: userId },
         { 
           status: 'completed',
           notes: `PayPal payment completed. Transaction ID: ${response.data.id}`
+        },
+        { new: true }
+      ).populate('userId');
+
+      if (updatedTransaction) {
+        // Emit Socket.IO event for real-time update
+        try {
+          const io = getIO();
+          io.to(`user_${userId}`).emit('payment_completed', {
+            transaction: updatedTransaction,
+            gateway: 'paypal',
+            transactionId: response.data.id,
+            timestamp: new Date()
+          });
+        } catch (socketError) {
+          console.error('Socket.IO emission error:', socketError);
         }
-      );
+
+        // Send notification
+        try {
+          const user = await User.findById(userId);
+          if (user) {
+            await notificationService.sendPaymentConfirmation(
+              {
+                amount: updatedTransaction.amount,
+                currency: 'USD',
+                transactionId: response.data.id,
+                gateway: 'PayPal'
+              },
+              user
+            );
+          }
+        } catch (notifError) {
+          console.error('Notification error:', notifError);
+        }
+      }
 
       res.json({
         success: true,

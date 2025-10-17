@@ -11,6 +11,7 @@ import ECommerce from "./pages/dashboard/ECommerce";
 import Appointments from "./pages/dashboard/Appointments";
 import Team from "./pages/dashboard/Team";
 import Finances from "./pages/dashboard/Finances";
+import Subscriptions from "./pages/dashboard/Subscriptions";
 import AIInsights from "./pages/dashboard/AIInsights";
 import Locations from "./pages/dashboard/Locations";
 import Settings from "./pages/dashboard/Settings";
@@ -149,6 +150,7 @@ function App() {
                       <Route path="ecommerce" element={<ECommerce />} />
                       <Route path="appointments" element={<Appointments />} />
                       <Route path="finances" element={<Finances />} />
+                      <Route path="subscriptions" element={<Subscriptions />} />
                       <Route path="team" element={<Team />} />
                       <Route path="ai-insights" element={<AIInsights />} />
                       <Route path="locations" element={<Locations />} />

@@ -1,11 +1,14 @@
 const express = require('express')
 const { protect } = require('../middlewares/authMiddleware');
-const { initiateSTKPush, handleCallback } = require(   "../controllers/mpesaController.js");
+const { initiateSTKPush, handleCallback } = require("../controllers/mpesaController.js");
 
 const router = express.Router();
 
-router.post("/stkpush", protect, initiateSTKPush);
-router.post("/callback",protect, handleCallback);
+// STK Push - requires authentication (user initiating payment)
+router.post("/stk-push", protect, initiateSTKPush);
+router.post("/stkpush", protect, initiateSTKPush); // Legacy route
 
+// Callback - NO authentication (M-Pesa server sends this)
+router.post("/callback", handleCallback);
 
 module.exports = router;

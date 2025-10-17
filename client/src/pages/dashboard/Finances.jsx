@@ -45,6 +45,8 @@ import {
   Search,
   FileText,
   Receipt,
+  Users,
+  Send,
 } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
@@ -54,6 +56,7 @@ import PaymentOptions from "@/components/payments/PaymentOptions";
 import MpesaPayment from "@/components/payments/MpesaPayment";
 import PayPalPayment from "@/components/payments/PayPalPayment";
 import WalletDashboard from "@/components/wallet/WalletDashboard";
+import EmployeePayment from "@/components/payments/EmployeePayment";
 
 const Finances = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -702,91 +705,23 @@ const Finances = () => {
         />
       </div>
 
-      {/* Payment Integration Demo */}
+      {/* Employee/Worker Payments - Real System */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Payment Integration Demo
+            <Users className="h-5 w-5" />
+            Pay Employees & Contractors
           </CardTitle>
           <CardDescription>
-            Test the integrated M-Pesa and PayPal payment systems
+            Secure payments to team members via wallet or direct transfer
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <h3 className="font-semibold">Sample Payment - KES 1,000</h3>
-              <p className="text-sm text-muted-foreground">
-                Test M-Pesa payment integration with a sample amount
-              </p>
-              <MpesaPayment
-                amount={1000}
-                description="Test payment for OmniBiz services"
-                onSuccess={(data) => {
-                  toast.success("M-Pesa payment successful!");
-                  console.log("Payment data:", data);
-                }}
-                onError={(error) => {
-                  toast.error("M-Pesa payment failed");
-                  console.error("Payment error:", error);
-                }}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-semibold">Sample Payment - $10 USD</h3>
-              <p className="text-sm text-muted-foreground">
-                Test PayPal payment integration with a sample amount
-              </p>
-              <PayPalPayment
-                amount={10}
-                description="Test payment for OmniBiz services"
-                currency="USD"
-                onSuccess={(data) => {
-                  toast.success("PayPal payment successful!");
-                  console.log("Payment data:", data);
-                }}
-                onError={(error) => {
-                  toast.error("PayPal payment failed");
-                  console.error("Payment error:", error);
-                }}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-semibold">Combined Payment Options</h3>
-              <p className="text-sm text-muted-foreground">
-                Show both payment methods in a single dialog
-              </p>
-              <PaymentOptions
-                amount={2500}
-                description="Premium service subscription"
-                currency="KES"
-                triggerText="Pay KES 2,500"
-                onSuccess={(data) => {
-                  toast.success("Payment completed successfully!");
-                  console.log("Payment data:", data);
-                }}
-                onError={(error) => {
-                  toast.error("Payment failed");
-                  console.error("Payment error:", error);
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Integration Status</p>
-                <p className="text-xs text-muted-foreground">
-                  Payment integrations are configured for sandbox/testing.
-                  To process real payments, update the environment variables with production credentials.
-                </p>
-              </div>
-            </div>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Make secure payments to your team members. All transactions are logged and tracked for audit purposes.
+            </p>
+            <EmployeePayment onSuccess={refreshFinancialData} />
           </div>
         </CardContent>
       </Card>

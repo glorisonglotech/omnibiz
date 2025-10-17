@@ -110,7 +110,12 @@ export default function WalletDashboard({ onBalanceUpdate }) {
       });
 
       toast.success(response.data.message);
-      setWallet(response.data.wallet);
+      
+      // Refresh full wallet data to get all updated fields
+      await fetchWallet();
+      
+      // Notify parent component
+      if (onBalanceUpdate) onBalanceUpdate(response.data.wallet.balance);
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to deposit');
     }
@@ -131,7 +136,7 @@ export default function WalletDashboard({ onBalanceUpdate }) {
             <Wallet className="h-5 w-5 text-green-600" />
             Digital Wallet
             {connected && (
-              <Badge variant="success" className="gap-1 ml-auto">
+              <Badge variant="default" className="gap-1 ml-auto bg-green-600 text-white border-green-600">
                 <Zap className="h-3 w-3" />
                 Live
               </Badge>

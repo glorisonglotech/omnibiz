@@ -25,6 +25,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import RealTimeAIInsights from "@/components/RealTimeAIInsights";

@@ -138,7 +138,7 @@ export function Signup({ className, ...props }) {
       <div className="text-center mb-4 animate-in fade-in slide-in-from-top-4 duration-700">
         <div className="inline-flex items-center gap-2 mb-2">
           <Sparkles className="h-8 w-8 text-primary animate-pulse" />
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold text-primary">
             OmniBiz
           </h1>
         </div>
@@ -321,7 +321,7 @@ export function Signup({ className, ...props }) {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-lg hover:shadow-xl group mt-2"
+                className="w-full h-11 bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl group mt-2"
                 disabled={loading}
               >
                 {loading ? (

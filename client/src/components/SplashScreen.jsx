@@ -73,7 +73,7 @@ const SplashScreen = ({ onComplete, duration = 3000 }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.1 }}
           transition={{ duration: 0.5 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-green-50 dark:bg-gray-900"
         >
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-5">

@@ -115,7 +115,7 @@ function App() {
                 <CartProvider>
                 <BrowserRouter>
                   <ThemeSync />
-                  <Toaster richColors position="top-center" />
+                  <Toaster />
                   <PWAInstallPrompt />
                   <PWAUpdateNotification />
                   <Routes>
@@ -176,7 +176,6 @@ function App() {
                   <PWAInstallPrompt />
                   <PWAUpdateNotification />
                   <FloatingAI />
-                  <Toaster position="top-right" richColors />
                 </BrowserRouter>
                 </CartProvider>
               </FinancialProvider>

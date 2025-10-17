@@ -171,8 +171,8 @@ export const AVAILABLE_THEMES = {
   },
   sunset: {
     name: 'Sunset',
-    description: 'Warm gradient theme',
-    preview: 'bg-gradient-to-r from-orange-400 to-pink-600 text-white',
+    description: 'Warm orange theme',
+    preview: 'bg-orange-500 text-white',
     category: 'special',
     colors: {
       primary: '#f97316',
@@ -184,8 +184,8 @@ export const AVAILABLE_THEMES = {
   },
   ocean: {
     name: 'Ocean Depths',
-    description: 'Deep blue gradient',
-    preview: 'bg-gradient-to-r from-blue-800 to-indigo-900 text-white',
+    description: 'Deep blue theme',
+    preview: 'bg-blue-800 text-white',
     category: 'special',
     colors: {
       primary: '#1e40af',
@@ -198,7 +198,7 @@ export const AVAILABLE_THEMES = {
   system: {
     name: 'System',
     description: 'Follow system preference',
-    preview: 'bg-gradient-to-r from-gray-100 to-gray-900 text-gray-900',
+    preview: 'bg-gray-500 text-white',
     category: 'auto',
     colors: {
       primary: '#3b82f6',

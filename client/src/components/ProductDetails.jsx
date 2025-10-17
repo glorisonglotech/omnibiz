@@ -110,15 +110,15 @@ const ProductDetails = ({ product, isOpen, onClose }) => {
           {/* Left Column - Image and Quick Info */}
           <div className="space-y-4">
             {/* Product Image */}
-            <div className="aspect-square relative overflow-hidden rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/10 shadow-2xl">
+            <div className="aspect-square relative overflow-hidden rounded-xl border-2 border-primary/20 bg-primary/10 shadow-2xl">
               <img
                 src={product.image || `https://via.placeholder.com/500x500?text=${encodeURIComponent(product.name)}`}
                 alt={product.name}
                 className="object-cover w-full h-full hover:scale-110 transition-all duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute inset-0 bg-black/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               {product.featured && (
-                <Badge className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0 shadow-lg animate-pulse">
+                <Badge className="absolute top-4 right-4 bg-yellow-500 text-white border-0 shadow-lg animate-pulse">
                   <Zap className="h-3 w-3 mr-1" />
                   Featured
                 </Badge>
@@ -155,7 +155,7 @@ const ProductDetails = ({ product, isOpen, onClose }) => {
                 {product.name}
               </h3>
               <div className="flex items-center gap-4 flex-wrap">
-                <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg">
+                <div className="bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg">
                   <span className="text-sm font-medium opacity-90">Price</span>
                   <div className="text-3xl font-bold">
                     {currencySymbol} {product.price?.toFixed(2) || "0.00"}
@@ -177,7 +177,7 @@ const ProductDetails = ({ product, isOpen, onClose }) => {
 
             {/* Product Information Grid */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20 hover:shadow-md transition-shadow">
                 <Tag className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Category</p>
@@ -185,7 +185,7 @@ const ProductDetails = ({ product, isOpen, onClose }) => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20 hover:shadow-md transition-shadow">
                 <Package className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">SKU</p>
@@ -193,7 +193,7 @@ const ProductDetails = ({ product, isOpen, onClose }) => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20 hover:shadow-md transition-shadow">
                 <Warehouse className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Available Stock</p>
@@ -203,7 +203,7 @@ const ProductDetails = ({ product, isOpen, onClose }) => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20 hover:shadow-md transition-shadow">
                 <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Reorder Level</p>
@@ -255,15 +255,15 @@ const ProductDetails = ({ product, isOpen, onClose }) => {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between p-5 bg-gradient-to-r from-primary/20 to-primary/10 rounded-xl border-2 border-primary/30 shadow-inner">
+                <div className="flex items-center justify-between p-5 bg-primary/15 rounded-xl border-2 border-primary/30 shadow-inner">
                   <span className="text-lg font-semibold">Total Price:</span>
-                  <span className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  <span className="text-3xl font-bold text-green-600">
                     {currencySymbol} {totalPrice}
                   </span>
                 </div>
 
                 <Button 
-                  className="w-full gap-2 h-14 text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300" 
+                  className="w-full gap-2 h-14 text-lg font-bold bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl transition-all duration-300" 
                   onClick={handleAddToCart}
                 >
                   <ShoppingCart className="h-5 w-5" />

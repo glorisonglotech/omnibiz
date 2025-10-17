@@ -297,7 +297,7 @@ export default function FloatingAI() {
           }}
           className={cn(
             "h-16 w-16 rounded-full shadow-2xl hover:shadow-primary/50 transition-all duration-300 hover:scale-110",
-            "bg-gradient-to-r from-blue-500 via-purple-600 to-blue-500 relative animate-gradient-x"
+            "bg-blue-500 relative"
           )}
           size="icon"
         >
@@ -306,7 +306,7 @@ export default function FloatingAI() {
               1
             </Badge>
           )}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-600/20 animate-ping"></div>
+          <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping"></div>
           <MessageCircle className="h-7 w-7 relative z-10" />
         </Button>
       </div>
@@ -322,8 +322,8 @@ export default function FloatingAI() {
         isMinimized ? "w-80 h-16" : "w-80 sm:w-96 h-[600px]"
       )}>
         {/* Enhanced Header */}
-        <div className="relative bg-gradient-to-r from-blue-500 via-purple-600 to-blue-500 text-primary-foreground p-4 shadow-lg">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+        <div className="relative bg-blue-500 text-primary-foreground p-4 shadow-lg">
+          <div className="absolute inset-0 bg-white/5 animate-shimmer"></div>
           
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -414,7 +414,7 @@ export default function FloatingAI() {
             ) : (
               <>
                 {/* Messages with Avatars */}
-                <ScrollArea className="flex-1 p-4 bg-gradient-to-b from-accent/5 to-transparent">
+                <ScrollArea className="flex-1 p-4 bg-accent/5">
                   <div className="space-y-4">
                     {messages.map((message, index) => (
                       <div key={message.id} className={cn("flex gap-2 items-end animate-in slide-in-from-bottom-3", message.role === 'user' ? 'justify-end' : 'justify-start')} style={{ animationDelay: `${index * 50}ms` }}>
@@ -454,7 +454,7 @@ export default function FloatingAI() {
 
                 {/* Context-Aware Suggestions */}
                 {suggestions.length > 0 && messages.length <= 2 && (
-                  <div className="px-4 pb-2 border-t border-border/50 bg-gradient-to-b from-accent/5 to-transparent">
+                  <div className="px-4 pb-2 border-t border-border/50 bg-accent/5">
                     <div className="flex items-center gap-2 mb-2 mt-3">
                       <Lightbulb className="h-4 w-4 text-accent animate-pulse" />
                       <p className="text-xs font-medium text-accent">Suggested for {contextData.currentPage}:</p>
@@ -489,7 +489,7 @@ export default function FloatingAI() {
                   
                   <div className="flex gap-2">
                     <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={handleKeyPress} placeholder="Ask me anything about your business..." disabled={isLoading} className="flex-1 border-2 border-input focus:border-primary transition-all bg-background/50 backdrop-blur-sm" />
-                    <Button onClick={() => handleSend()} disabled={!input.trim() || isLoading} size="icon" className={cn("h-10 w-10 transition-all duration-200", input.trim() && "hover:scale-110 shadow-lg shadow-primary/50 bg-gradient-to-r from-blue-500 to-purple-600")}>
+                    <Button onClick={() => handleSend()} disabled={!input.trim() || isLoading} size="icon" className={cn("h-10 w-10 transition-all duration-200", input.trim() && "hover:scale-110 shadow-lg shadow-primary/50 bg-blue-500")}>
                       {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     </Button>
                   </div>

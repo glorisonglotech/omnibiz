@@ -28,7 +28,7 @@ const Logo = ({
   const LogoIcon = ({ className: iconClassName = '' }) => (
     <div className={`relative ${iconClassName} ${animated ? 'animate-pulse' : ''}`}>
       {/* Main circle with gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-green-400 via-green-500 to-green-600 rounded-full shadow-lg">
+      <div className="absolute inset-0 bg-green-500 rounded-full shadow-lg">
         {/* Inner highlight */}
         <div className="absolute top-1 left-1 w-3 h-3 bg-white/30 rounded-full blur-sm"></div>
       </div>
@@ -55,7 +55,7 @@ const Logo = ({
       
       {/* Outer glow effect */}
       {animated && (
-        <div className="absolute -inset-1 bg-gradient-to-br from-green-400 to-green-600 rounded-full opacity-20 animate-ping"></div>
+        <div className="absolute -inset-1 bg-green-500 rounded-full opacity-20 animate-ping"></div>
       )}
     </div>
   );

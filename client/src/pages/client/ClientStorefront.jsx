@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import api from "@/lib/api";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -20,25 +20,51 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { ShoppingCart, Search, Filter, Plus, Minus, Trash2, Package, User, LogOut, History, ShieldCheck } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { 
+  ShoppingCart, Search, Filter, Plus, Minus, Trash2, Package, User, LogOut, 
+  History, ShieldCheck, Calendar, MapPin, Clock, Star, Heart, MessageCircle,
+  Settings, Bell, CreditCard, Shield, Phone, Mail, Edit2, Save, Building, 
+  Users as UsersIcon, Eye
+} from "lucide-react";
 import ProductDetailDialog  from "@/components/storefront/ProductDetailDialog";
 import CheckoutFlow  from "@/components/storefront/CheckoutFlow";
 import  OrderHistory  from "@/components/storefront/OrderHistory";
 import  LiveChatWidget  from "@/components/storefront/LiveChatWidget";
+import AppointmentBooking from "@/components/storefront/AppointmentBooking";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { useCart } from "@/context/CartContext";
 import { useSocket } from "@/context/SocketContext";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import ThemeSelector from "@/components/ThemeSelector";
+import { AVAILABLE_THEMES } from "@/context/ThemeContext";
 
 const ClientStorefront = () => {
   const { inviteCode } = useParams();
-  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const { socket, connected } = useSocket();
+  
+  // Storefront-specific theme state (separate from main dashboard)
+  const [storefrontTheme, setStorefrontTheme] = useState(() => {
+    return localStorage.getItem('storefront-theme') || 'light';
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const { items: cart, add: addCartItem, update: updateCartQty, remove: removeCartItem, clear: clearCart, total: cartTotal, count: cartItemCount } = useCart();
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [activeTab, setActiveTab] = useState("shop");
+  const [locations, setLocations] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [services, setServices] = useState([]);
+  const [userAccount, setUserAccount] = useState(null);
+  const [wishlist, setWishlist] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,29 +73,241 @@ const ClientStorefront = () => {
     ownerName: "Store Owner",
   });
 
-  // Fetch products from API
+  // Fetch all data from API with real-time sync
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchAllData = async () => {
       setLoading(true);
       try {
-        const response = await api.get("/products");
-        setProducts(response.data || []);
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        // Fetch products, locations, team, services in parallel
+        const [productsRes, locationsRes, teamRes] = await Promise.allSettled([
+          api.get("/products", { headers }),
+          api.get("/locations", { headers }),
+          api.get("/team", { headers }),
+        ]);
+
+        // Set products
+        if (productsRes.status === 'fulfilled') {
+          setProducts(productsRes.value.data || []);
+        } else {
+          setProducts(sampleProducts);
+        }
+
+        // Set locations
+        if (locationsRes.status === 'fulfilled') {
+          setLocations(locationsRes.value.data || []);
+          if (locationsRes.value.data?.length > 0) {
+            setSelectedLocation(locationsRes.value.data[0]);
+          }
+        }
+
+        // Set team members
+        if (teamRes.status === 'fulfilled') {
+          setTeamMembers(teamRes.value.data || []);
+        }
+
+        // Set services (from team or predefined)
+        const servicesList = [
+          { id: 1, name: "Premium Hair Treatment", duration: "1 hour", price: 2500, staff: teamMembers.length || 3, category: "Hair Care" },
+          { id: 2, name: "Manicure & Pedicure", duration: "45 min", price: 1500, staff: teamMembers.length || 2, category: "Nails" },
+          { id: 3, name: "Face Massage", duration: "30 min", price: 2000, staff: teamMembers.length || 4, category: "Spa" },
+          { id: 4, name: "Spa Package", duration: "2 hours", price: 5000, staff: teamMembers.length || 5, category: "Spa" },
+          { id: 5, name: "Hair Styling", duration: "1 hour", price: 1800, staff: teamMembers.length || 3, category: "Hair Care" },
+          { id: 6, name: "Facial Treatment", duration: "45 min", price: 2200, staff: teamMembers.length || 4, category: "Skincare" },
+          { id: 7, name: "Deep Tissue Massage", duration: "1 hour", price: 3000, staff: teamMembers.length || 3, category: "Massage" },
+          { id: 8, name: "Body Scrub & Polish", duration: "1.5 hours", price: 3500, staff: teamMembers.length || 2, category: "Spa" },
+          { id: 9, name: "Makeup Application", duration: "1 hour", price: 2800, staff: teamMembers.length || 4, category: "Makeup" },
+          { id: 10, name: "Hair Coloring", duration: "2 hours", price: 4500, staff: teamMembers.length || 2, category: "Hair Care" },
+          { id: 11, name: "Bridal Package", duration: "3 hours", price: 8000, staff: teamMembers.length || 5, category: "Special" },
+          { id: 12, name: "Hot Stone Therapy", duration: "1 hour", price: 3200, staff: teamMembers.length || 3, category: "Massage" },
+          { id: 13, name: "Eyelash Extensions", duration: "2 hours", price: 3800, staff: teamMembers.length || 2, category: "Beauty" },
+          { id: 14, name: "Waxing Service", duration: "30 min", price: 1200, staff: teamMembers.length || 3, category: "Beauty" },
+          { id: 15, name: "Aromatherapy Session", duration: "1 hour", price: 2600, staff: teamMembers.length || 4, category: "Spa" },
+        ];
+        setServices(servicesList);
+
       } catch (error) {
-        console.error("Error fetching products:", error);
-        toast({
-          title: "Error loading products",
-          description: "Could not load products. Please refresh the page.",
-          variant: "destructive",
-        });
-        // Fallback to sample products
+        console.error("Error fetching data:", error);
+        toast.error("Could not load some information. Please refresh.");
         setProducts(sampleProducts);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
-  }, [inviteCode]);
+    fetchAllData();
+
+    // Set up real-time refresh every 30 seconds
+    const interval = setInterval(fetchAllData, 30000);
+    return () => clearInterval(interval);
+  }, [inviteCode, teamMembers.length]);
+
+  // Socket.IO real-time updates
+  useEffect(() => {
+    if (!socket || !connected) return;
+
+    // Listen for product updates
+    socket.on('product_updated', (data) => {
+      console.log('📦 Product updated:', data);
+      setProducts(prev => prev.map(p => 
+        p._id === data.product._id ? data.product : p
+      ));
+      toast.info(`Product updated: ${data.product.name}`);
+    });
+
+    // Listen for new products
+    socket.on('product_created', (data) => {
+      console.log('✨ New product:', data);
+      setProducts(prev => [data.product, ...prev]);
+      toast.success(`New product: ${data.product.name}`);
+    });
+
+    // Listen for stock alerts
+    socket.on('stock_alert', (data) => {
+      if (data.alertType === 'out_of_stock') {
+        toast.error(`Out of Stock: ${data.product.name} is currently unavailable`);
+      }
+    });
+
+    // Listen for order updates
+    socket.on('order_updated', (data) => {
+      if (data.order.customer?.email === user?.email) {
+        toast.info(`Order Update: Your order status is ${data.order.status}`);
+      }
+    });
+
+    return () => {
+      socket.off('product_updated');
+      socket.off('product_created');
+      socket.off('stock_alert');
+      socket.off('order_updated');
+    };
+  }, [socket, connected, user]);
+
+  // Handle user account button
+  const handleUserAccount = () => {
+    if (user) {
+      setActiveTab('account');
+      toast.success(`Welcome ${user.name}!`);
+    } else {
+      toast.info('Please sign in to access more features');
+      navigate('/login');
+    }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    if (user) {
+      logout();
+      clearCart();
+      setWishlist([]);
+      toast.success('You have been successfully logged out');
+      navigate('/');
+    } else {
+      toast.info('You are not currently logged in');
+    }
+  };
+
+  // Handle storefront theme change (doesn't affect main dashboard)
+  const handleThemeChange = (newTheme) => {
+    setStorefrontTheme(newTheme);
+    localStorage.setItem('storefront-theme', newTheme);
+    setShowThemeSelector(false);
+    toast.success(`Storefront theme: ${newTheme}`);
+  };
+
+  // Apply storefront theme on mount and changes
+  useEffect(() => {
+    const applyStorefrontTheme = () => {
+      try {
+        const currentTheme = AVAILABLE_THEMES[storefrontTheme];
+
+        if (!currentTheme || !currentTheme.colors) {
+          console.warn('Theme not found:', storefrontTheme);
+          return;
+        }
+
+        // Helper to convert hex to HSL
+        const hexToHSL = (hex) => {
+          try {
+            hex = hex.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16) / 255;
+            const g = parseInt(hex.substring(2, 4), 16) / 255;
+            const b = parseInt(hex.substring(4, 6), 16) / 255;
+            
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            
+            if (max === min) {
+              h = s = 0;
+            } else {
+              const d = max - min;
+              s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+              switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                case g: h = ((b - r) / d + 2) / 6; break;
+                case b: h = ((r - g) / d + 4) / 6; break;
+              }
+            }
+            
+            return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+          } catch (e) {
+            console.error('Error converting hex to HSL:', hex, e);
+            return '0 0% 50%';
+          }
+        };
+
+        // Wait for container to be available
+        const applyToContainer = () => {
+          const storefrontContainer = document.querySelector('.storefront-container');
+          
+          if (!storefrontContainer) {
+            console.warn('Storefront container not found, retrying...');
+            setTimeout(applyToContainer, 100);
+            return;
+          }
+
+          const primaryHSL = hexToHSL(currentTheme.colors.primary);
+          const secondaryHSL = hexToHSL(currentTheme.colors.secondary);
+          const accentHSL = hexToHSL(currentTheme.colors.accent);
+          const backgroundHSL = currentTheme.colors.background.startsWith('#') 
+            ? hexToHSL(currentTheme.colors.background) 
+            : '0 0% 100%';
+          const foregroundHSL = hexToHSL(currentTheme.colors.foreground);
+
+          // Apply CSS variables
+          storefrontContainer.style.setProperty('--primary', primaryHSL);
+          storefrontContainer.style.setProperty('--primary-foreground', '0 0% 100%');
+          storefrontContainer.style.setProperty('--secondary', secondaryHSL);
+          storefrontContainer.style.setProperty('--secondary-foreground', foregroundHSL);
+          storefrontContainer.style.setProperty('--accent', accentHSL);
+          storefrontContainer.style.setProperty('--accent-foreground', foregroundHSL);
+          storefrontContainer.style.setProperty('--background', backgroundHSL);
+          storefrontContainer.style.setProperty('--foreground', foregroundHSL);
+          storefrontContainer.style.setProperty('--card', backgroundHSL);
+          storefrontContainer.style.setProperty('--card-foreground', foregroundHSL);
+          storefrontContainer.style.setProperty('--popover', backgroundHSL);
+          storefrontContainer.style.setProperty('--popover-foreground', foregroundHSL);
+          storefrontContainer.style.setProperty('--muted', secondaryHSL);
+          storefrontContainer.style.setProperty('--muted-foreground', '0 0% 45%');
+          storefrontContainer.style.setProperty('--border', `${primaryHSL.split(' ')[0]} 30% 80%`);
+          storefrontContainer.style.setProperty('--input', `${primaryHSL.split(' ')[0]} 30% 80%`);
+          storefrontContainer.style.setProperty('--ring', primaryHSL);
+
+          console.log('✅ Storefront theme applied:', storefrontTheme);
+        };
+
+        applyToContainer();
+      } catch (error) {
+        console.error('Error applying storefront theme:', error);
+      }
+    };
+
+    applyStorefrontTheme();
+  }, [storefrontTheme]);
 
   // Sample products as fallback
   const sampleProducts = [
@@ -172,24 +410,14 @@ const ClientStorefront = () => {
     const existingItem = cart.find((item) => (item._id || item.id) === productId);
     if (existingItem) {
       if (existingItem.quantity < availableStock) {
-      updateCartQty(productId, existingItem.quantity + 1);
-        toast({
-          title: "Updated cart",
-          description: `${product.name} quantity increased`,
-        });
+        updateCartQty(productId, existingItem.quantity + 1);
+        toast.success(`${product.name} quantity increased`);
       } else {
-        toast({
-          title: "Stock limit reached",
-          description: `Only ${availableStock} available`,
-          variant: "destructive",
-        });
+        toast.error(`Stock limit reached: Only ${availableStock} available`);
       }
     } else {
       addCartItem({ ...product, _id: productId, id: productId, stock: availableStock, stockQuantity: availableStock }, 1);
-      toast({
-        title: "Added to cart! 🛍️",
-        description: `${product.name} added to your cart`,
-      });
+      toast.success(`🛍️ ${product.name} added to cart!`);
     }
   };
 
@@ -227,16 +455,30 @@ const ClientStorefront = () => {
     }
   };
 
-  // totals now from context
+  // Wishlist functions
+  const toggleWishlist = (product) => {
+    const productId = product._id || product.id;
+    const isInWishlist = wishlist.some(item => (item._id || item.id) === productId);
+    
+    if (isInWishlist) {
+      setWishlist(wishlist.filter(item => (item._id || item.id) !== productId));
+      toast.info(`${product.name} removed from wishlist`);
+    } else {
+      setWishlist([...wishlist, product]);
+      toast.success(`❤️ ${product.name} added to wishlist`);
+    }
+  };
+
+  const isInWishlist = (productId) => {
+    return wishlist.some(item => (item._id || item.id) === productId);
+  };
 
   const handleCheckout = () => {
     setShowCheckout(true);
   };
 
-  // clear via context
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/10 to-background smooth-scroll">
+    <div className="storefront-container min-h-screen bg-gradient-to-br from-background via-secondary/10 to-background smooth-scroll">
       {/* Header */}
       <header className="sticky top-0 z-40 glass-panel">
         <div className="container mx-auto px-4 py-4">
@@ -259,10 +501,38 @@ const ClientStorefront = () => {
               >
                 <History className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={handleUserAccount}
+                title="My Account"
+              >
                 <User className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Sheet open={showThemeSelector} onOpenChange={setShowThemeSelector}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" title="Change Theme">
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Theme Settings</SheetTitle>
+                    <SheetDescription>
+                      Choose your preferred theme
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-6 space-y-4">
+                    <ThemeSelector onThemeChange={handleThemeChange} currentTheme={storefrontTheme} />
+                  </div>
+                </SheetContent>
+              </Sheet>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={handleLogout}
+                title={user ? "Logout" : "Login"}
+              >
                 <LogOut className="h-5 w-5" />
               </Button>
             </div>
@@ -272,9 +542,23 @@ const ClientStorefront = () => {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-            <TabsTrigger value="shop">Shop</TabsTrigger>
-            <TabsTrigger value="orders">Order History</TabsTrigger>
+          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4">
+            <TabsTrigger value="shop" className="gap-1">
+              <ShoppingCart className="h-4 w-4" />
+              <span className="hidden sm:inline">Shop</span>
+            </TabsTrigger>
+            <TabsTrigger value="services" className="gap-1">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Services</span>
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="gap-1">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Orders</span>
+            </TabsTrigger>
+            <TabsTrigger value="account" className="gap-1">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Account</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="shop" className="space-y-6">
@@ -423,38 +707,86 @@ const ClientStorefront = () => {
                   {filteredProducts.map((product) => (
                     <Card 
                       key={product._id || product.id} 
-                      className="group glass-card cursor-pointer"
+                      className="group glass-card cursor-pointer relative overflow-hidden hover:shadow-xl transition-all duration-300"
                       onClick={() => setSelectedProduct(product)}
                     >
+                      {/* Wishlist Button */}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute top-2 right-2 z-10 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleWishlist(product);
+                        }}
+                      >
+                        <Heart 
+                          className={`h-4 w-4 transition-all ${
+                            isInWishlist(product._id || product.id) 
+                              ? "fill-red-500 text-red-500" 
+                              : "text-muted-foreground"
+                          }`} 
+                        />
+                      </Button>
+
                       <CardHeader className="p-0">
-                        <div className="aspect-square bg-gradient-to-br from-secondary/30 to-primary/10 rounded-t-lg flex items-center justify-center overflow-hidden">
+                        <div className="aspect-square bg-gradient-to-br from-secondary/30 to-primary/10 rounded-t-lg flex items-center justify-center overflow-hidden relative group-hover:scale-105 transition-transform duration-300">
                           {product.image ? (
                             <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                           ) : (
                             <Package className="h-20 w-20 text-primary/40 product-card-image" />
                           )}
+                          
+                          {/* Stock Badge Overlay */}
+                          <div className="absolute bottom-2 left-2">
+                            <Badge variant={(product.stockQuantity || product.stock) > 10 ? "default" : (product.stockQuantity || product.stock) === 0 ? "destructive" : "secondary"} className="shadow-lg">
+                              {(product.stockQuantity || product.stock) === 0 ? "Out of Stock" : `${product.stockQuantity || product.stock} left`}
+                            </Badge>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <CardTitle className="text-base line-clamp-1">{product.name}</CardTitle>
-                          <Badge variant={(product.stockQuantity || product.stock) > 10 ? "default" : "secondary"} className="shrink-0">
-                            {product.stockQuantity || product.stock} left
-                          </Badge>
+                        <div className="mb-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <CardTitle className="text-base line-clamp-1 flex-1">{product.name}</CardTitle>
+                          </div>
+                          
+                          {/* Rating Stars */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-0.5">
+                              {[...Array(5)].map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  className={`h-3 w-3 ${
+                                    i < Math.floor(product.rating || 4.5) 
+                                      ? "fill-yellow-500 text-yellow-500" 
+                                      : "text-muted-foreground"
+                                  }`} 
+                                />
+                              ))}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {product.rating || 4.5}
+                            </span>
+                          </div>
                         </div>
+                        
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                           {product.description}
                         </p>
+                        
                         <div className="flex items-center justify-between">
-                          <span className="text-lg font-bold text-primary">
-                            KES {product.price.toFixed(2)}
-                          </span>
-                          <Badge variant="outline">{product.category}</Badge>
+                          <div>
+                            <span className="text-lg font-bold text-primary">
+                              KES {product.price.toFixed(2)}
+                            </span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">{product.category}</Badge>
                         </div>
                       </CardContent>
-                      <CardFooter className="p-4 pt-0">
+                      <CardFooter className="p-4 pt-0 gap-2">
                         <Button
-                          className="w-full gap-2"
+                          className="flex-1 gap-2"
                           onClick={(e) => {
                             e.stopPropagation();
                             addToCart(product);
@@ -463,6 +795,16 @@ const ClientStorefront = () => {
                         >
                           <ShoppingCart className="h-4 w-4" />
                           {(product.stockQuantity || product.stock) === 0 ? "Out of Stock" : "Add to Cart"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedProduct(product);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
                         </Button>
                       </CardFooter>
                     </Card>
@@ -482,8 +824,280 @@ const ClientStorefront = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="services" className="space-y-6">
+            {/* Services & Appointments Section */}
+            <div className="space-y-4">
+              {/* Location Selector */}
+              {locations.length > 0 && (
+                <Card className="glass-card">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      <div className="flex-1">
+                        <Label>Select Location</Label>
+                        <Select
+                          value={selectedLocation?._id || selectedLocation?.id}
+                          onValueChange={(value) => {
+                            const location = locations.find(l => (l._id || l.id) === value);
+                            setSelectedLocation(location);
+                          }}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Choose a location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {locations.map((loc) => (
+                              <SelectItem key={loc._id || loc.id} value={loc._id || loc.id}>
+                                <div className="flex items-center gap-2">
+                                  <Building className="h-4 w-4" />
+                                  {loc.name} - {loc.city}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    {selectedLocation && (
+                      <div className="mt-3 p-3 bg-accent/20 rounded-lg">
+                        <p className="text-sm font-medium">{selectedLocation.name}</p>
+                        <p className="text-xs text-muted-foreground">{selectedLocation.address}, {selectedLocation.city}</p>
+                        {selectedLocation.phone && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                            <Phone className="h-3 w-3" /> {selectedLocation.phone}
+                          </p>
+                        )}
+                        {selectedLocation.operatingHours && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> {selectedLocation.operatingHours}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Available Services */}
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Our Services</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {services.map((service) => (
+                    <Card key={service.id} className="glass-card hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <CardTitle className="text-lg">{service.name}</CardTitle>
+                        <CardDescription className="flex items-center gap-2 justify-between">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {service.duration}
+                          </span>
+                          <Badge variant="secondary" className="gap-1">
+                            <UsersIcon className="h-3 w-3" />
+                            {service.staff || teamMembers.length} staff
+                          </Badge>
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-2xl font-bold text-primary">
+                            KES {service.price.toLocaleString()}
+                          </span>
+                          <div className="flex items-center gap-1 text-yellow-500">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className="h-4 w-4 fill-current" />
+                            ))}
+                          </div>
+                        </div>
+                        <Button
+                          className="w-full"
+                          onClick={() => {
+                            // Navigate to booking with pre-selected service
+                            setActiveTab('account');
+                            toast.success(`Selected: ${service.name}. Complete booking in Account tab.`);
+                          }}
+                        >
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Book Now
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Team Members Available */}
+              {teamMembers.length > 0 && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <UsersIcon className="h-5 w-5" />
+                    Our Team
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {teamMembers.slice(0, 8).map((member) => (
+                      <Card key={member._id || member.id} className="text-center glass-card">
+                        <CardContent className="p-4">
+                          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-accent mx-auto mb-3 flex items-center justify-center">
+                            <User className="h-8 w-8 text-primary-foreground" />
+                          </div>
+                          <p className="font-medium text-sm">{member.name}</p>
+                          <p className="text-xs text-muted-foreground">{member.role}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
           <TabsContent value="orders">
             <OrderHistory />
+          </TabsContent>
+
+          <TabsContent value="account" className="space-y-6">
+            {/* User Account Section */}
+            <div className="max-w-3xl mx-auto space-y-6">
+              {/* Profile Header */}
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    My Account
+                  </CardTitle>
+                  <CardDescription>Manage your profile and preferences</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                      <User className="h-10 w-10 text-primary-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">{user?.name || 'Guest User'}</h3>
+                      <p className="text-sm text-muted-foreground">{user?.email || 'Not logged in'}</p>
+                      <Badge className="mt-1">{user ? 'Premium Member' : 'Guest'}</Badge>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        if (user) {
+                          toast.info('Profile editing coming soon!');
+                        } else {
+                          toast.info('Please login to edit profile');
+                          navigate('/login');
+                        }
+                      }}
+                    >
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="glass-card">
+                  <CardContent className="p-4 text-center">
+                    <ShoppingCart className="h-8 w-8 mx-auto mb-2 text-primary" />
+                    <p className="text-2xl font-bold">{cart.length}</p>
+                    <p className="text-xs text-muted-foreground">Cart Items</p>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card">
+                  <CardContent className="p-4 text-center">
+                    <Heart className="h-8 w-8 mx-auto mb-2 text-red-500" />
+                    <p className="text-2xl font-bold">{wishlist.length}</p>
+                    <p className="text-xs text-muted-foreground">Wishlist</p>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card">
+                  <CardContent className="p-4 text-center">
+                    <History className="h-8 w-8 mx-auto mb-2 text-accent" />
+                    <p className="text-2xl font-bold">12</p>
+                    <p className="text-xs text-muted-foreground">Orders</p>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card">
+                  <CardContent className="p-4 text-center">
+                    <Calendar className="h-8 w-8 mx-auto mb-2 text-success" />
+                    <p className="text-2xl font-bold">3</p>
+                    <p className="text-xs text-muted-foreground">Appointments</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Account Settings */}
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Account Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start gap-2"
+                    onClick={() => toast.info('Notification preferences coming soon!')}
+                  >
+                    <Bell className="h-4 w-4" />
+                    Notification Preferences
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start gap-2"
+                    onClick={() => toast.info('Payment methods coming soon!')}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Payment Methods
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start gap-2"
+                    onClick={() => toast.info('Address management coming soon!')}
+                  >
+                    <MapPin className="h-4 w-4" />
+                    Saved Addresses
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start gap-2"
+                    onClick={() => toast.info('Privacy settings coming soon!')}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Privacy & Security
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start gap-2"
+                    onClick={() => {
+                      toast.info('Opening support chat...');
+                      // Could open LiveChatWidget here
+                    }}
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Contact Support
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Book Appointment Component */}
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Book an Appointment
+                  </CardTitle>
+                  <CardDescription>Schedule a service at your preferred location</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AppointmentBooking onSuccess={() => {
+                    toast.success("Appointment Booked! You'll receive a confirmation email shortly.");
+                  }} />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

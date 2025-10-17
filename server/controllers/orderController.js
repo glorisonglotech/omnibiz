@@ -48,10 +48,23 @@ exports.createOrder = asyncHandler(async (req, res) => {
     await order.save();
     console.log('Order saved successfully:', order._id);
 
-    // If order status is Paid, create a transaction
+    // If order status is Paid, create a transaction and update stock
     if (order.status === 'Paid' || order.paymentStatus === 'Paid') {
       console.log('Creating transaction for paid order:', order._id);
       await createTransactionFromOrder(order._id, userId);
+      
+      // Update inventory stock
+      const stockUpdateResult = await updateStockAfterOrder(order._id);
+      if (stockUpdateResult.success) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Inventory updated:', stockUpdateResult.updates?.length || 0, 'products affected');
+          if (stockUpdateResult.alerts?.length > 0) {
+            console.log('⚠️  Stock alerts:', stockUpdateResult.alerts.map(a => `${a.type}: ${a.product.name}`).join(', '));
+          }
+        }
+      } else {
+        console.error('❌ Stock update failed:', stockUpdateResult.error);
+      }
     }
 
     res.status(201).json(order);
@@ -136,13 +149,23 @@ exports.updateOrder = async (req, res) => {
       return res.status(404).json({ error: "Order not found or not authorized to edit" });
     }
 
-    // If payment status changed to Paid, create a transaction
+    // If payment status changed to Paid, create a transaction and update stock
     const wasNotPaid = oldOrder.status !== 'Paid' && oldOrder.paymentStatus !== 'Paid';
     const isNowPaid = order.status === 'Paid' || order.paymentStatus === 'Paid';
 
     if (wasNotPaid && isNowPaid) {
       console.log('Order payment status changed to paid, creating transaction:', order._id);
       await createTransactionFromOrder(order._id, userId);
+      
+      // Update inventory stock
+      const stockUpdateResult = await updateStockAfterOrder(order._id);
+      if (stockUpdateResult.success) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Inventory updated for order status change:', stockUpdateResult.updates?.length || 0, 'products');
+        }
+      } else {
+        console.error('❌ Stock update failed:', stockUpdateResult.error);
+      }
     }
 
     res.json(order);

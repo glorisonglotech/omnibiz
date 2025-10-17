@@ -47,7 +47,6 @@ import { Toaster } from "@/components/ui/sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import PWAUpdateNotification from "@/components/PWAUpdateNotification";
-import FloatingAI from "@/components/FloatingAI";
 import ClientSignup from "@/pages/client/ClientSignup";
 import ClientStorefront from "@/pages/client/ClientStorefront";
 import Store from "@/pages/Store";
@@ -175,7 +174,6 @@ function App() {
                   </Routes>
                   <PWAInstallPrompt />
                   <PWAUpdateNotification />
-                  <FloatingAI />
                   <Toaster position="top-right" richColors />
                 </BrowserRouter>
                 </CartProvider>

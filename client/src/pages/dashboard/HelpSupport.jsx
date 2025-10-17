@@ -684,7 +684,7 @@ const HelpSupport = () => {
                       </div>
                     </div>
                     <div className="mt-2">
-                      {agent.specialties.map(specialty => (
+                      {agent.specialties && Array.isArray(agent.specialties) && agent.specialties.map(specialty => (
                         <Badge key={specialty} variant="secondary" className="text-xs mr-1 mb-1">
                           {specialty}
                         </Badge>

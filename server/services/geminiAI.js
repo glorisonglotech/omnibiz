@@ -3,6 +3,10 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 class GeminiAIService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
+    this.model_name = process.env.GEMINI_MODEL || 'gemini-pro';
+    this.visionModel = process.env.GEMINI_VISION_MODEL || 'gemini-pro-vision';
+    this.maxTokens = parseInt(process.env.GEMINI_MAX_TOKENS) || 2048;
+    this.temperature = parseFloat(process.env.GEMINI_TEMPERATURE) || 0.7;
     this.initialized = false;
     this.genAI = null;
     this.model = null;
@@ -10,9 +14,23 @@ class GeminiAIService {
     if (this.apiKey) {
       try {
         this.genAI = new GoogleGenerativeAI(this.apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+        this.model = this.genAI.getGenerativeModel({ 
+          model: this.model_name,
+          generationConfig: {
+            temperature: this.temperature,
+            maxOutputTokens: this.maxTokens,
+          }
+        });
         this.initialized = true;
-        console.log('✅ Gemini AI service initialized');
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Gemini AI service initialized');
+          console.log('   Model:', this.model_name);
+          console.log('   Temperature:', this.temperature);
+          console.log('   Max Tokens:', this.maxTokens);
+        } else {
+          console.log('✅ Gemini AI service initialized');
+        }
       } catch (error) {
         console.error('❌ Gemini AI initialization error:', error.message);
       }

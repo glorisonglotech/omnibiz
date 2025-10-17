@@ -17,8 +17,8 @@ exports.getInventorySummary = async (req, res) => {
 
     // Calculate inventory metrics
     const totalProducts = products.length;
-    const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
-    const lowStockProducts = products.filter(p => (p.stock || 0) < (p.lowStockThreshold || 10));
+    const totalStock = products.reduce((sum, p) => sum + (p.stockQuantity || 0), 0);
+    const lowStockProducts = products.filter(p => (p.stockQuantity || 0) <= (p.reorderLevel || 5));
 
     // Calculate sold quantities from orders
     const productSales = {};
@@ -54,15 +54,17 @@ exports.getInventorySummary = async (req, res) => {
         name: product.name,
         sku: product.sku,
         category: product.category,
-        stock: product.stock || 0,
+        stockQuantity: product.stockQuantity || 0,
+        reorderLevel: product.reorderLevel || 5,
         price: product.price,
+        status: product.status,
         totalSold: salesData.totalSold,
         totalRevenue: salesData.totalRevenue,
         orderCount: salesData.orderCount,
-        stockStatus: (product.stock || 0) === 0 ? 'out_of_stock' :
-                     (product.stock || 0) < (product.lowStockThreshold || 10) ? 'low_stock' : 'in_stock',
-        reorderNeeded: (product.stock || 0) < (product.lowStockThreshold || 10),
-        turnoverRate: (product.stock || 0) > 0 ? (salesData.totalSold / (product.stock || 0)) : 0
+        stockStatus: (product.stockQuantity || 0) === 0 ? 'out_of_stock' :
+                     (product.stockQuantity || 0) <= (product.reorderLevel || 5) ? 'low_stock' : 'in_stock',
+        reorderNeeded: (product.stockQuantity || 0) <= (product.reorderLevel || 5),
+        turnoverRate: (product.stockQuantity || 0) > 0 ? (salesData.totalSold / (product.stockQuantity || 0)) : 0
       };
     });
 
@@ -80,7 +82,7 @@ exports.getInventorySummary = async (req, res) => {
         totalProducts,
         totalStock,
         lowStockCount: lowStockProducts.length,
-        outOfStockCount: enrichedProducts.filter(p => p.stock === 0).length,
+        outOfStockCount: enrichedProducts.filter(p => p.stockQuantity === 0).length,
         totalProductsSold: Object.values(productSales).reduce((sum, p) => sum + p.totalSold, 0),
         totalRevenue: Object.values(productSales).reduce((sum, p) => sum + p.totalRevenue, 0)
       },
@@ -88,7 +90,7 @@ exports.getInventorySummary = async (req, res) => {
       topSelling,
       topRevenue,
       lowStockProducts: enrichedProducts.filter(p => p.reorderNeeded),
-      outOfStockProducts: enrichedProducts.filter(p => p.stock === 0)
+      outOfStockProducts: enrichedProducts.filter(p => p.stockQuantity === 0)
     };
 
     res.json(summary);
@@ -98,7 +100,19 @@ exports.getInventorySummary = async (req, res) => {
   }
 };
 
-// @desc    Update stock after order
+// Helper: Update product status based on stock
+const updateProductStatus = (product) => {
+  if (product.stockQuantity === 0) {
+    product.status = "Out of Stock";
+  } else if (product.stockQuantity <= product.reorderLevel) {
+    product.status = "Low Stock";
+  } else {
+    product.status = "In Stock";
+  }
+  return product;
+};
+
+// @desc    Update stock after order (called internally)
 // @route   POST /api/inventory/update-stock
 // @access  Private
 exports.updateStockAfterOrder = async (orderId) => {
@@ -110,42 +124,66 @@ exports.updateStockAfterOrder = async (orderId) => {
     }
 
     const updates = [];
+    const stockAlerts = [];
 
     for (const item of order.items) {
       if (item.productId) {
         const product = await Product.findById(item.productId);
         
         if (product) {
-          const newStock = Math.max(0, (product.stock || 0) - (item.quantity || 0));
-          product.stock = newStock;
+          const oldStock = product.stockQuantity || 0;
+          const quantitySold = item.quantity || 0;
+          const newStock = Math.max(0, oldStock - quantitySold);
+          
+          product.stockQuantity = newStock;
+          updateProductStatus(product);
           await product.save();
 
           updates.push({
             productId: product._id,
             productName: product.name,
-            oldStock: (product.stock || 0) + (item.quantity || 0),
+            sku: product.sku,
+            oldStock,
             newStock,
-            quantitySold: item.quantity
+            quantitySold,
+            status: product.status
           });
 
-          // Emit Socket.IO event for low stock
-          if (newStock < (product.lowStockThreshold || 10)) {
-            try {
-              const io = getIO();
-              io.to(`user_${order.userId}`).emit('low_stock_alert', {
-                product: {
-                  id: product._id,
-                  name: product.name,
-                  stock: newStock,
-                  threshold: product.lowStockThreshold || 10
-                },
-                timestamp: new Date()
-              });
-            } catch (socketError) {
-              console.error('Socket.IO error:', socketError);
-            }
+          // Track alerts
+          if (newStock === 0) {
+            stockAlerts.push({ type: 'out_of_stock', product });
+          } else if (newStock <= product.reorderLevel) {
+            stockAlerts.push({ type: 'low_stock', product });
+          }
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`📦 Stock Updated: ${product.name} | ${oldStock} → ${newStock} | Status: ${product.status}`);
           }
         }
+      }
+    }
+
+    // Emit Socket.IO events for stock alerts
+    if (stockAlerts.length > 0) {
+      try {
+        const io = getIO();
+        stockAlerts.forEach(alert => {
+          io.to(`user_${order.userId}`).emit('stock_alert', {
+            alertType: alert.type,
+            product: {
+              id: alert.product._id,
+              name: alert.product.name,
+              sku: alert.product.sku,
+              stockQuantity: alert.product.stockQuantity,
+              reorderLevel: alert.product.reorderLevel,
+              status: alert.product.status
+            },
+            orderId: order._id,
+            timestamp: new Date()
+          });
+        });
+      } catch (socketError) {
+        console.error('Socket.IO error:', socketError);
       }
     }
 
@@ -161,7 +199,7 @@ exports.updateStockAfterOrder = async (orderId) => {
       console.error('Socket.IO error:', socketError);
     }
 
-    return { success: true, updates };
+    return { success: true, updates, alerts: stockAlerts };
   } catch (error) {
     console.error('Error updating stock:', error);
     return { success: false, error: error.message };
@@ -234,8 +272,9 @@ exports.restockProduct = async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    const oldStock = product.stock || 0;
-    product.stock = oldStock + quantity;
+    const oldStock = product.stockQuantity || 0;
+    product.stockQuantity = oldStock + quantity;
+    updateProductStatus(product);
     await product.save();
 
     // Emit Socket.IO event

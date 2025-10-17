@@ -9,34 +9,106 @@ const { getIO } = require('../config/socket');
 // @access  Private
 exports.chat = async (req, res) => {
   try {
-    const { message, context } = req.body;
+    const { message, context, systemPrompt, history, dashboardType } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Build context
+    // Check if Gemini AI is initialized
+    if (!geminiAI || !geminiAI.initialized) {
+      console.error('❌ Gemini AI not initialized. Check GEMINI_API_KEY in .env');
+      return res.status(503).json({ 
+        error: 'AI service not available. Please contact administrator.',
+        details: 'Gemini AI not initialized'
+      });
+    }
+
+    // Build enriched context based on dashboard type
     const aiContext = {
-      businessName: req.user.businessName,
-      userName: req.user.name,
-      userRole: req.user.role,
+      businessName: req.user?.businessName || 'Business',
+      userName: req.user?.name || 'User',
+      userRole: req.user?.role || 'user',
+      userId: req.user?._id,
+      dashboardType: dashboardType || context?.dashboardType || 'general',
       ...context
     };
 
-    const result = await geminiAI.generateResponse(message, aiContext);
+    // Dashboard-specific system prompts
+    let enhancedPrompt = systemPrompt;
+    if (!enhancedPrompt && dashboardType) {
+      if (dashboardType === 'admin' || dashboardType === 'main') {
+        enhancedPrompt = `You are an AI assistant for a business owner/administrator using the OmniBiz platform.
+        
+User: ${aiContext.userName} (${aiContext.userRole})
+        Business: ${aiContext.businessName}
+        
+Provide insights about:
+        - Business analytics and performance
+        - Inventory management
+        - Sales trends and revenue
+        - Team management
+        - Customer analytics
+        - Financial reports
+        
+Be professional, data-driven, and actionable in your responses.`;
+      } else if (dashboardType === 'storefront' || dashboardType === 'client') {
+        enhancedPrompt = `You are an AI shopping assistant for customers using the ${aiContext.businessName} online store.
+        
+Help customers with:
+        - Product recommendations
+        - Order tracking
+        - Appointment booking
+        - Product information
+        - Shopping assistance
+        - Customer service
+        
+Be friendly, helpful, and customer-focused in your responses.`;
+      }
+    }
+
+    // Build final prompt
+    let promptToUse = message;
+    if (enhancedPrompt) {
+      promptToUse = `${enhancedPrompt}\n\nUser Question: ${message}`;
+      
+      // Add conversation history context if available
+      if (history && Array.isArray(history) && history.length > 0) {
+        const historyContext = history.slice(-5).map(h => 
+          `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`
+        ).join('\n');
+        promptToUse = `${enhancedPrompt}\n\nRecent Conversation:\n${historyContext}\n\nUser Question: ${message}`;
+      }
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🤖 AI Request:', {
+        dashboard: dashboardType,
+        user: aiContext.userName,
+        role: aiContext.userRole,
+        messageLength: message.length
+      });
+    }
+
+    const result = await geminiAI.generateResponse(promptToUse, aiContext);
 
     if (!result.success) {
-      return res.status(500).json({ error: result.error });
+      console.error('❌ AI generation failed:', result.error);
+      return res.status(500).json({ error: result.error || 'AI response generation failed' });
     }
 
     res.json({
       response: result.response,
       model: result.model,
+      dashboardType: aiContext.dashboardType,
       timestamp: new Date()
     });
   } catch (error) {
-    console.error('AI chat error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ AI chat error:', error);
+    res.status(500).json({ 
+      error: error.message || 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 

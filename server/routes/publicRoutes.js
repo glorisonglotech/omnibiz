@@ -3,6 +3,7 @@ const router = express.Router();
 const Order = require('../models/order');
 const Appointment = require('../models/appointment');
 const User = require('../models/user');
+const Product = require('../models/product');
 const { notificationHelpers, getIO } = require('../config/socket');
 const { emailService } = require('../config/email');
 const { notificationService } = require('../services/notificationService');
@@ -13,6 +14,36 @@ async function findOwnerByInviteCode(inviteCode) {
   const owner = await User.findOne({ inviteCode }).select('_id name email assignedAdmin role');
   return owner || null;
 }
+
+// GET /api/public/products - Get public products for storefront
+router.get('/products', async (req, res) => {
+  try {
+    const { inviteCode } = req.query;
+    
+    // If inviteCode is provided, get products for that specific user/store
+    if (inviteCode) {
+      const owner = await findOwnerByInviteCode(inviteCode);
+      if (!owner) {
+        return res.status(400).json({ message: 'Invalid inviteCode' });
+      }
+      const products = await Product.find({ userId: owner._id, isActive: true })
+        .select('name description price category stockQuantity image rating')
+        .sort({ createdAt: -1 });
+      return res.json(products);
+    }
+    
+    // Otherwise, return all active products (for general browsing)
+    const products = await Product.find({ isActive: true })
+      .select('name description price category stockQuantity image rating')
+      .sort({ createdAt: -1 })
+      .limit(100);
+    
+    res.json(products);
+  } catch (error) {
+    console.error('Public products error:', error);
+    res.status(500).json({ message: error.message || 'Failed to fetch products' });
+  }
+});
 
 // POST /api/public/orders - Guest order creation (storefront)
 router.post('/orders', async (req, res) => {

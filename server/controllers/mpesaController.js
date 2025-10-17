@@ -1,6 +1,10 @@
 require('dotenv').config();
 const axios = require('axios');
 const Transaction = require('../models/mpesaModel');
+const Wallet = require('../models/wallet');
+const FinancialTransaction = require('../models/transaction');
+const User = require('../models/user');
+const { getIO } = require('../config/socket');
 
 const {
   SAFARICOM_CONSUMER_KEY,
@@ -50,8 +54,15 @@ exports.initiateSTKPush = async (req, res) => {
       return res.status(400).json({ error: "Phone, amount, accountReference, and transactionDesc are required." });
     }
 
-    const sanitizedPhone = normalizePhone(phone);
-    console.log('Sanitized Phone:', sanitizedPhone);
+    // Get user details for real data
+    const user = await User.findById(owner);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Use user's phone if not provided, otherwise sanitize provided phone
+    const userPhone = user.phone || phone;
+    const sanitizedPhone = normalizePhone(userPhone);
+    console.log('Real User Phone:', sanitizedPhone);
+    console.log('User:', user.name, user.email);
 
     const token = await getAccessToken();
     const timestamp = new Date().toISOString().replace(/[-T:\.Z]/g, '').slice(0, 14);
@@ -109,7 +120,21 @@ exports.initiateSTKPush = async (req, res) => {
       status: 'Pending',
     });
 
-    res.status(200).json({ message: 'STK Push initiated', data: tx });
+    // Emit real-time notification
+    const io = getIO();
+    io.to(`user_${owner}`).emit('mpesa_initiated', {
+      phone: sanitizedPhone,
+      amount,
+      checkoutRequestID: response?.data?.CheckoutRequestID,
+      message: 'Check your phone for the M-Pesa prompt'
+    });
+
+    res.status(200).json({ 
+      message: 'STK Push initiated successfully. Check your phone for the M-Pesa prompt.', 
+      data: tx,
+      userPhone: sanitizedPhone,
+      userName: user.name
+    });
   } catch (err) {
     console.error("STK Push error:", err.response?.data || err.message);
     res.status(500).json({ error: "Error initiating STK Push: " + err.message });
@@ -124,10 +149,18 @@ exports.handleCallback = async (req, res) => {
     if (!callback) return res.status(400).json({ error: "Invalid callback data." });
 
     let mpesaReceiptNumber = null;
+    let phoneNumber = null;
+    let amount = null;
     const metadata = callback.CallbackMetadata?.Item;
+    
     if (metadata) {
-      const item = metadata.find(i => i.Name === "MpesaReceiptNumber");
-      mpesaReceiptNumber = item ? item.Value : null;
+      const receiptItem = metadata.find(i => i.Name === "MpesaReceiptNumber");
+      const phoneItem = metadata.find(i => i.Name === "PhoneNumber");
+      const amountItem = metadata.find(i => i.Name === "Amount");
+      
+      mpesaReceiptNumber = receiptItem ? receiptItem.Value : null;
+      phoneNumber = phoneItem ? phoneItem.Value : null;
+      amount = amountItem ? amountItem.Value : null;
     }
 
     const tx = await Transaction.findOneAndUpdate(
@@ -141,6 +174,54 @@ exports.handleCallback = async (req, res) => {
       },
       { new: true }
     );
+
+    // If payment successful, credit the user's wallet
+    if (callback.ResultCode === 0 && tx) {
+      try {
+        // Get or create wallet
+        let wallet = await Wallet.findOne({ userId: tx.owner });
+        if (!wallet) {
+          wallet = await Wallet.create({ userId: tx.owner });
+        }
+        
+        // Credit wallet
+        await wallet.credit(amount || tx.amount, 'mpesa');
+        
+        // Create financial transaction record
+        const financialTx = await FinancialTransaction.create({
+          userId: tx.owner,
+          description: `M-Pesa payment - ${mpesaReceiptNumber || 'N/A'}`,
+          amount: amount || tx.amount,
+          type: 'income',
+          category: 'mpesa_payment',
+          status: 'completed',
+          reference: mpesaReceiptNumber,
+          notes: `M-Pesa STK Push payment. Phone: ${phoneNumber || tx.phone}`
+        });
+        
+        // Emit real-time event
+        const io = getIO();
+        io.to(`user_${tx.owner}`).emit('payment_success', {
+          type: 'mpesa',
+          amount: amount || tx.amount,
+          receipt: mpesaReceiptNumber,
+          balance: wallet.balance,
+          transaction: financialTx
+        });
+        
+        console.log('✅ M-Pesa payment successful. Wallet credited:', wallet.balance);
+      } catch (walletError) {
+        console.error('❌ Error crediting wallet:', walletError);
+      }
+    } else if (callback.ResultCode !== 0 && tx) {
+      // Payment failed - emit event
+      const io = getIO();
+      io.to(`user_${tx.owner}`).emit('payment_failed', {
+        type: 'mpesa',
+        reason: callback.ResultDesc,
+        amount: amount || tx.amount
+      });
+    }
 
     res.status(200).json({ ResponseCode: "0", ResponseDesc: "Callback processed successfully" });
   } catch (err) {

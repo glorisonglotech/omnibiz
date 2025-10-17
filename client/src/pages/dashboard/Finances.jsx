@@ -53,6 +53,7 @@ import { useFinancial } from "@/context/FinancialContext";
 import PaymentOptions from "@/components/payments/PaymentOptions";
 import MpesaPayment from "@/components/payments/MpesaPayment";
 import PayPalPayment from "@/components/payments/PayPalPayment";
+import WalletDashboard from "@/components/wallet/WalletDashboard";
 
 const Finances = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -384,7 +385,7 @@ const Finances = () => {
             Financial Management
           </h1>
           <p className="text-muted-foreground">
-            Track income, expenses, and manage invoices
+            Track wallet, payments, income, expenses, and manage invoices
           </p>
         </div>
         <div className="flex gap-2">
@@ -537,6 +538,9 @@ const Finances = () => {
           </Dialog>
         </div>
       </div>
+
+      {/* Wallet Dashboard - New Enhanced Section */}
+      <WalletDashboard onBalanceUpdate={refreshFinancialData} />
 
       {/* Financial Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

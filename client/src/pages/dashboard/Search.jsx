@@ -245,11 +245,11 @@ const Search = () => {
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <h3 className="font-semibold text-sm mb-1">
-              {item.name || item.client || item.customer || `${type.toUpperCase()} #${item.id}`}
+              {item.name || item.client || item.customer?.name || item.customer?.email || `${type.toUpperCase()} #${item.id}`}
             </h3>
             <p className="text-xs text-muted-foreground mb-2">
               {type === 'products' && `${item.category} • $${item.price} • Stock: ${item.stock}`}
-              {type === 'orders' && `${item.customer} • $${item.total} • ${item.status}`}
+              {type === 'orders' && `${item.customer?.name || item.customer?.email || 'Unknown'} • $${item.total} • ${item.status}`}
               {type === 'customers' && `${item.email} • ${item.orders} orders • $${item.totalSpent}`}
               {type === 'transactions' && `${item.type} • $${Math.abs(item.amount)} • ${item.description}`}
               {type === 'locations' && `${item.address}, ${item.city} • ${item.status}`}

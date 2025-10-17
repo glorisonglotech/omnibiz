@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   TrendingUp,
   TrendingDown,
@@ -16,15 +17,23 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle,
-  Activity
+  Activity,
+  Zap,
+  Clock,
+  Target,
+  BarChart3,
+  ArrowUpRight,
+  Sparkles
 } from "lucide-react";
 import { useAuth } from '@/context/AuthContext'
-import { clientAPI } from '@/lib/api'; // Import clientAPI for dashboard stats
+import { clientAPI } from '@/lib/api';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import io from 'socket.io-client';
 
 const Dashboard = () => {
-  const { user } = useAuth(); // Get the logged-in user from AuthContext
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState({
     stats: [],
@@ -36,6 +45,8 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [realTimeStats, setRealTimeStats] = useState({ newOrders: 0, newAppointments: 0, lowStockAlerts: 0 });
+  const [animateStats, setAnimateStats] = useState(false);
 
   // Fetch dashboard data when component mounts or user changes
   const fetchDashboardData = async (showToast = false) => {
@@ -85,16 +96,57 @@ const Dashboard = () => {
     }
   };
   
+  // Socket.IO for real-time updates
+  useEffect(() => {
+    if (!user) return;
+
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+      auth: { token: localStorage.getItem('token') },
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('✅ Dashboard connected to real-time updates');
+    });
+
+    // Real-time order updates
+    socket.on('newOrder', (data) => {
+      setRealTimeStats(prev => ({ ...prev, newOrders: prev.newOrders + 1 }));
+      setAnimateStats(true);
+      setTimeout(() => setAnimateStats(false), 1000);
+      toast.success(`New order: ${data.orderId}`, { icon: '🛒' });
+      fetchDashboardData(); // Refresh data
+    });
+
+    // Real-time appointment updates
+    socket.on('newAppointment', (data) => {
+      setRealTimeStats(prev => ({ ...prev, newAppointments: prev.newAppointments + 1 }));
+      toast.success(`New appointment booked`, { icon: '📅' });
+      fetchDashboardData();
+    });
+
+    // Real-time inventory alerts
+    socket.on('lowStockAlert', (data) => {
+      setRealTimeStats(prev => ({ ...prev, lowStockAlerts: prev.lowStockAlerts + 1 }));
+      toast.warning(`Low stock: ${data.productName}`, { icon: '⚠️' });
+      fetchDashboardData();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
+
   useEffect(() => {
     fetchDashboardData();
     
-    // Auto-refresh every 5 minutes
+    // Auto-refresh every 3 minutes
     const interval = setInterval(() => {
       fetchDashboardData();
-    }, 300000);
+    }, 180000);
     
     return () => clearInterval(interval);
-  }, [user]); // Re-fetch if user changes
+  }, [user]);
 
   const handleQuickAction = (action) => {
     switch(action) {
@@ -161,47 +213,72 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
+      {/* Enhanced Welcome Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
             Welcome back, {user?.name || 'User'}!
+            <Sparkles className="h-6 w-6 text-yellow-500 animate-pulse" />
           </h1>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-3 mt-2">
             <p className="text-muted-foreground">Here's what's happening with your business today.</p>
             {lastUpdated && (
               <Badge variant="outline" className="text-xs">
-                <Activity className="h-3 w-3 mr-1" />
+                <Activity className="h-3 w-3 mr-1 animate-pulse" />
                 Updated {lastUpdated.toLocaleTimeString()}
               </Badge>
             )}
           </div>
+          {/* Real-time Stats Indicators */}
+          {(realTimeStats.newOrders > 0 || realTimeStats.newAppointments > 0 || realTimeStats.lowStockAlerts > 0) && (
+            <div className="flex items-center gap-2 mt-2">
+              {realTimeStats.newOrders > 0 && (
+                <Badge className={cn("bg-green-500 text-white", animateStats && "animate-bounce")}>
+                  <ShoppingCart className="h-3 w-3 mr-1" />
+                  {realTimeStats.newOrders} new orders
+                </Badge>
+              )}
+              {realTimeStats.newAppointments > 0 && (
+                <Badge className="bg-blue-500 text-white">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  {realTimeStats.newAppointments} new appointments
+                </Badge>
+              )}
+              {realTimeStats.lowStockAlerts > 0 && (
+                <Badge className="bg-orange-500 text-white">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  {realTimeStats.lowStockAlerts} low stock alerts
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex space-x-2">
           <Button 
             variant="outline"
             onClick={handleRefresh}
             disabled={refreshing}
+            className="hover:bg-primary/10 hover:border-primary transition-all"
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           
           <Link to="/dashboard/reports">
-            <Button variant="outline">
-              <Eye className="mr-2 h-4 w-4" />
-              View Reports
+            <Button variant="outline" className="hover:bg-primary/10 hover:border-primary transition-all">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Reports
             </Button>
           </Link>
 
-          <Button onClick={() => navigate('/dashboard/search')}>
+          <Button onClick={() => navigate('/dashboard/search')} className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
             <Plus className="mr-2 h-4 w-4" />
             Search All
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Enhanced Stats Cards with Animations */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {dashboardData.stats.length === 0 ? (
           <div className="col-span-full text-center py-12 text-muted-foreground">
@@ -211,27 +288,57 @@ const Dashboard = () => {
           </div>
         ) : (
           dashboardData.stats.map((stat, index) => {
-          const Icon = stat.icon || DollarSign; // Fallback icon
+          const Icon = stat.icon || DollarSign;
+          const isPositive = stat.trend === "up";
           return (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  {stat.trend === "up" ? (
-                    <TrendingUp className="mr-1 h-3 w-3 text-green-600" />
-                  ) : (
-                    <TrendingDown className="mr-1 h-3 w-3 text-red-600" />
-                  )}
-                  <span className={stat.trend === "up" ? "text-green-600" : "text-red-600"}>
-                    {stat.change}
-                  </span>
-                  <span className="ml-1">{stat.description}</span>
+            <Card 
+              key={index} 
+              className={cn(
+                "relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer group",
+                "animate-in fade-in slide-in-from-bottom-4",
+                animateStats && "animate-pulse"
+              )}
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div className={cn(
+                "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+                isPositive ? "bg-gradient-to-br from-green-500/10 to-transparent" : "bg-gradient-to-br from-red-500/10 to-transparent"
+              )} />
+              
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+                <div className={cn(
+                  "h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110",
+                  isPositive ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"
+                )}>
+                  <Icon className="h-5 w-5" />
                 </div>
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <div className="text-3xl font-bold mb-2">{stat.value}</div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-xs">
+                    {isPositive ? (
+                      <div className="flex items-center gap-1 text-green-600 font-medium">
+                        <TrendingUp className="h-4 w-4" />
+                        <span>{stat.change}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-red-600 font-medium">
+                        <TrendingDown className="h-4 w-4" />
+                        <span>{stat.change}</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground">{stat.description}</span>
+                </div>
+                {stat.progress !== undefined && (
+                  <Progress value={stat.progress} className="h-1 mt-3" />
+                )}
               </CardContent>
+              <div className="absolute top-0 right-0 w-24 h-24 opacity-5">
+                <Icon className="h-full w-full transform rotate-12" />
+              </div>
             </Card>
           );
         }))}

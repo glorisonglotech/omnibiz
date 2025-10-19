@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Link } from 'react-router-dom';
 import glorison from '@/assets/glorison.jpg'
+import dan from '@/assets/dan.jpg'
 
 function About() {
   const values = [
@@ -42,7 +43,7 @@ function About() {
     {
       name: "Daniel Ndk",
       role: "CEO & Founder",
-      image: "https://images.unsplash.com/photo-1531384441138-2736e62e0919?w=400&h=400&fit=crop&crop=face",
+      image: dan,
       bio: "Visionary leader driving innovation and growth in business management solutions."
     },
     {
@@ -54,13 +55,13 @@ function About() {
     {
       name: "Mr Timothy Ndala",
       role: "Head of Operations",
-      image: "https://images.unsplash.com/photo-1513956589380-bad6acb9b9d4?w=400&h=400&fit=crop&crop=face",
+      image: "https://tse1.mm.bing.net/th/id/OIP.w-L3HP_7QYalYXw7apT2tAHaHx?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3",
       bio: "Operations strategist ensuring seamless business workflows and customer success."
     },
     {
       name: "David Kamau",
       role: "Head of Product Development",
-      image: "https://images.unsplash.com/photo-1508341591423-4347099e1f19?w=400&h=400&fit=crop&crop=face",
+      image: "https://th.bing.com/th/id/R.9a5877425188cdd10fd29f9178b680f6?rik=F%2fI%2bWzCaY1cPrw&riu=http%3a%2f%2fart.beopenfuture.com%2fwp-content%2fuploads%2fAlex-Ayivi.jpg&ehk=L0n3vEqGR9PpE9zPHHwZvTSZYPdDlCzbovMdLkQPoyI%3d&risl=&pid=ImgRaw&r=0",
       bio: "Product innovator focused on delivering exceptional user experiences and features."
     }
   ];
@@ -218,7 +219,7 @@ function About() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">Meet Our Team</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              The passionate individuals behind OmniBiz, dedicated to your business success.
+              The passionate individuals behind OminBiz, dedicated to your business success.
             </p>
           </div>
           

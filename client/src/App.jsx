@@ -37,6 +37,7 @@ import Reports from "./pages/dashboard/Reports";
 import HelpSupport from "./pages/dashboard/HelpSupport";
 import GUIImplementation from "./components/GUIImplementation";
 import { AuthProvider } from "@/context/AuthContext";
+import { CustomerAuthProvider } from "@/context/CustomerAuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import updateService from "@/services/updateServices";
 import ThemeSync from "@/components/ThemeSync";
@@ -110,15 +111,13 @@ function App() {
       <ThemeProvider>
         <PWAProvider>
           <AuthProvider>
-            <SocketProvider>
-              <FinancialProvider>
-                <CartProvider>
-                <BrowserRouter>
-                  <ThemeSync />
-                  <Toaster richColors position="top-center" />
-                  <PWAInstallPrompt />
-                  <PWAUpdateNotification />
-                  <Routes>
+            <CustomerAuthProvider>
+              <SocketProvider>
+                <FinancialProvider>
+                  <CartProvider>
+                  <BrowserRouter>
+                    <ThemeSync />
+                    <Routes>
                     {/* Public Routes */}
                     <Route path="/" element={<Index />} />
                     <Route path="/features" element={<FeaturesPage />} />
@@ -136,7 +135,6 @@ function App() {
                     <Route path="/client/store/:inviteCode" element={<ClientStorefront />} />
                     <Route path="/client/catalog" element={<ProductCatalog />} />
                     <Route path="/store" element={<Store />} />
-                    <Route path="/store/:inviteCode" element={<Store />} />
                     <Route path="/client/book" element={<BookAppointment />} />
                     <Route path="/client/my-bookings" element={<MyBookings />} />
 
@@ -176,11 +174,31 @@ function App() {
                   </Routes>
                   <PWAInstallPrompt />
                   <PWAUpdateNotification />
-                  <Toaster position="top-right" richColors />
-                </BrowserRouter>
-                </CartProvider>
-              </FinancialProvider>
-            </SocketProvider>
+                  <Toaster 
+                    position="top-center" 
+                    expand={true}
+                    toastOptions={{
+                      classNames: {
+                        toast: 'group-[.toaster]:bg-white group-[.toaster]:text-slate-900 group-[.toaster]:border-green-200 group-[.toaster]:shadow-xl group-[.toaster]:backdrop-blur-sm',
+                        description: 'group-[.toast]:text-slate-600',
+                        actionButton: 'group-[.toast]:bg-green-600 group-[.toast]:text-white group-[.toast]:hover:bg-green-700',
+                        cancelButton: 'group-[.toast]:bg-slate-100 group-[.toast]:text-slate-700 group-[.toast]:hover:bg-slate-200',
+                        error: 'group-[.toaster]:bg-white group-[.toaster]:text-red-900 group-[.toaster]:border-red-200',
+                        success: 'group-[.toaster]:bg-white group-[.toaster]:text-green-900 group-[.toaster]:border-green-300',
+                        warning: 'group-[.toaster]:bg-white group-[.toaster]:text-amber-900 group-[.toaster]:border-amber-200',
+                        info: 'group-[.toaster]:bg-white group-[.toaster]:text-blue-900 group-[.toaster]:border-blue-200',
+                      },
+                      style: {
+                        borderWidth: '2px',
+                      },
+                      duration: 4000,
+                    }}
+                  />
+                  </BrowserRouter>
+                  </CartProvider>
+                </FinancialProvider>
+              </SocketProvider>
+            </CustomerAuthProvider>
           </AuthProvider>
         </PWAProvider>
       </ThemeProvider>

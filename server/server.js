@@ -72,6 +72,7 @@ app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 app.use('/api/search', require('./routes/searchRoutes'));
+app.use('/api/customers/auth', require('./routes/customerAuthRoutes'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 404 and error handling

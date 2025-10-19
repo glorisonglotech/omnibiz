@@ -6,14 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingBag, Lock, User, Mail, Phone, Eye, EyeOff, LogIn } from "lucide-react";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import { customerAPI } from "@/lib/api";
 import { Link } from "react-router-dom";
+import { useCustomerAuth } from "@/context/CustomerAuthContext";
 
 const ClientSignup = () => {
   const { inviteCode } = useParams();
   const navigate = useNavigate();
+  const { register } = useCustomerAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [validating, setValidating] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -26,24 +29,15 @@ const ClientSignup = () => {
   });
 
   useEffect(() => {
-    const fetchStoreOwner = async () => {
-      try {
-        const response = await api.get(`user/store-owner/${inviteCode}`);
-        setStoreOwner({
-          businessName: response.data.businessName || "Premium Beauty Store",
-          ownerName: response.data.ownerName || "Store Owner",
-        });
-      } catch (error) {
-        toast.error("Failed to load store information.");
-        console.error("Error fetching store owner:", error);
-        setStoreOwner({
-          businessName: "Premium Beauty Store",
-          ownerName: "Store Owner",
-        });
-      }
-    };
-    fetchStoreOwner();
-  }, [inviteCode]);
+    // User handles invite code validation on their end
+    // Just set the invite code and show the form
+    if (!inviteCode) {
+      toast.error("No invite code provided");
+      navigate('/');
+    } else {
+      setValidating(false);
+    }
+  }, [inviteCode, navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -52,18 +46,39 @@ const ClientSignup = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      toast.success({
-        title: "Welcome!",
-        description: `You now have access to ${storeOwner.businessName}`,
+    
+    try {
+      const result = await register({
+        ...formData,
+        inviteCode
       });
+      
+      if (result.success) {
+        toast.success(`Welcome! You now have access to ${storeOwner.businessName}`);
+        navigate(`/client/store/${inviteCode}`);
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+    } finally {
       setIsLoading(false);
-      navigate(`/client/store/${inviteCode}`);
-    }, 1500);
+    }
   };
+
+  if (validating) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg border-primary/10">
+          <CardContent className="pt-6 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
@@ -180,13 +195,16 @@ const ClientSignup = () => {
                 Privacy Policy
               </a>
             </p>
-            <p className="text-xs text-center text-muted-foreground">
+            <div className="text-xs text-center text-muted-foreground">
               Already have an account?{" "}
-              <Link href="/login" className="text-primary hover:underline flex items-center justify-center gap-1">
-                <LogIn className="h-4 w-4" />
+              <Link 
+                to={`/client/login/${inviteCode}`} 
+                className="text-primary hover:underline inline-flex items-center gap-1 ml-1"
+              >
+                <LogIn className="h-3 w-3" />
                 Log in
               </Link>
-            </p>
+            </div>
             <div className="pt-4 border-t">
               <p className="text-xs text-center text-muted-foreground">
                 <Lock className="inline h-4 w-4 mr-1" /> Secure & Private • Only {storeOwner.ownerName} can see your orders

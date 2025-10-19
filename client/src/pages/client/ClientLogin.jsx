@@ -1,26 +1,23 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lock, Mail, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { useCustomerAuth } from "@/context/CustomerAuthContext";
 
 const ClientLogin = () => {
   const navigate = useNavigate();
+  const { inviteCode } = useParams();
+  const { login } = useCustomerAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-
-  // Simulated store owner info (will be fetched from backend)
-  const storeOwner = {
-    businessName: "Premium Beauty Store",
-    ownerName: "Sarah Johnson",
-  };
 
   const handleChange = (e) => {
     setFormData({
@@ -29,34 +26,35 @@ const ClientLogin = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login (will be replaced with actual backend call)
-    setTimeout(() => {
-      toast.success({
-        title: "Welcome Back! 🎉",
-        description: `Successfully logged into ${storeOwner.businessName}`,
-      });
+    try {
+      const result = await login(formData);
+      if (result.success) {
+        toast.success(`Welcome Back! Successfully logged in`);
+        // Navigate to storefront with invite code if available
+        navigate(inviteCode ? `/client/store/${inviteCode}` : '/client/store');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    } finally {
       setIsLoading(false);
-      // Redirect to client storefront (assuming similar routing structure)
-      navigate(`/client/store`);
-    }, 1500);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-lg border-green-500/20">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-lg border-primary/10">
         <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center">
-            <Lock className="h-8 w-8 text-green-500" />
+          <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+            <Lock className="h-8 w-8 text-primary" />
           </div>
           <div>
             <CardTitle className="text-2xl">Welcome Back! 🔒</CardTitle>
             <CardDescription className="mt-2">
-              Log in to access{" "}
-              <span className="font-semibold text-green-600">{storeOwner.businessName}</span>
+              Log in to continue shopping
             </CardDescription>
           </div>
         </CardHeader>
@@ -73,7 +71,7 @@ const ClientLogin = () => {
                   placeholder="john@example.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className="pl-10 border-gray-300 focus:border-green-500 focus:ring-green-500"
+                  className="pl-10"
                   required
                 />
               </div>
@@ -90,13 +88,13 @@ const ClientLogin = () => {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
-                  className="pl-10 pr-10 border-gray-300 focus:border-green-500 focus:ring-green-500"
+                  className="pl-10 pr-10"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-green-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -109,7 +107,7 @@ const ClientLogin = () => {
 
             <Button
               type="submit"
-              className="w-full bg-green-500 hover:bg-green-600 text-white gap-2"
+              className="w-full gap-2"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -122,16 +120,20 @@ const ClientLogin = () => {
               )}
             </Button>
 
-            <p className="text-xs text-center text-gray-500">
+            <div className="text-xs text-center text-muted-foreground">
               Don't have an account?{" "}
-              <a href="/signup" className="text-green-500 hover:underline">
+              <Link 
+                to={`/client/signup/${inviteCode}`} 
+                className="text-primary hover:underline inline-flex items-center gap-1 ml-1"
+              >
+                <UserPlus className="h-3 w-3" />
                 Sign Up
-              </a>
-            </p>
+              </Link>
+            </div>
 
-            <div className="pt-4 border-t border-gray-200">
-              <p className="text-xs text-center text-gray-500">
-                🔒 Secure Login • Your data is protected
+            <div className="pt-4 border-t">
+              <p className="text-xs text-center text-muted-foreground">
+                <Lock className="inline h-3 w-3 mr-1" /> Secure Login • Your data is protected
               </p>
             </div>
           </form>

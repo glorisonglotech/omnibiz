@@ -12,7 +12,14 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        // Check if this is a customer API request
+        const isCustomerRequest = config.url?.includes('/customers/auth');
+        
+        // Use appropriate token
+        const token = isCustomerRequest 
+            ? localStorage.getItem('customerToken')
+            : localStorage.getItem('token');
+            
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -119,6 +126,19 @@ export const uploadAPI = {
   }),
   deleteFile: (fileUrl) => api.delete('/upload/file', { data: { fileUrl } }),
   getUploadInfo: () => api.get('/upload/info'),
+};
+
+// Customer API functions
+export const customerAPI = {
+  // Auth
+  register: (customerData) => api.post('/customers/auth/register', customerData),
+  login: (credentials) => api.post('/customers/auth/login', credentials),
+  getProfile: () => api.get('/customers/auth/profile'),
+  updateProfile: (profileData) => api.put('/customers/auth/profile', profileData),
+  changePassword: (passwordData) => api.put('/customers/auth/change-password', passwordData),
+  forgotPassword: (email) => api.post('/customers/auth/forgot-password', { email }),
+  resetPassword: (data) => api.post('/customers/auth/reset-password', data),
+  verifyEmail: (token) => api.get(`/customers/auth/verify-email/${token}`),
 };
 
 export { api };

@@ -35,7 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { useCart } from "@/context/CartContext";
 import { useSocket } from "@/context/SocketContext";
-import { useAuth } from "@/context/AuthContext";
+import { useCustomerAuth } from "@/context/CustomerAuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import ThemeSelector from "@/components/ThemeSelector";
@@ -44,7 +44,7 @@ import { AVAILABLE_THEMES } from "@/context/ThemeContext";
 const ClientStorefront = () => {
   const { inviteCode } = useParams();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { customer, isAuthenticated, logout } = useCustomerAuth();
   const { socket, connected } = useSocket();
   
   // Storefront-specific theme state (separate from main dashboard)
@@ -78,7 +78,7 @@ const ClientStorefront = () => {
     const fetchAllData = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('customerToken');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         // Fetch products, locations, team, services in parallel
@@ -173,7 +173,7 @@ const ClientStorefront = () => {
 
     // Listen for order updates
     socket.on('order_updated', (data) => {
-      if (data.order.customer?.email === user?.email) {
+      if (data.order.customer?.email === customer?.email) {
         toast.info(`Order Update: Your order status is ${data.order.status}`);
       }
     });
@@ -184,27 +184,27 @@ const ClientStorefront = () => {
       socket.off('stock_alert');
       socket.off('order_updated');
     };
-  }, [socket, connected, user]);
+  }, [socket, connected, customer]);
 
   // Handle user account button
   const handleUserAccount = () => {
-    if (user) {
+    if (customer) {
       setActiveTab('account');
-      toast.success(`Welcome ${user.name}!`);
+      toast.success(`Welcome ${customer.name}!`);
     } else {
       toast.info('Please sign in to access more features');
-      navigate('/login');
+      navigate(`/client/login/${inviteCode}`);
     }
   };
 
   // Handle logout
   const handleLogout = () => {
-    if (user) {
+    if (customer) {
       logout();
       clearCart();
       setWishlist([]);
       toast.success('You have been successfully logged out');
-      navigate('/');
+      navigate(`/client/login/${inviteCode}`);
     } else {
       toast.info('You are not currently logged in');
     }
@@ -531,7 +531,7 @@ const ClientStorefront = () => {
                 variant="ghost" 
                 size="icon"
                 onClick={handleLogout}
-                title={user ? "Logout" : "Login"}
+                title={customer ? "Logout" : "Login"}
               >
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -972,15 +972,15 @@ const ClientStorefront = () => {
                       <User className="h-10 w-10 text-primary-foreground" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold">{user?.name || 'Guest User'}</h3>
-                      <p className="text-sm text-muted-foreground">{user?.email || 'Not logged in'}</p>
-                      <Badge className="mt-1">{user ? 'Premium Member' : 'Guest'}</Badge>
+                      <h3 className="text-xl font-bold">{customer?.name || 'Guest User'}</h3>
+                      <p className="text-sm text-muted-foreground">{customer?.email || 'Not logged in'}</p>
+                      <Badge className="mt-1">{customer ? 'Premium Member' : 'Guest'}</Badge>
                     </div>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => {
-                        if (user) {
+                        if (customer) {
                           toast.info('Profile editing coming soon!');
                         } else {
                           toast.info('Please login to edit profile');

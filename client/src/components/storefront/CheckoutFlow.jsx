@@ -14,7 +14,8 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
   const [step, setStep] = useState(1);
   const [orderNumber, setOrderNumber] = useState("");
   const [processingPayment, setProcessingPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("cash"); // cash, dollar, mpesa, card
+  const [paymentMethod, setPaymentMethod] = useState("cash"); // cash, paynow
+  const [selectedDigitalPayment, setSelectedDigitalPayment] = useState("mpesa"); // mpesa, paypal
   
   const [formData, setFormData] = useState({
     name: "",
@@ -342,18 +343,44 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
                 </button>
 
                 <button
-                  onClick={() => setPaymentMethod("dollar")}
-                  className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === "dollar" ? "border-blue-600 bg-blue-50 dark:bg-blue-950/20" : "border-border hover:border-blue-300"}`}
+                  onClick={() => setPaymentMethod("paynow")}
+                  className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === "paynow" ? "border-blue-600 bg-blue-50 dark:bg-blue-950/20" : "border-border hover:border-blue-300"}`}
                 >
-                  <div className="text-2xl mb-2">💵</div>
-                  <div className="font-semibold">Dollar Payment</div>
-                  <div className="text-xs text-muted-foreground">USD payment</div>
+                  <div className="text-2xl mb-2">💳</div>
+                  <div className="font-semibold">Pay Now</div>
+                  <div className="text-xs text-muted-foreground">M-Pesa or PayPal</div>
                 </button>
               </div>
             </div>
 
+            {/* Digital Payment Options - Show when Pay Now is selected */}
+            {paymentMethod === "paynow" && (
+              <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                <h4 className="font-semibold text-sm">Select Payment Gateway</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setSelectedDigitalPayment("mpesa")}
+                    className={`p-3 rounded-lg border-2 transition-all ${selectedDigitalPayment === "mpesa" ? "border-green-600 bg-green-50 dark:bg-green-950/20" : "border-border hover:border-green-300"}`}
+                  >
+                    <div className="text-xl mb-1">📱</div>
+                    <div className="font-semibold text-sm">M-Pesa</div>
+                    <div className="text-xs text-muted-foreground">Safaricom STK Push</div>
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedDigitalPayment("paypal")}
+                    className={`p-3 rounded-lg border-2 transition-all ${selectedDigitalPayment === "paypal" ? "border-blue-600 bg-blue-50 dark:bg-blue-950/20" : "border-border hover:border-blue-300"}`}
+                  >
+                    <div className="text-xl mb-1">🌐</div>
+                    <div className="font-semibold text-sm">PayPal</div>
+                    <div className="text-xs text-muted-foreground">Cards & PayPal</div>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Digital Payment Options */}
-            {(paymentMethod === "mpesa" || paymentMethod === "card") ? (
+            {paymentMethod === "paynow" ? (
               <div className="flex flex-col items-center justify-center gap-4 py-4">
                 <PaymentOptions
                   amount={cartTotal}
@@ -362,12 +389,12 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
                   onSuccess={handlePaymentSuccess}
                   onError={handlePaymentError}
                   triggerText="Proceed to Payment"
-                  showMpesa={paymentMethod === "mpesa"}
-                  showPaypal={paymentMethod === "card"}
+                  showMpesa={selectedDigitalPayment === "mpesa"}
+                  showPaypal={selectedDigitalPayment === "paypal"}
                   disabled={processingPayment || !formData.name || !formData.email || !formData.phone}
                 />
               </div>
-            ) : (
+            ) : paymentMethod === "cash" && (
               <Button 
                 className="w-full h-12 text-lg font-bold"
                 onClick={async () => {
@@ -379,7 +406,7 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
                     setOrderNumber(result.orderNum);
                     toast({
                       title: "Order Placed! 🎉",
-                      description: `Your order #${result.orderNum} has been confirmed. Payment method: ${paymentMethod === "cash" ? "Cash on Delivery" : "Dollar Payment"}.`,
+                      description: `Your order #${result.orderNum} has been confirmed. Payment method: Cash on Delivery.`,
                     });
                     onClearCart();
                     setStep(4);
@@ -393,7 +420,7 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
                 }}
                 disabled={processingPayment}
               >
-                {processingPayment ? "Processing..." : `Place Order (${paymentMethod === "cash" ? "Cash on Delivery" : "Dollar Payment"})`}
+                {processingPayment ? "Processing..." : "Place Order (Cash on Delivery)"}
               </Button>
             )}
 

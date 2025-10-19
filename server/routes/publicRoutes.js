@@ -15,6 +15,68 @@ async function findOwnerByInviteCode(inviteCode) {
   return owner || null;
 }
 
+// GET /api/public/store-owner/:inviteCode - Get store owner information
+router.get('/store-owner/:inviteCode', async (req, res) => {
+  try {
+    const { inviteCode } = req.params;
+    
+    const owner = await User.findOne({ inviteCode }).select('name email businessName businessEmail businessPhone businessAddress');
+    
+    if (!owner) {
+      return res.status(404).json({ message: 'Store not found' });
+    }
+    
+    res.json({
+      name: owner.name,
+      businessName: owner.businessName || owner.name,
+      businessEmail: owner.businessEmail || owner.email,
+      businessPhone: owner.businessPhone,
+      businessAddress: owner.businessAddress
+    });
+  } catch (error) {
+    console.error('Store owner fetch error:', error);
+    res.status(500).json({ message: 'Failed to fetch store information' });
+  }
+});
+
+// GET /api/public/services - Get services/appointments available
+router.get('/services', async (req, res) => {
+  try {
+    const { inviteCode } = req.query;
+    
+    if (inviteCode) {
+      const owner = await findOwnerByInviteCode(inviteCode);
+      if (!owner) {
+        return res.status(400).json({ message: 'Invalid inviteCode' });
+      }
+      
+      // Get available services from appointments
+      const services = await Appointment.aggregate([
+        { $match: { userId: owner._id } },
+        { $group: { 
+          _id: '$service',
+          count: { $sum: 1 },
+          avgDuration: { $avg: '$durationMinutes' }
+        }},
+        { $project: {
+          name: '$_id',
+          duration: { $concat: [{ $toString: { $round: ['$avgDuration', 0] }}, ' min'] },
+          bookings: '$count',
+          _id: 0
+        }},
+        { $limit: 20 }
+      ]);
+      
+      return res.json(services);
+    }
+    
+    res.json([]);
+  } catch (error) {
+    console.error('Services fetch error:', error);
+    res.status(500).json({ message: 'Failed to fetch services' });
+  }
+});
+
 // GET /api/public/products - Get public products for storefront
 router.get('/products', async (req, res) => {
   try {

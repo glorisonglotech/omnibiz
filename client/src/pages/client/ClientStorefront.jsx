@@ -33,6 +33,7 @@ import  LiveChatWidget  from "@/components/storefront/LiveChatWidget";
 import AppointmentBooking from "@/components/storefront/AppointmentBooking";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCart } from "@/context/CartContext";
 import { useSocket } from "@/context/SocketContext";
 import { useCustomerAuth } from "@/context/CustomerAuthContext";
@@ -40,6 +41,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import ThemeSelector from "@/components/ThemeSelector";
 import { AVAILABLE_THEMES } from "@/context/ThemeContext";
+import { customerAPI } from "@/lib/api";
 
 const ClientStorefront = () => {
   const { inviteCode } = useParams();
@@ -65,6 +67,11 @@ const ClientStorefront = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    phone: '',
+  });
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +79,27 @@ const ClientStorefront = () => {
     businessName: "OmniBiz Store",
     ownerName: "Store Owner",
   });
+
+  // Fetch store owner data on mount
+  useEffect(() => {
+    const fetchStoreOwner = async () => {
+      if (!inviteCode) return;
+      try {
+        const response = await api.get(`/public/store-owner/${inviteCode}`);
+        setStoreOwner({
+          businessName: response.data.businessName || response.data.name,
+          ownerName: response.data.name,
+          email: response.data.businessEmail,
+          phone: response.data.businessPhone,
+          address: response.data.businessAddress
+        });
+      } catch (error) {
+        console.error('Error fetching store owner:', error);
+        toast.error('Could not load store information');
+      }
+    };
+    fetchStoreOwner();
+  }, [inviteCode]);
 
   // Fetch all data from API with real-time sync
   useEffect(() => {
@@ -82,10 +110,11 @@ const ClientStorefront = () => {
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         // Fetch products, locations, team, services in parallel
-        const [productsRes, locationsRes, teamRes] = await Promise.allSettled([
-          api.get("/products", { headers }),
+        const [productsRes, locationsRes, teamRes, servicesRes] = await Promise.allSettled([
+          api.get("/products", { headers, params: { inviteCode } }),
           api.get("/locations", { headers }),
           api.get("/team", { headers }),
+          api.get("/public/services", { params: { inviteCode } }),
         ]);
 
         // Set products
@@ -108,25 +137,19 @@ const ClientStorefront = () => {
           setTeamMembers(teamRes.value.data || []);
         }
 
-        // Set services (from team or predefined)
-        const servicesList = [
-          { id: 1, name: "Premium Hair Treatment", duration: "1 hour", price: 2500, staff: teamMembers.length || 3, category: "Hair Care" },
-          { id: 2, name: "Manicure & Pedicure", duration: "45 min", price: 1500, staff: teamMembers.length || 2, category: "Nails" },
-          { id: 3, name: "Face Massage", duration: "30 min", price: 2000, staff: teamMembers.length || 4, category: "Spa" },
-          { id: 4, name: "Spa Package", duration: "2 hours", price: 5000, staff: teamMembers.length || 5, category: "Spa" },
-          { id: 5, name: "Hair Styling", duration: "1 hour", price: 1800, staff: teamMembers.length || 3, category: "Hair Care" },
-          { id: 6, name: "Facial Treatment", duration: "45 min", price: 2200, staff: teamMembers.length || 4, category: "Skincare" },
-          { id: 7, name: "Deep Tissue Massage", duration: "1 hour", price: 3000, staff: teamMembers.length || 3, category: "Massage" },
-          { id: 8, name: "Body Scrub & Polish", duration: "1.5 hours", price: 3500, staff: teamMembers.length || 2, category: "Spa" },
-          { id: 9, name: "Makeup Application", duration: "1 hour", price: 2800, staff: teamMembers.length || 4, category: "Makeup" },
-          { id: 10, name: "Hair Coloring", duration: "2 hours", price: 4500, staff: teamMembers.length || 2, category: "Hair Care" },
-          { id: 11, name: "Bridal Package", duration: "3 hours", price: 8000, staff: teamMembers.length || 5, category: "Special" },
-          { id: 12, name: "Hot Stone Therapy", duration: "1 hour", price: 3200, staff: teamMembers.length || 3, category: "Massage" },
-          { id: 13, name: "Eyelash Extensions", duration: "2 hours", price: 3800, staff: teamMembers.length || 2, category: "Beauty" },
-          { id: 14, name: "Waxing Service", duration: "30 min", price: 1200, staff: teamMembers.length || 3, category: "Beauty" },
-          { id: 15, name: "Aromatherapy Session", duration: "1 hour", price: 2600, staff: teamMembers.length || 4, category: "Spa" },
-        ];
-        setServices(servicesList);
+        // Set services from database
+        if (servicesRes.status === 'fulfilled' && servicesRes.value.data?.length > 0) {
+          const realServices = servicesRes.value.data.map((service, index) => ({
+            id: index + 1,
+            name: service.name,
+            duration: service.duration,
+            bookings: service.bookings,
+            staff: teamMembers.length || 1
+          }));
+          setServices(realServices);
+        } else {
+          setServices([]); // No services if none exist
+        }
 
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -475,6 +498,22 @@ const ClientStorefront = () => {
 
   const handleCheckout = () => {
     setShowCheckout(true);
+  };
+
+  // Handle profile update
+  const handleProfileUpdate = async () => {
+    try {
+      const response = await customerAPI.updateProfile(editFormData);
+      if (response.data.success) {
+        toast.success('Profile updated successfully!');
+        setShowEditProfile(false);
+        // Refresh customer data
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+    }
   };
 
   return (
@@ -981,10 +1020,14 @@ const ClientStorefront = () => {
                       size="sm"
                       onClick={() => {
                         if (customer) {
-                          toast.info('Profile editing coming soon!');
+                          setEditFormData({
+                            name: customer.name || '',
+                            phone: customer.phone || '',
+                          });
+                          setShowEditProfile(true);
                         } else {
                           toast.info('Please login to edit profile');
-                          navigate('/login');
+                          navigate(`/client/login/${inviteCode}`);
                         }
                       }}
                     >
@@ -1117,6 +1160,62 @@ const ClientStorefront = () => {
         cartTotal={cartTotal}
         onClearCart={clearCart}
       />
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>
+              Update your personal information
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Full Name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="edit-name"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  className="pl-10"
+                  placeholder="Your full name"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Phone Number</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="edit-phone"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                  className="pl-10"
+                  placeholder="+254 700 000 000"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowEditProfile(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 gap-2"
+                onClick={handleProfileUpdate}
+              >
+                <Save className="h-4 w-4" />
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <LiveChatWidget />
     </div>

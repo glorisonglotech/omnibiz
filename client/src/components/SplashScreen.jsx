@@ -9,7 +9,7 @@ const SplashScreen = ({ onComplete, duration = 3000 }) => {
   const [isVisible, setIsVisible] = useState(true);
 
   const loadingSteps = [
-    { label: 'Initializing OmniBiz...', duration: 800 },
+    { label: 'Initializing ominbiz...', duration: 800 },
     { label: 'Loading your workspace...', duration: 600 },
     { label: 'Connecting to services...', duration: 700 },
     { label: 'Preparing dashboard...', duration: 500 },
@@ -110,7 +110,7 @@ const SplashScreen = ({ onComplete, duration = 3000 }) => {
               className="text-center space-y-2"
             >
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Welcome to OmniBiz
+                Welcome to ominbiz
               </h1>
               <p className="text-lg text-gray-600 dark:text-gray-300">
                 Your Complete Business Management Solution
@@ -215,7 +215,7 @@ const SplashScreen = ({ onComplete, duration = 3000 }) => {
             className="absolute bottom-8 text-center"
           >
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Powered by OmniBiz Technology
+              Powered by ominbiz Technology
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
               Version 2.0.0

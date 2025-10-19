@@ -74,7 +74,7 @@ const LiveChatWidget = () => {
       } else {
         return {
           id: "1",
-          text: `Hello ${user?.name || 'there'}! 👋 I'm your OmniBiz AI Assistant, powered by advanced machine learning. I can help with analytics, inventory insights, sales trends, financial data, and much more. What would you like to explore?`,
+          text: `Hello ${user?.name || 'there'}! 👋 I'm your ominbiz AI Assistant, powered by advanced machine learning. I can help with analytics, inventory insights, sales trends, financial data, and much more. What would you like to explore?`,
           sender: "support",
           timestamp: new Date(),
         };
@@ -359,7 +359,7 @@ const LiveChatWidget = () => {
 
   // Build dashboard-specific system prompt
   const buildDashboardSpecificPrompt = (context, history) => {
-    const basePrompt = `You are an intelligent AI assistant for OmniBiz, powered by Google Gemini AI.`;
+    const basePrompt = `You are an intelligent AI assistant for ominbiz, powered by Google Gemini AI.`;
     
     if (context.dashboardType === 'storefront') {
       return `${basePrompt}
@@ -505,8 +505,8 @@ This is interaction #${history.length + 1} with this user.`;
     
     if (lowerMessage.includes('what is your name') || lowerMessage.includes('who are you')) {
       return isStorefront
-        ? `I'm your OmniBiz Shopping Assistant, powered by AI! I can help you browse products, track orders, and answer any questions about our store.`
-        : `I'm OmniBiz Business AI, powered by Google Gemini. I analyze your business data, provide insights, and help optimize operations. I've learned from ${conversationHistoryRef.current.length} interactions with you!`;
+        ? `I'm your ominbiz Shopping Assistant, powered by AI! I can help you browse products, track orders, and answer any questions about our store.`
+        : `I'm ominbiz Business AI, powered by Google Gemini. I analyze your business data, provide insights, and help optimize operations. I've learned from ${conversationHistoryRef.current.length} interactions with you!`;
     }
     
     if (lowerMessage.includes('thank you') || lowerMessage.includes('thanks')) {
@@ -746,7 +746,7 @@ This is interaction #${history.length + 1} with this user.`;
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `omnibiz-ai-chat-${new Date().toISOString()}.json`;
+    link.download = `ominbiz-ai-chat-${new Date().toISOString()}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };

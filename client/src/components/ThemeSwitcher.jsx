@@ -101,7 +101,7 @@ const ThemeSwitcher = () => {
             Choose Your Theme
           </DialogTitle>
           <DialogDescription>
-            Customize your OmniBiz experience with beautiful themes
+            Customize your ominbiz experience with beautiful themes
           </DialogDescription>
         </DialogHeader>
 

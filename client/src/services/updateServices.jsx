@@ -143,7 +143,7 @@ class UpdateService {
 
     if (!lastVersion) {
       // First time user
-      toast.success('Welcome to OmniBiz!', {
+      toast.success('Welcome to ominbiz!', {
         description: 'Your all-in-one business management platform is ready!',
         duration: 5000,
         action: {

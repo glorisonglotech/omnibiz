@@ -36,7 +36,7 @@ const ContactComponent = ({ onSendQuickContact }) => {
             </div>
             <div className="flex-1">
               <p className="font-medium">Email Support</p>
-              <p className="text-sm text-muted-foreground mt-1">support@omnibiz.com</p>
+              <p className="text-sm text-muted-foreground mt-1">support@ominbiz.com</p>
               <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 <span>Response within 2 hours</span>

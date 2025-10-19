@@ -76,7 +76,7 @@ const ClientStorefront = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [storeOwner, setStoreOwner] = useState({
-    businessName: "OmniBiz Store",
+    businessName: "ominbiz Store",
     ownerName: "Store Owner",
   });
 
@@ -173,7 +173,7 @@ const ClientStorefront = () => {
 
     // Listen for product updates
     socket.on('product_updated', (data) => {
-      console.log('📦 Product updated:', data);
+      console.log('Product updated:', data);
       setProducts(prev => prev.map(p => 
         p._id === data.product._id ? data.product : p
       ));
@@ -182,7 +182,7 @@ const ClientStorefront = () => {
 
     // Listen for new products
     socket.on('product_created', (data) => {
-      console.log('✨ New product:', data);
+      console.log('New product:', data);
       setProducts(prev => [data.product, ...prev]);
       toast.success(`New product: ${data.product.name}`);
     });

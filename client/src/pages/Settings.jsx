@@ -557,7 +557,7 @@ function Settings() {
                   <button
                     className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-md hover:bg-primary/90 transition-colors"
                     onClick={() => {
-                      window.location.href = 'mailto:support@omnibiz.com?subject=Support Request'
+                      window.location.href = 'mailto:support@ominbiz.com?subject=Support Request'
                       toast.success('Opening email client...')
                     }}
                   >
@@ -609,7 +609,7 @@ function Settings() {
               {/* Feedback */}
               <div className="p-6 border border-input rounded-lg bg-card">
                 <h4 className="text-lg font-medium text-foreground mb-4">Send Feedback</h4>
-                <p className="text-sm text-muted-foreground mb-4">Help us improve OmniBiz by sharing your thoughts</p>
+                <p className="text-sm text-muted-foreground mb-4">Help us improve ominbiz by sharing your thoughts</p>
                 <div className="space-y-3">
                   <textarea
                     className="w-full p-3 border border-input rounded-md bg-background text-foreground resize-none"

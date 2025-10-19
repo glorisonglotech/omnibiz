@@ -110,8 +110,8 @@ const Settings = () => {
   // Enhanced settings state with all destructured elements integrated
   const [settings, setSettings] = useState({
     // General Settings
-    businessName: "OmniBiz",
-    businessEmail: "admin@omnibiz.com",
+    businessName: "ominbiz",
+    businessEmail: "admin@ominbiz.com",
     businessPhone: "+254 700 123 456",
     businessAddress: "123 Business Street, Nairobi",
     timezone: "Africa/Nairobi",
@@ -408,8 +408,8 @@ const Settings = () => {
   const handleResetSettings = (section) => {
     const defaults = {
       general: {
-        businessName: "OmniBiz",
-        businessEmail: "admin@omnibiz.com",
+        businessName: "ominbiz",
+        businessEmail: "admin@ominbiz.com",
         businessPhone: "+254 700 123 456",
         businessAddress: "123 Business Street, Nairobi",
         timezone: "Africa/Nairobi",

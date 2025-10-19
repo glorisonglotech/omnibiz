@@ -103,7 +103,7 @@ const GUIImplementation = () => {
   const [failedDownloads, setFailedDownloads] = useState(0);
   const historyImportRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
-  const [wifiName, setWifiName] = useState('OmniBiz_Network');
+  const [wifiName, setWifiName] = useState('ominbiz_Network');
   const [wifiPassword, setWifiPassword] = useState('••••••••');
   const [dataUsed, setDataUsed] = useState(0);
   const [totalData, setTotalData] = useState(10240); // MB

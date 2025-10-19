@@ -53,7 +53,7 @@ const PayPalPayment = ({ amount, description, currency = 'USD', onSuccess, onErr
           const response = await api.post('/payments/paypal/create-order', {
             amount: amount,
             currency: currency,
-            description: description || 'Payment for OmniBiz services'
+            description: description || 'Payment for ominbiz services'
           }, {
             headers: { Authorization: `Bearer ${token}` }
           });

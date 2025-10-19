@@ -139,7 +139,7 @@ export function Signup({ className, ...props }) {
         <div className="inline-flex items-center gap-2 mb-2">
           <Sparkles className="h-8 w-8 text-primary animate-pulse" />
           <h1 className="text-4xl font-bold text-primary">
-            OmniBiz
+            ominbiz
           </h1>
         </div>
         <p className="text-muted-foreground text-sm">Business Management Platform</p>
@@ -152,7 +152,7 @@ export function Signup({ className, ...props }) {
             Create Account
           </CardTitle>
           <CardDescription className="text-base">
-            Join OmniBiz and start managing your business efficiently
+            Join ominbiz and start managing your business efficiently
           </CardDescription>
         </CardHeader>
         <CardContent>

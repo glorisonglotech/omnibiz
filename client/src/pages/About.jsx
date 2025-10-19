@@ -102,7 +102,7 @@ function About() {
       <section className="py-20 bg-gradient-to-br from-green-50 to-blue-50">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold text-foreground mb-6">
-            About <span className="text-green-500">OmniBiz</span>
+            About <span className="text-green-500">ominbiz</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
             We're on a mission to empower businesses worldwide with intelligent, 

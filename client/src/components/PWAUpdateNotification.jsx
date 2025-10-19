@@ -21,7 +21,7 @@ const PWAUpdateNotification = () => {
             Update Available
           </h3>
           <p className="text-xs opacity-90 mt-1">
-            A new version of OmniBiz is available. Update now for the latest features and improvements.
+            A new version of ominbiz is available. Update now for the latest features and improvements.
           </p>
           
           <div className="flex gap-2 mt-3">

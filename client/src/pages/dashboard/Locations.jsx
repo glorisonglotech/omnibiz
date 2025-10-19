@@ -125,7 +125,7 @@ const Locations = () => {
           state: "Nairobi County",
           zipCode: "00100",
           phone: "+254 700 123 456",
-          email: "main@omnibiz.com",
+          email: "main@ominbiz.com",
           manager: "John Doe",
           operatingHours: "8:00 AM - 8:00 PM",
           status: "active",
@@ -147,7 +147,7 @@ const Locations = () => {
           state: "Nairobi County",
           zipCode: "00600",
           phone: "+254 700 789 012",
-          email: "westlands@omnibiz.com",
+          email: "westlands@ominbiz.com",
           manager: "Jane Smith",
           operatingHours: "9:00 AM - 7:00 PM",
           status: "active",
@@ -169,7 +169,7 @@ const Locations = () => {
           state: "Mombasa County",
           zipCode: "80100",
           phone: "+254 700 345 678",
-          email: "mombasa@omnibiz.com",
+          email: "mombasa@ominbiz.com",
           manager: "Peter Wilson",
           operatingHours: "8:30 AM - 6:30 PM",
           status: "maintenance",
@@ -191,7 +191,7 @@ const Locations = () => {
           state: "Kisumu County",
           zipCode: "40100",
           phone: "+254 700 456 789",
-          email: "kisumu@omnibiz.com",
+          email: "kisumu@ominbiz.com",
           manager: "Mary Johnson",
           operatingHours: "8:00 AM - 7:00 PM",
           status: "active",
@@ -636,7 +636,7 @@ const Locations = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="location@omnibiz.com"
+                    placeholder="location@ominbiz.com"
                     value={newLocation.email}
                     onChange={(e) =>
                       setNewLocation({ ...newLocation, email: e.target.value })

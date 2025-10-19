@@ -81,7 +81,7 @@ function FeaturesPage() {
             Powerful <span className="text-green-500">Features</span> for Modern Business
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Discover how OmniBiz can transform your business operations with our comprehensive 
+            Discover how ominbiz can transform your business operations with our comprehensive 
             suite of integrated tools and intelligent automation.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -107,7 +107,7 @@ function FeaturesPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              Why Businesses Choose OmniBiz
+              Why Businesses Choose ominbiz
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Join thousands of businesses that have transformed their operations with our platform.
@@ -145,7 +145,7 @@ function FeaturesPage() {
               Tailored for Your Industry
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              OmniBiz adapts to your specific industry needs with customizable workflows and features.
+              ominbiz adapts to your specific industry needs with customizable workflows and features.
             </p>
           </div>
           
@@ -180,7 +180,7 @@ function FeaturesPage() {
               Seamless Integrations
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Connect OmniBiz with your favorite tools and services for a unified business ecosystem.
+              Connect ominbiz with your favorite tools and services for a unified business ecosystem.
             </p>
           </div>
           
@@ -279,7 +279,7 @@ function FeaturesPage() {
             Ready to Transform Your Business?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join thousands of businesses that have streamlined their operations with OmniBiz. 
+            Join thousands of businesses that have streamlined their operations with ominbiz. 
             Start your free trial today and experience the difference.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

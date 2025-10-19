@@ -286,7 +286,7 @@ const Reports = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `omnibiz-report-${new Date().toISOString().split('T')[0]}.${format}`;
+      a.download = `ominbiz-report-${new Date().toISOString().split('T')[0]}.${format}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -305,7 +305,7 @@ const Reports = () => {
       await api.post('/reports/schedule', {
         reportId,
         schedule, // 'daily', 'weekly', 'monthly'
-        recipients: [user?.email || 'admin@omnibiz.com'],
+        recipients: [user?.email || 'admin@ominbiz.com'],
         format: 'pdf'
       }, {
         headers: {

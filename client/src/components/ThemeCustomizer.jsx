@@ -103,7 +103,7 @@ const ThemeCustomizer = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'omnibiz-theme-settings.json';
+    a.download = 'ominbiz-theme-settings.json';
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Settings exported successfully');

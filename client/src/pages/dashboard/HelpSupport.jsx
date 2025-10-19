@@ -990,7 +990,7 @@ const HelpSupport = () => {
                   <Mail className="h-5 w-5 text-green-600" />
                   <div>
                     <p className="font-medium">Email Support</p>
-                    <p className="text-sm text-muted-foreground">support@omnibiz.com</p>
+                    <p className="text-sm text-muted-foreground">support@ominbiz.com</p>
                     <p className="text-xs text-muted-foreground">Response within 2 hours</p>
                   </div>
                 </div>

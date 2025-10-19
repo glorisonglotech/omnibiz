@@ -154,7 +154,7 @@ function Pricing() {
       try {
         setPaymentLoading(true);
         await api.post('/subscriptions/activate', { planId: plan.id });
-        toast.success('Welcome to OmniBiz Starter!');
+        toast.success('Welcome to ominbiz Starter!');
         fetchCurrentSubscription();
       } catch (error) {
         toast.error('Failed to activate plan. Please try again.');
@@ -470,7 +470,7 @@ function Pricing() {
             Ready to Get Started?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join thousands of businesses that trust OmniBiz to manage their operations.
+            Join thousands of businesses that trust ominbiz to manage their operations.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/signup">

@@ -92,9 +92,9 @@ function Privacy() {
           <Card className="mb-8">
             <CardContent className="pt-6">
               <p className="text-muted-foreground leading-relaxed">
-                At OmniBiz, we are committed to protecting your privacy and ensuring the security of your personal 
+                At ominbiz, we are committed to protecting your privacy and ensuring the security of your personal 
                 and business data. This Privacy Policy describes how we collect, use, store, and share information 
-                when you use our platform. By using OmniBiz, you agree to the practices described in this policy.
+                when you use our platform. By using ominbiz, you agree to the practices described in this policy.
               </p>
             </CardContent>
           </Card>
@@ -229,7 +229,7 @@ function Privacy() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                We may update this Privacy Policy from time to time. We will notify you of significant changes by email or through our platform. Your continued use of OmniBiz after changes constitutes acceptance of the updated policy.
+                We may update this Privacy Policy from time to time. We will notify you of significant changes by email or through our platform. Your continued use of ominbiz after changes constitutes acceptance of the updated policy.
               </p>
             </CardContent>
           </Card>
@@ -246,7 +246,7 @@ function Privacy() {
               <div className="space-y-2">
                 <div className="flex items-center gap-3 text-green-800">
                   <Mail className="h-4 w-4" />
-                  <span>privacy@omnibiz.com</span>
+                  <span>privacy@ominbiz.com</span>
                 </div>
                 <div className="flex items-center gap-3 text-green-800">
                   <Phone className="h-4 w-4" />
@@ -254,7 +254,7 @@ function Privacy() {
                 </div>
                 <div className="flex items-center gap-3 text-green-800">
                   <FileText className="h-4 w-4" />
-                  <span>Data Protection Officer: dpo@omnibiz.com</span>
+                  <span>Data Protection Officer: dpo@ominbiz.com</span>
                 </div>
               </div>
             </CardContent>

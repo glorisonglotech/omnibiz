@@ -781,7 +781,7 @@ const Profile = () => {
       try {
         await navigator.share({
           title: `${profileData.firstName} ${profileData.lastName}'s Profile`,
-          text: `Check out my profile on OmniBiz`,
+          text: `Check out my profile on ominbiz`,
           url: profileUrl,
         });
       } catch (error) {

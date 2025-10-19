@@ -40,7 +40,7 @@ const Help = () => {
       icon: BookOpen,
       faqs: [
         {
-          question: 'How do I set up my OmniBiz account?',
+          question: 'How do I set up my ominbiz account?',
           answer: 'To set up your account, click on Sign Up, fill in your business details, verify your email, and complete the onboarding process.'
         },
         {
@@ -175,7 +175,7 @@ const Help = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Help & Support</h1>
           <p className="text-muted-foreground">
-            Get help with OmniBiz features and find answers to common questions
+            Get help with ominbiz features and find answers to common questions
           </p>
         </div>
         <Badge variant="outline" className="text-xs">
@@ -223,7 +223,7 @@ const Help = () => {
                         case 'Live Chat':
                           // Open chat widget or redirect to chat page
                           toast.success('Opening live chat...');
-                          window.open('https://tawk.to/chat/omnibiz', '_blank');
+                          window.open('https://tawk.to/chat/ominbiz', '_blank');
                           break;
                         case 'Phone Support':
                           // Open phone dialer
@@ -232,7 +232,7 @@ const Help = () => {
                           break;
                         case 'Email Support':
                           // Open email client
-                          window.location.href = 'mailto:support@omnibiz.com?subject=Support Request';
+                          window.location.href = 'mailto:support@ominbiz.com?subject=Support Request';
                           toast.success('Opening email client...');
                           break;
                         case 'Video Tutorial':
@@ -354,7 +354,7 @@ const Help = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Step-by-step video guides for all OmniBiz features
+                  Step-by-step video guides for all ominbiz features
                 </p>
                 <Button variant="outline" className="w-full">
                   Watch Tutorials
@@ -388,7 +388,7 @@ const Help = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Connect with other OmniBiz users and share tips
+                  Connect with other ominbiz users and share tips
                 </p>
                 <Button variant="outline" className="w-full">
                   Join Community

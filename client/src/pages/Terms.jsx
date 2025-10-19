@@ -23,7 +23,7 @@ function Terms() {
             Terms of <span className="text-green-500">Service</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4">
-            Please read these terms carefully before using OmniBiz platform.
+            Please read these terms carefully before using ominbiz platform.
           </p>
           <p className="text-sm text-muted-foreground">
             Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -38,7 +38,7 @@ function Terms() {
           <Alert className="mb-8 border-green-200 bg-green-50">
             <AlertTriangle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              By accessing and using OmniBiz, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using this platform.
+              By accessing and using ominbiz, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using this platform.
             </AlertDescription>
           </Alert>
 
@@ -54,7 +54,7 @@ function Terms() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                These Terms of Service ("Terms") govern your use of the OmniBiz platform and services ("Services"). By creating an account or using our Services, you acknowledge that you have read, understood, and agree to be bound by these Terms.
+                These Terms of Service ("Terms") govern your use of the ominbiz platform and services ("Services"). By creating an account or using our Services, you acknowledge that you have read, understood, and agree to be bound by these Terms.
               </p>
               <p className="text-muted-foreground">
                 We reserve the right to modify these Terms at any time. Continued use of the Services after changes constitutes acceptance of the modified Terms.
@@ -76,7 +76,7 @@ function Terms() {
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-muted-foreground">You must be at least 18 years old to use OmniBiz</span>
+                  <span className="text-muted-foreground">You must be at least 18 years old to use ominbiz</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
@@ -142,7 +142,7 @@ function Terms() {
               <div>
                 <h4 className="font-semibold mb-2">Subscription Plans</h4>
                 <p className="text-muted-foreground mb-3">
-                  OmniBiz offers various subscription tiers (Client, Standard, Professional, Premium, Enterprise) with different features and pricing.
+                  ominbiz offers various subscription tiers (Client, Standard, Professional, Premium, Enterprise) with different features and pricing.
                 </p>
               </div>
               <div>
@@ -233,13 +233,13 @@ function Terms() {
               <div>
                 <h4 className="font-semibold mb-2">Your Data</h4>
                 <p className="text-muted-foreground">
-                  You retain all rights to your business data. By using OmniBiz, you grant us a limited license to use, store, and process your data solely to provide and improve our Services.
+                  You retain all rights to your business data. By using ominbiz, you grant us a limited license to use, store, and process your data solely to provide and improve our Services.
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">Our Platform</h4>
                 <p className="text-muted-foreground">
-                  OmniBiz and all intellectual property rights in the platform remain our property. You are granted a limited, non-exclusive, non-transferable license to use the Services.
+                  ominbiz and all intellectual property rights in the platform remain our property. You are granted a limited, non-exclusive, non-transferable license to use the Services.
                 </p>
               </div>
             </CardContent>
@@ -312,7 +312,7 @@ function Terms() {
                 </p>
               </div>
               <p className="text-muted-foreground">
-                TO THE MAXIMUM EXTENT PERMITTED BY LAW, OMNIBIZ SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES.
+                TO THE MAXIMUM EXTENT PERMITTED BY LAW, ominbiz SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES.
               </p>
             </CardContent>
           </Card>
@@ -324,7 +324,7 @@ function Terms() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                You agree to indemnify and hold OmniBiz harmless from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from your use of the Services, violation of these Terms, or infringement of any third-party rights.
+                You agree to indemnify and hold ominbiz harmless from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from your use of the Services, violation of these Terms, or infringement of any third-party rights.
               </p>
             </CardContent>
           </Card>
@@ -365,16 +365,16 @@ function Terms() {
               <div className="space-y-2">
                 <div className="flex items-center gap-3 text-green-800">
                   <FileText className="h-4 w-4" />
-                  <span>legal@omnibiz.com</span>
+                  <span>legal@ominbiz.com</span>
                 </div>
                 <div className="flex items-center gap-3 text-green-800">
                   <Users className="h-4 w-4" />
-                  <span>OmniBiz Limited, Nairobi, Kenya</span>
+                  <span>ominbiz Limited, Nairobi, Kenya</span>
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-green-200">
                 <p className="text-sm text-green-800">
-                  By using OmniBiz, you acknowledge that you have read and understood these Terms of Service and agree to be bound by them. Thank you for choosing OmniBiz!
+                  By using ominbiz, you acknowledge that you have read and understood these Terms of Service and agree to be bound by them. Thank you for choosing ominbiz!
                 </p>
               </div>
             </CardContent>

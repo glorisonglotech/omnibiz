@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, MapPin, User, Mail, Phone, AlertCircle } from "lucide-react";
+import { CheckCircle2, MapPin, User, Mail, Phone, AlertCircle, Wallet, CreditCard, Smartphone, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import PaymentOptions from "@/components/payments/PaymentOptions";
 import api from "@/lib/api";
@@ -95,7 +95,7 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
     if (result.success) {
       setOrderNumber(result.orderNum);
       toast({
-        title: "Payment & Order Successful! 🎉",
+        title: "Payment & Order Successful!",
         description: `Your order #${result.orderNum} has been confirmed and saved.`,
       });
       onClearCart();
@@ -337,7 +337,7 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
                   onClick={() => setPaymentMethod("cash")}
                   className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === "cash" ? "border-green-600 bg-green-50 dark:bg-green-950/20" : "border-border hover:border-green-300"}`}
                 >
-                  <div className="text-2xl mb-2">💵</div>
+                  <Wallet className="h-8 w-8 mx-auto mb-2 text-green-600" />
                   <div className="font-semibold">Cash on Delivery</div>
                   <div className="text-xs text-muted-foreground">Pay when you receive</div>
                 </button>
@@ -346,7 +346,7 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
                   onClick={() => setPaymentMethod("paynow")}
                   className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === "paynow" ? "border-blue-600 bg-blue-50 dark:bg-blue-950/20" : "border-border hover:border-blue-300"}`}
                 >
-                  <div className="text-2xl mb-2">💳</div>
+                  <CreditCard className="h-8 w-8 mx-auto mb-2 text-blue-600" />
                   <div className="font-semibold">Pay Now</div>
                   <div className="text-xs text-muted-foreground">M-Pesa or PayPal</div>
                 </button>
@@ -362,7 +362,7 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
                     onClick={() => setSelectedDigitalPayment("mpesa")}
                     className={`p-3 rounded-lg border-2 transition-all ${selectedDigitalPayment === "mpesa" ? "border-green-600 bg-green-50 dark:bg-green-950/20" : "border-border hover:border-green-300"}`}
                   >
-                    <div className="text-xl mb-1">📱</div>
+                    <Smartphone className="h-6 w-6 mx-auto mb-1 text-green-600" />
                     <div className="font-semibold text-sm">M-Pesa</div>
                     <div className="text-xs text-muted-foreground">Safaricom STK Push</div>
                   </button>
@@ -371,7 +371,7 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
                     onClick={() => setSelectedDigitalPayment("paypal")}
                     className={`p-3 rounded-lg border-2 transition-all ${selectedDigitalPayment === "paypal" ? "border-blue-600 bg-blue-50 dark:bg-blue-950/20" : "border-border hover:border-blue-300"}`}
                   >
-                    <div className="text-xl mb-1">🌐</div>
+                    <Globe className="h-6 w-6 mx-auto mb-1 text-blue-600" />
                     <div className="font-semibold text-sm">PayPal</div>
                     <div className="text-xs text-muted-foreground">Cards & PayPal</div>
                   </button>
@@ -405,7 +405,7 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
                   if (result.success) {
                     setOrderNumber(result.orderNum);
                     toast({
-                      title: "Order Placed! 🎉",
+                      title: "Order Placed!",
                       description: `Your order #${result.orderNum} has been confirmed. Payment method: Cash on Delivery.`,
                     });
                     onClearCart();

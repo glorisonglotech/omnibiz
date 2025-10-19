@@ -65,8 +65,8 @@ function Contact() {
       icon: Mail,
       title: "Email Us",
       description: "Send us an email anytime",
-      contact: "hello@omnibiz.com",
-      action: "mailto:hello@omnibiz.com"
+      contact: "hello@ominbiz.com",
+      action: "mailto:hello@ominbiz.com"
     },
     {
       icon: Phone,
@@ -123,7 +123,7 @@ function Contact() {
             Get in <span className="text-green-500">Touch</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Have questions about OmniBiz? We're here to help. Reach out to our team and we'll get back to you as soon as possible.
+            Have questions about ominbiz? We're here to help. Reach out to our team and we'll get back to you as soon as possible.
           </p>
         </div>
       </section>

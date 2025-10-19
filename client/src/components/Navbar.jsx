@@ -29,7 +29,7 @@ const Navbar = () => {
           <Link to="/" className="flex items-center space-x-2">
             <img
               src="https://2aa832b0f010801d3551c6c63b116063.cdn.bubble.io/cdn-cgi/image/w=48,h=48,f=auto,dpr=1,fit=contain/f1758225569468x933635082935872100/logo.webp"
-              alt="OmniBizHub Logo"
+              alt="ominbizHub Logo"
             />
             <span className="text-xl font-bold text-foreground">
               Omin<span className="text-green-500">BIZ</span>

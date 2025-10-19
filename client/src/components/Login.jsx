@@ -44,7 +44,7 @@ const handleLogin = async (e) => {
     const result = await login(email, password);
 
     if (result.success) {
-      toast.success("Login successful! Welcome to OmniBiz Pro.");
+      toast.success("Login successful! Welcome to ominbiz Pro.");
       // Navigate to the dashboard after successful login
       navigate('/dashboard');
        window.location.reload();
@@ -130,7 +130,7 @@ const handleGithubLogin = async () => {
         <div className="inline-flex items-center gap-2 mb-2">
           <Sparkles className="h-8 w-8 text-primary animate-pulse" />
           <h1 className="text-4xl font-bold text-primary">
-            OmniBiz
+            ominbiz
           </h1>
         </div>
         <p className="text-muted-foreground text-sm">Business Management Platform</p>

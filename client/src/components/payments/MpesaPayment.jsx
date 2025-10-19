@@ -52,7 +52,7 @@ const MpesaPayment = ({ amount, description, onSuccess, onError, disabled = fals
       const response = await api.post('/payments/mpesa/initiate', {
         phoneNumber: formattedPhone,
         amount: amount,
-        description: description || 'Payment for OmniBiz services'
+        description: description || 'Payment for ominbiz services'
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });

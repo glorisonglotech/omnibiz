@@ -70,7 +70,7 @@ const Logo = ({
       {showText && (
         <div className="flex flex-col">
           <span className={`font-bold text-gray-900 dark:text-white ${textSizeClasses[size]} leading-tight`}>
-            OmniBiz
+            ominbiz
           </span>
           <span className={`text-green-600 font-medium ${size === 'xs' ? 'text-xs' : size === 'sm' ? 'text-xs' : 'text-sm'} leading-tight`}>
             Business Pro

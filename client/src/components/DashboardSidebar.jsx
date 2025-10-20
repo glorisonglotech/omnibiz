@@ -24,7 +24,9 @@ import {
   Monitor,
   Wallet,
   Tag,
-  Briefcase
+  Briefcase,
+  BookOpen,
+  Headphones
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -49,7 +51,8 @@ const navigationItems = [
   { name: "Search", href: "/dashboard/search", icon: Search },
   { name: "Reports", href: "/dashboard/reports", icon: FileText },
   { name: "GUI Demo", href: "/dashboard/gui", icon: Monitor },
-  { name: "Help & Support", href: "/dashboard/support", icon: HelpCircle },
+  { name: "Live Support", href: "/dashboard/support", icon: Headphones },
+  { name: "Learning Center", href: "/dashboard/resources", icon: BookOpen },
 ];
 
 function DashboardSidebar() {

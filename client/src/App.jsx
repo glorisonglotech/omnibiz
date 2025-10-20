@@ -36,6 +36,7 @@ import Search from "./pages/dashboard/Search";
 import GraphsShowcase from "./pages/dashboard/GraphsShowcase";
 import Reports from "./pages/dashboard/Reports";
 import HelpSupport from "./pages/dashboard/HelpSupport";
+import ResourceCenter from "./pages/dashboard/ResourceCenter";
 import Discounts from "./pages/dashboard/Discounts";
 import GUIImplementation from "./components/GUIImplementation";
 import { AuthProvider } from "@/context/AuthContext";
@@ -163,6 +164,7 @@ function App() {
                       <Route path="checkout" element={<Checkout />} />
                       <Route path="help" element={<Help />} />
                       <Route path="support" element={<HelpSupport />} />
+                      <Route path="resources" element={<ResourceCenter />} />
                       <Route path="analytics" element={<Analytics />} />
                       <Route path="maps" element={<Maps />} />
                       <Route path="purchasing" element={<Purchasing />} />

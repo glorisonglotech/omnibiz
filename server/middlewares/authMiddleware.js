@@ -43,3 +43,42 @@ exports.protect = async (req, res, next) => {
     }
   }
 };
+
+// Optional authentication - allows request through whether authenticated or not
+exports.optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // No auth provided, continue without user
+      req.user = null;
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select('-password');
+      
+      if (user) {
+        req.user = user;
+      } else {
+        req.user = null;
+      }
+    } catch (error) {
+      // Token invalid, continue without user
+      req.user = null;
+    }
+    
+    next();
+  } catch (error) {
+    // Any error, continue without user
+    req.user = null;
+    next();
+  }
+};

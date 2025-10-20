@@ -19,6 +19,8 @@ const userRouter = require('./routes/userRoutes');
 const paymentRouter = require('./routes/paymentRoutes');
 const locationRouter = require('./routes/locationRoutes');
 const mpesaRoutes = require('./routes/mpesaRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
+const discountRoutes = require('./routes/discountRoutes');
 
 dotenv.config();
 connectDB();
@@ -60,6 +62,8 @@ app.use('/api', financialRouter);
 app.use('/api/user', userRouter);
 app.use('/api/payments', paymentRouter);
 app.use('/api/locations', locationRouter);
+app.use('/api/services', serviceRoutes);
+app.use('/api/discounts', discountRoutes);
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/client', require('./routes/clientRoutes'));
 app.use('/api/support', require('./routes/supportRoutes'));

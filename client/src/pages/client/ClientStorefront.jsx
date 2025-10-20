@@ -137,14 +137,20 @@ const ClientStorefront = () => {
           setTeamMembers(teamRes.value.data || []);
         }
 
-        // Set services from database
+        // Set services from database with complete details
         if (servicesRes.status === 'fulfilled' && servicesRes.value.data?.length > 0) {
-          const realServices = servicesRes.value.data.map((service, index) => ({
-            id: index + 1,
+          const realServices = servicesRes.value.data.map((service) => ({
+            _id: service._id,
+            id: service._id,
             name: service.name,
-            duration: service.duration,
-            bookings: service.bookings,
-            staff: teamMembers.length || 1
+            description: service.description || 'Professional service',
+            price: service.price || 0,
+            duration: service.duration || '60 min',
+            category: service.category || 'General',
+            bookings: service.bookings || 0,
+            rating: service.rating || 5,
+            staff: service.availableTeamMembers?.length || teamMembers.length || 1,
+            image: service.image
           }));
           setServices(realServices);
         } else {
@@ -169,22 +175,77 @@ const ClientStorefront = () => {
 
   // Socket.IO real-time updates
   useEffect(() => {
-    if (!socket || !connected) return;
+    if (!socket || !connected || !inviteCode) return;
 
-    // Listen for product updates
-    socket.on('product_updated', (data) => {
-      console.log('Product updated:', data);
-      setProducts(prev => prev.map(p => 
-        p._id === data.product._id ? data.product : p
-      ));
-      toast.info(`Product updated: ${data.product.name}`);
+    // Join storefront room
+    socket.emit('join_storefront', inviteCode);
+
+    // Listen for product sync
+    socket.on('product_sync', (data) => {
+      console.log('Product sync:', data);
+      if (data.type === 'insert') {
+        setProducts(prev => [data.product, ...prev]);
+        toast.success(`New product: ${data.product.name}`);
+      } else if (data.type === 'update') {
+        setProducts(prev => prev.map(p => 
+          p._id === data.product._id ? data.product : p
+        ));
+        toast.info(`Product updated: ${data.product.name}`);
+      } else if (data.type === 'delete') {
+        setProducts(prev => prev.filter(p => p._id !== data.product._id));
+        toast.info(`Product removed`);
+      }
     });
 
-    // Listen for new products
-    socket.on('product_created', (data) => {
-      console.log('New product:', data);
-      setProducts(prev => [data.product, ...prev]);
-      toast.success(`New product: ${data.product.name}`);
+    // Listen for service sync
+    socket.on('service_sync', (data) => {
+      console.log('Service sync:', data);
+      if (data.type === 'insert') {
+        setServices(prev => [data.service, ...prev]);
+        toast.success(`New service: ${data.service.name}`);
+      } else if (data.type === 'update') {
+        setServices(prev => prev.map(s => 
+          s._id === data.service._id ? data.service : s
+        ));
+        toast.info(`Service updated: ${data.service.name}`);
+      } else if (data.type === 'delete') {
+        setServices(prev => prev.filter(s => s._id !== data.service._id));
+        toast.info(`Service removed`);
+      }
+    });
+
+    // Listen for location sync
+    socket.on('location_sync', (data) => {
+      console.log('Location sync:', data);
+      if (data.type === 'insert') {
+        setLocations(prev => [data.location, ...prev]);
+        toast.success(`New location: ${data.location.name}`);
+      } else if (data.type === 'update') {
+        setLocations(prev => prev.map(l => 
+          l._id === data.location._id ? data.location : l
+        ));
+        toast.info(`Location updated: ${data.location.name}`);
+      } else if (data.type === 'delete') {
+        setLocations(prev => prev.filter(l => l._id !== data.location._id));
+        toast.info(`Location removed`);
+      }
+    });
+
+    // Listen for team sync
+    socket.on('team_sync', (data) => {
+      console.log('Team sync:', data);
+      if (data.type === 'insert') {
+        setTeamMembers(prev => [data.team, ...prev]);
+        toast.success(`New team member: ${data.team.name}`);
+      } else if (data.type === 'update') {
+        setTeamMembers(prev => prev.map(t => 
+          t._id === data.team._id ? data.team : t
+        ));
+        toast.info(`Team member updated: ${data.team.name}`);
+      } else if (data.type === 'delete') {
+        setTeamMembers(prev => prev.filter(t => t._id !== data.team._id));
+        toast.info(`Team member removed`);
+      }
     });
 
     // Listen for stock alerts
@@ -201,13 +262,22 @@ const ClientStorefront = () => {
       }
     });
 
+    // Clean up function
     return () => {
-      socket.off('product_updated');
-      socket.off('product_created');
-      socket.off('stock_alert');
-      socket.off('order_updated');
+      if (socket && connected) {
+        // Leave storefront room
+        socket.emit('leave_storefront', inviteCode);
+        
+        // Remove all listeners
+        socket.off('product_sync');
+        socket.off('service_sync');
+        socket.off('location_sync');
+        socket.off('team_sync');
+        socket.off('stock_alert');
+        socket.off('order_updated');
+      }
     };
-  }, [socket, connected, customer]);
+  }, [socket, connected, inviteCode, customer]);
 
   // Handle user account button
   const handleUserAccount = () => {
@@ -456,11 +526,7 @@ const ClientStorefront = () => {
     }
 
     if (newQuantity > availableStock) {
-      toast({
-        title: "Stock limit reached",
-        description: `Only ${availableStock} available`,
-        variant: "destructive",
-      });
+      toast.error(`Stock limit reached: Only ${availableStock} available`);
       return;
     }
 
@@ -471,10 +537,7 @@ const ClientStorefront = () => {
     const item = cart.find((item) => (item._id || item.id) === productId);
     removeCartItem(productId);
     if (item) {
-      toast({
-        title: "Removed from cart",
-        description: `${item.name} removed`,
-      });
+      toast.info(`${item.name} removed from cart`);
     }
   };
 
@@ -920,48 +983,82 @@ const ClientStorefront = () => {
               {/* Available Services */}
               <div>
                 <h2 className="text-2xl font-bold mb-4">Our Services</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {services.map((service) => (
-                    <Card key={service.id} className="glass-card hover:shadow-lg transition-shadow">
-                      <CardHeader>
-                        <CardTitle className="text-lg">{service.name}</CardTitle>
-                        <CardDescription className="flex items-center gap-2 justify-between">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {service.duration}
-                          </span>
-                          <Badge variant="secondary" className="gap-1">
-                            <UsersIcon className="h-3 w-3" />
-                            {service.staff || teamMembers.length} staff
-                          </Badge>
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between mb-4">
-                          <span className="text-2xl font-bold text-primary">
-                            KES {service.price.toLocaleString()}
-                          </span>
-                          <div className="flex items-center gap-1 text-yellow-500">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} className="h-4 w-4 fill-current" />
-                            ))}
+                {services.length === 0 ? (
+                  <Card className="glass-card">
+                    <CardContent className="p-12 text-center">
+                      <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="text-lg font-semibold mb-2">No Services Available</h3>
+                      <p className="text-muted-foreground">Check back soon for available services!</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {services.map((service) => (
+                      <Card key={service._id || service.id} className="glass-card hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <div className="flex items-start justify-between mb-2">
+                            <CardTitle className="text-lg flex-1">{service.name}</CardTitle>
+                            {service.category && (
+                              <Badge variant="outline" className="text-xs">
+                                {service.category}
+                              </Badge>
+                            )}
                           </div>
-                        </div>
-                        <Button
-                          className="w-full"
-                          onClick={() => {
-                            // Navigate to booking with pre-selected service
-                            setActiveTab('account');
-                            toast.success(`Selected: ${service.name}. Complete booking in Account tab.`);
-                          }}
-                        >
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Book Now
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                          <CardDescription className="flex items-center gap-2 justify-between">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {service.duration}
+                            </span>
+                            <Badge variant="secondary" className="gap-1">
+                              <UsersIcon className="h-3 w-3" />
+                              {service.staff} staff
+                            </Badge>
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {service.description && (
+                            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                              {service.description}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="text-2xl font-bold text-primary">
+                              KES {(service.price || 0).toLocaleString()}
+                            </span>
+                            <div className="flex items-center gap-1 text-yellow-500">
+                              {[...Array(5)].map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  className={`h-4 w-4 ${
+                                    i < Math.floor(service.rating || 5) 
+                                      ? "fill-current" 
+                                      : "text-muted-foreground"
+                                  }`} 
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          {service.bookings > 0 && (
+                            <p className="text-xs text-muted-foreground mb-3">
+                              {service.bookings} bookings completed
+                            </p>
+                          )}
+                          <Button
+                            className="w-full"
+                            onClick={() => {
+                              // Navigate to booking with pre-selected service
+                              setActiveTab('account');
+                              toast.success(`Selected: ${service.name}. Complete booking in Account tab.`);
+                            }}
+                          >
+                            <Calendar className="h-4 w-4 mr-2" />
+                            Book Now
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Team Members Available */}

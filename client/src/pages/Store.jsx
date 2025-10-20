@@ -152,7 +152,7 @@ const Store = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${products.reduce((sum, p) => sum + (p.price * p.stockQuantity || 0), 0).toLocaleString()}
+              KES {products.reduce((sum, p) => sum + (p.price * p.stockQuantity || 0), 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               Inventory value
@@ -265,7 +265,7 @@ const Store = () => {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-2xl font-bold text-green-600">
-                        ${product.price?.toFixed(2) || "0.00"}
+                        KES {product.price?.toLocaleString() || "0"}
                       </span>
                       <Badge variant={stockStatus.variant}>
                         {stockStatus.label}
@@ -312,7 +312,7 @@ const Store = () => {
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <span className="text-2xl font-bold text-green-600">
-                        ${product.price?.toFixed(2) || "0.00"}
+                        KES {product.price?.toLocaleString() || "0"}
                       </span>
                       <Button 
                         variant="outline" 

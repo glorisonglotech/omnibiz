@@ -22,7 +22,8 @@ import {
   FileText,
   TrendingUp,
   Monitor,
-  Wallet
+  Wallet,
+  Tag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ const navigationItems = [
   { name: "Inventory", href: "/dashboard/inventory", icon: Package },
   { name: "Products", href: "/dashboard/products", icon: Package },
   { name: "E-Commerce", href: "/dashboard/ecommerce", icon: ShoppingCart },
+  { name: "Discounts", href: "/dashboard/discounts", icon: Tag },
   { name: "Appointments", href: "/dashboard/appointments", icon: Calendar },
   { name: "Finances", href: "/dashboard/finances", icon: DollarSign },
   { name: "Team", href: "/dashboard/team", icon: Users },

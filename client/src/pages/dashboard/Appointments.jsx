@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -29,13 +30,19 @@ import {
   Filter,
   Send,
   Trash2,
+  CheckCircle,
+  XCircle,
+  CheckCheck,
+  Search,
+  RefreshCw,
+  Mail
 } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 
-const statusOptions = ["Confirmed", "Pending", "Cancelled"];
+const statusOptions = ["Pending", "Confirmed", "Completed", "Cancelled", "Rejected"];
 
 const Appointments = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -49,12 +56,17 @@ const Appointments = () => {
   
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [appointments, setAppointments] = useState([]);
+  const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [totalAppointments, setTotalAppointments] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [noShows, setNoShows] = useState(0);
   const [confirmedCount, setConfirmedCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [cancelledCount, setCancelledCount] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [appointmentStats, setAppointmentStats] = useState(null);
   const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
   const [popularServices, setPopularServices] = useState([]);
@@ -116,7 +128,8 @@ const Appointments = () => {
     socket.on('appointment_created', (data) => {
       console.log('New appointment created:', data);
       setAppointments((prev) => [data.appointment, ...prev]);
-      toast.success('New appointment added in real-time!');
+      toast.success(`New appointment from ${data.appointment.customerName}`);
+      fetchAppointmentStats();
     });
 
     // Listen for appointment updates
@@ -128,39 +141,117 @@ const Appointments = () => {
       toast.info('Appointment updated in real-time');
     });
 
+    // Listen for appointment confirmed
+    socket.on('appointment_confirmed', (data) => {
+      console.log('Appointment confirmed:', data);
+      setAppointments((prev) =>
+        prev.map((apt) => (apt._id === data.appointment._id ? data.appointment : apt))
+      );
+      toast.success(`Appointment confirmed for ${data.appointment.customerName}`);
+      fetchAppointmentStats();
+    });
+
+    // Listen for appointment rejected
+    socket.on('appointment_rejected', (data) => {
+      console.log('Appointment rejected:', data);
+      setAppointments((prev) =>
+        prev.map((apt) => (apt._id === data.appointment._id ? data.appointment : apt))
+      );
+      toast.info('Appointment rejected');
+      fetchAppointmentStats();
+    });
+
+    // Listen for appointment completed
+    socket.on('appointment_completed', (data) => {
+      console.log('Appointment completed:', data);
+      setAppointments((prev) =>
+        prev.map((apt) => (apt._id === data.appointment._id ? data.appointment : apt))
+      );
+      toast.success('Appointment completed');
+      fetchAppointmentStats();
+    });
+
     // Listen for appointment deletions
     socket.on('appointment_deleted', (data) => {
       console.log('Appointment deleted:', data);
       setAppointments((prev) => prev.filter((apt) => apt._id !== data.appointmentId));
       toast.info('Appointment removed');
+      fetchAppointmentStats();
     });
 
     // Cleanup listeners on unmount
     return () => {
       socket.off('appointment_created');
       socket.off('appointment_updated');
+      socket.off('appointment_confirmed');
+      socket.off('appointment_rejected');
+      socket.off('appointment_completed');
       socket.off('appointment_deleted');
     };
   }, [socket, connected]);
+
+  // Fetch appointment stats from API
+  const fetchAppointmentStats = async () => {
+    try {
+      const { data } = await api.get('/appointments/stats/overview', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      setAppointmentStats(data);
+    } catch (error) {
+      console.error('Error fetching appointment stats:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAppointmentStats();
+    }
+  }, [isAuthenticated]);
 
   const recalcStats = (list) => {
     const norm = (s = "") => s.trim().toLowerCase();
     const confirmed = list.filter((a) => norm(a.status) === "confirmed").length;
     const pending = list.filter((a) => norm(a.status) === "pending").length;
     const cancelled = list.filter((a) => norm(a.status) === "cancelled").length;
+    const completed = list.filter((a) => norm(a.status) === "completed").length;
 
     setTotalAppointments(list.length);
     setConfirmedCount(confirmed);
     setPendingCount(pending);
     setCancelledCount(cancelled);
-    // If you track no-shows separately, adjust this; otherwise keep cancelled:
+    setCompletedCount(completed);
     setNoShows(cancelled);
   };
 
   useEffect(() => {
     recalcStats(appointments);
     calculatePopularServices(appointments);
-  }, [appointments]);
+    applyFilters();
+  }, [appointments, statusFilter, searchQuery]);
+
+  // Apply filters and search
+  const applyFilters = () => {
+    let filtered = [...appointments];
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(apt => 
+        apt.status.toLowerCase() === statusFilter.toLowerCase()
+      );
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(apt => 
+        apt.customerName?.toLowerCase().includes(query) ||
+        apt.service?.toLowerCase().includes(query) ||
+        apt.customerEmail?.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredAppointments(filtered);
+  };
 
   // Calculate popular services from real data
   const calculatePopularServices = (appointmentsList) => {
@@ -331,9 +422,65 @@ const formatForDatetimeLocal = (date) => {
       });
       setAppointments((prev) => prev.filter((apt) => apt._id !== id));
       toast.success("Appointment deleted successfully!");
+      fetchAppointmentStats();
     } catch (error) {
       toast.error("Error deleting appointment.");
       console.error("Error deleting appointment:", error);
+    }
+  };
+
+  // Confirm appointment (Admin)
+  const handleConfirmAppointment = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const { data } = await api.put(`/appointments/${id}/confirm`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAppointments((prev) =>
+        prev.map((apt) => (apt._id === id ? data.appointment : apt))
+      );
+      toast.success("Appointment confirmed! Email sent to customer.");
+      fetchAppointmentStats();
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Error confirming appointment.");
+      console.error("Error confirming appointment:", error);
+    }
+  };
+
+  // Reject appointment (Admin)
+  const handleRejectAppointment = async (id, reason = 'Time slot unavailable') => {
+    try {
+      const token = localStorage.getItem("token");
+      const { data } = await api.put(`/appointments/${id}/reject`, 
+        { reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAppointments((prev) =>
+        prev.map((apt) => (apt._id === id ? data.appointment : apt))
+      );
+      toast.success("Appointment rejected. Customer notified.");
+      fetchAppointmentStats();
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Error rejecting appointment.");
+      console.error("Error rejecting appointment:", error);
+    }
+  };
+
+  // Complete appointment (Admin)
+  const handleCompleteAppointment = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const { data } = await api.put(`/appointments/${id}/complete`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAppointments((prev) =>
+        prev.map((apt) => (apt._id === id ? data.appointment : apt))
+      );
+      toast.success("Appointment marked as completed!");
+      fetchAppointmentStats();
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Error completing appointment.");
+      console.error("Error completing appointment:", error);
     }
   };
 
@@ -391,11 +538,72 @@ const formatForDatetimeLocal = (date) => {
         variant: "destructive",
         className: "bg-red-100 text-red-800",
       },
+      Rejected: {
+        variant: "destructive",
+        className: "bg-red-100 text-red-800",
+      },
+      Completed: {
+        variant: "default",
+        className: "bg-blue-100 text-blue-800",
+      },
     };
     return (
-      <Badge variant={statusConfig[status]?.variant || "default"}>
+      <Badge variant={statusConfig[status]?.variant || "default"} className={statusConfig[status]?.className}>
         {status}
       </Badge>
+    );
+  };
+
+  // Get action buttons based on status
+  const getActionButtons = (appointment) => {
+    const isPending = appointment.status === 'Pending';
+    const isConfirmed = appointment.status === 'Confirmed';
+
+    return (
+      <div className="flex gap-1">
+        {isPending && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={() => handleConfirmAppointment(appointment._id)}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Confirm
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => handleRejectAppointment(appointment._id)}
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Reject
+            </Button>
+          </>
+        )}
+        {isConfirmed && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            onClick={() => handleCompleteAppointment(appointment._id)}
+          >
+            <CheckCheck className="h-4 w-4 mr-1" />
+            Complete
+          </Button>
+        )}
+        {appointment.customerEmail && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.location.href = `mailto:${appointment.customerEmail}`}
+          >
+            <Mail className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
     );
   };
 
@@ -409,15 +617,37 @@ const formatForDatetimeLocal = (date) => {
           <p className="text-muted-foreground">Manage bookings and calendar</p>
         </div>
         <div className="flex space-x-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search appointments..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-64"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Filter status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
           <Input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="w-auto"
           />
-          <Button variant="outline">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
+          <Button variant="outline" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Reset
           </Button>
           <Dialog
             open={isAddAppointmentOpen}
@@ -537,7 +767,8 @@ const formatForDatetimeLocal = (date) => {
           </Dialog>
         </div>
       </div>
-      <div className="grid gap-6 md:grid-cols-4">
+      {/* Updated Statistics Cards with real data */}
+      <div className="grid gap-6 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -553,23 +784,45 @@ const formatForDatetimeLocal = (date) => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{confirmedCount}</div>
-            <p className="text-xs text-green-600">status: confirmed</p>
+            <div className="text-2xl font-bold text-yellow-600">{appointmentStats?.pending || pendingCount}</div>
+            <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">No-Shows</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{noShows}</div>
-            <p className="text-xs text-muted-foreground">Cancelled appointments</p>
+            <div className="text-2xl font-bold text-green-600">{appointmentStats?.confirmed || confirmedCount}</div>
+            <p className="text-xs text-muted-foreground">Ready to serve</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CheckCheck className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{appointmentStats?.completed || completedCount}</div>
+            <p className="text-xs text-muted-foreground">Service done</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
+            <XCircle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{appointmentStats?.cancelled || cancelledCount}</div>
+            <p className="text-xs text-muted-foreground">No-shows/rejected</p>
           </CardContent>
         </Card>
       </div>
@@ -590,59 +843,75 @@ const formatForDatetimeLocal = (date) => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {appointments.map((appointment) => (
-                <div
-                  key={appointment._id || appointment.id}
-                  className="flex items-center space-x-4 p-4 border rounded-lg"
-                >
-                  <div className="text-center min-w-[80px]">
-                    <p className="font-semibold text-foreground">
-                      {appointment.time
-                        ? new Date(appointment.time).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {appointment.durationMinutes || ""}
-                    </p>
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-foreground">
-                        {appointment.customerName}
-                      </p>
-                      {getStatusBadge(appointment.status)}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {appointment.service}
-                    </p>
-                  </div>
-
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Phone className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditClick(appointment)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-600"
-                      onClick={() => handleDeleteAppointment(appointment._id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+              {filteredAppointments.length === 0 ? (
+                <div className="text-center py-12">
+                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No appointments found</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {searchQuery || statusFilter !== 'all' 
+                      ? 'Try adjusting your filters' 
+                      : 'Add a new appointment to get started'
+                    }
+                  </p>
                 </div>
-              ))}
+              ) : (
+                filteredAppointments.map((appointment) => (
+                  <div
+                    key={appointment._id || appointment.id}
+                    className="flex items-center space-x-4 p-4 border rounded-lg"
+                  >
+                    <div className="text-center min-w-[80px]">
+                      <p className="font-semibold text-foreground">
+                        {appointment.time
+                          ? new Date(appointment.time).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {appointment.durationMinutes || ""}
+                      </p>
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-medium text-foreground">
+                          {appointment.customerName}
+                        </p>
+                        {getStatusBadge(appointment.status)}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {appointment.service}
+                      </p>
+                      {appointment.customerEmail && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {appointment.customerEmail}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {getActionButtons(appointment)}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditClick(appointment)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-600"
+                        onClick={() => handleDeleteAppointment(appointment._id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

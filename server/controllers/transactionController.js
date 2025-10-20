@@ -5,7 +5,7 @@ const Expense = require('../models/expense');
 // Get all transactions for a user
 exports.getTransactions = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const { page = 1, limit = 10, type, category, startDate, endDate } = req.query;
     
     // Build filter object
@@ -42,19 +42,42 @@ exports.getTransactions = async (req, res) => {
 // Create a new transaction
 exports.createTransaction = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const { description, amount, type, category, status, reference, notes } = req.body;
     
+    // Validate required fields
     if (!description || !amount || !type || !category) {
       return res.status(400).json({ 
         error: 'Description, amount, type, and category are required' 
       });
     }
     
+    // Validate amount
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ 
+        error: 'Amount must be a positive number' 
+      });
+    }
+    
+    // Maximum transaction limit
+    if (parsedAmount > 10000000) {
+      return res.status(400).json({ 
+        error: 'Amount exceeds maximum limit of KES 10,000,000' 
+      });
+    }
+    
+    // Validate type
+    if (!['income', 'expense'].includes(type)) {
+      return res.status(400).json({ 
+        error: 'Type must be either income or expense' 
+      });
+    }
+    
     const transaction = new Transaction({
       userId,
-      description,
-      amount,
+      description: description.trim(),
+      amount: parsedAmount,
       type,
       category,
       status: status || 'completed',
@@ -77,7 +100,7 @@ exports.createTransaction = async (req, res) => {
 // Get financial summary
 exports.getFinancialSummary = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const { startDate, endDate } = req.query;
     
     // Default to current month if no dates provided
@@ -145,7 +168,7 @@ exports.getFinancialSummary = async (req, res) => {
 exports.updateTransaction = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id;
     const updateData = req.body;
     
     const transaction = await Transaction.findOneAndUpdate(
@@ -169,7 +192,7 @@ exports.updateTransaction = async (req, res) => {
 exports.deleteTransaction = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id;
     
     const transaction = await Transaction.findOneAndDelete({ _id: id, userId });
     

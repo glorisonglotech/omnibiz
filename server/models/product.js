@@ -57,6 +57,17 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isNewArrival: {
+      type: Boolean,
+      default: false,
+    },
+    newArrivalUntil: {
+      type: Date,
+    },
+    discountId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Discount',
+    },
   },
   {
     timestamps: true,

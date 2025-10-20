@@ -53,8 +53,7 @@ export const NotificationsPanel = () => {
     setUnreadCount(prev => prev + 1);
     
     // Show toast for new notification
-    toast(notification.title, {
-      description: notification.message,
+    toast.info(`${notification.title}: ${notification.message}`, {
       action: {
         label: 'View',
         onClick: () => {

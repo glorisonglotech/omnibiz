@@ -167,7 +167,7 @@ const NotificationCenter = () => {
                       </p>
                       
                       <p className="text-xs text-gray-400 mt-2">
-                        {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
+                        {notification.timestamp ? formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true }) : 'Just now'}
                       </p>
                     </div>
                   </div>

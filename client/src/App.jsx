@@ -35,6 +35,7 @@ import Search from "./pages/dashboard/Search";
 import GraphsShowcase from "./pages/dashboard/GraphsShowcase";
 import Reports from "./pages/dashboard/Reports";
 import HelpSupport from "./pages/dashboard/HelpSupport";
+import Discounts from "./pages/dashboard/Discounts";
 import GUIImplementation from "./components/GUIImplementation";
 import { AuthProvider } from "@/context/AuthContext";
 import { CustomerAuthProvider } from "@/context/CustomerAuthContext";
@@ -146,6 +147,7 @@ function App() {
                       {/* Dashboard Sub-Routes */}
                       <Route path="inventory" element={<Inventory />} />
                       <Route path="ecommerce" element={<ECommerce />} />
+                      <Route path="discounts" element={<Discounts />} />
                       <Route path="appointments" element={<Appointments />} />
                       <Route path="finances" element={<Finances />} />
                       <Route path="subscriptions" element={<Subscriptions />} />

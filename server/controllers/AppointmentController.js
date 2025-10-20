@@ -1,5 +1,8 @@
 const Appointment = require("../models/appointment");
+const Service = require("../models/service");
+const User = require("../models/user");
 const { getIO } = require('../config/socket');
+const { notificationService } = require('../services/notificationService');
 
 // Create a new appointment
 exports.createAppointment = async (req, res) => {
@@ -24,6 +27,13 @@ exports.createAppointment = async (req, res) => {
     }
     
     res.status(201).json(appointment);
+    // Notify admins about new appointment
+    io.to('admins').emit('appointment_created', {
+      appointment,
+      userId: req.user._id,
+      timestamp: new Date()
+    });
+    
   } catch (error) {
     console.error("Error creating appointment:", error);
     res.status(400).json({ error: error.message });
@@ -35,6 +45,11 @@ exports.getAllAppointments = async (req, res) => {
   try {
     const query = { userId: req.user._id };
 
+    // Optional status filtering
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
+
     // Optional date filtering
     if (req.query.date) {
       const start = new Date(req.query.date);
@@ -43,7 +58,12 @@ exports.getAllAppointments = async (req, res) => {
       query.time = { $gte: start, $lte: end };
     }
 
-    const appointments = await Appointment.find(query).populate("userId");
+    const appointments = await Appointment.find(query)
+      .populate("userId")
+      .populate("serviceId")
+      .populate("confirmedBy", "name email")
+      .sort({ time: -1 });
+    
     res.json(appointments);
   } catch (error) {
     console.error("Error fetching appointments:", error);
@@ -117,7 +137,12 @@ exports.deleteAppointment = async (req, res) => {
     // Emit Socket.IO event for real-time update
     try {
       const io = getIO();
-      io.emit('appointment_deleted', {
+      io.to(`user_${req.user._id}`).emit('appointment_deleted', {
+        appointmentId: req.params.id,
+        userId: req.user._id,
+        timestamp: new Date()
+      });
+      io.to('admins').emit('appointment_deleted', {
         appointmentId: req.params.id,
         userId: req.user._id,
         timestamp: new Date()
@@ -129,6 +154,200 @@ exports.deleteAppointment = async (req, res) => {
     res.json({ message: "Appointment deleted successfully" });
   } catch (error) {
     console.error("Error deleting appointment:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Confirm appointment (Admin only)
+exports.confirmAppointment = async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id)
+      .populate('serviceId')
+      .populate('userId', 'name email');
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    if (appointment.status !== 'Pending') {
+      return res.status(400).json({ error: "Only pending appointments can be confirmed" });
+    }
+
+    appointment.status = 'Confirmed';
+    appointment.confirmedBy = req.user._id;
+    appointment.confirmedAt = new Date();
+    await appointment.save();
+
+    // Emit real-time event
+    const io = getIO();
+    io.to(`user_${appointment.userId._id}`).emit('appointment_confirmed', {
+      appointment,
+      timestamp: new Date()
+    });
+    io.to('admins').emit('appointment_confirmed', {
+      appointment,
+      timestamp: new Date()
+    });
+
+    // Send notification to customer
+    if (appointment.customerEmail) {
+      try {
+        await notificationService.sendEmail({
+          to: appointment.customerEmail,
+          subject: 'Appointment Confirmed - OmniBiz',
+          html: `
+            <h2>Your Appointment Has Been Confirmed!</h2>
+            <p>Hi ${appointment.customerName},</p>
+            <p>Good news! Your appointment has been confirmed.</p>
+            <p><strong>Service:</strong> ${appointment.service}</p>
+            <p><strong>Date & Time:</strong> ${new Date(appointment.time).toLocaleString()}</p>
+            <p><strong>Duration:</strong> ${appointment.durationMinutes} minutes</p>
+            <p>We look forward to seeing you!</p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Email notification error:', emailError);
+      }
+    }
+
+    res.json({ message: 'Appointment confirmed successfully', appointment });
+  } catch (error) {
+    console.error("Error confirming appointment:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Reject appointment (Admin only)
+exports.rejectAppointment = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const appointment = await Appointment.findById(req.params.id)
+      .populate('serviceId')
+      .populate('userId', 'name email');
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    if (appointment.status !== 'Pending') {
+      return res.status(400).json({ error: "Only pending appointments can be rejected" });
+    }
+
+    appointment.status = 'Rejected';
+    appointment.rejectionReason = reason || 'Time slot unavailable';
+    await appointment.save();
+
+    // Emit real-time event
+    const io = getIO();
+    io.to(`user_${appointment.userId._id}`).emit('appointment_rejected', {
+      appointment,
+      timestamp: new Date()
+    });
+    io.to('admins').emit('appointment_rejected', {
+      appointment,
+      timestamp: new Date()
+    });
+
+    // Send notification to customer
+    if (appointment.customerEmail) {
+      try {
+        await notificationService.sendEmail({
+          to: appointment.customerEmail,
+          subject: 'Appointment Update - OmniBiz',
+          html: `
+            <h2>Appointment Update</h2>
+            <p>Hi ${appointment.customerName},</p>
+            <p>We regret to inform you that your appointment request could not be confirmed.</p>
+            <p><strong>Reason:</strong> ${appointment.rejectionReason}</p>
+            <p><strong>Service:</strong> ${appointment.service}</p>
+            <p><strong>Requested Time:</strong> ${new Date(appointment.time).toLocaleString()}</p>
+            <p>Please book another time slot or contact us for assistance.</p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Email notification error:', emailError);
+      }
+    }
+
+    res.json({ message: 'Appointment rejected', appointment });
+  } catch (error) {
+    console.error("Error rejecting appointment:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Complete appointment (Admin only)
+exports.completeAppointment = async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    if (appointment.status !== 'Confirmed') {
+      return res.status(400).json({ error: "Only confirmed appointments can be marked as completed" });
+    }
+
+    appointment.status = 'Completed';
+    appointment.completedAt = new Date();
+    await appointment.save();
+
+    // Update service bookings count
+    if (appointment.serviceId) {
+      await Service.findByIdAndUpdate(appointment.serviceId, {
+        $inc: { bookings: 1 }
+      });
+    }
+
+    // Emit real-time event
+    const io = getIO();
+    io.to(`user_${appointment.userId}`).emit('appointment_completed', {
+      appointment,
+      timestamp: new Date()
+    });
+    io.to('admins').emit('appointment_completed', {
+      appointment,
+      timestamp: new Date()
+    });
+
+    res.json({ message: 'Appointment marked as completed', appointment });
+  } catch (error) {
+    console.error("Error completing appointment:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get appointment statistics
+exports.getAppointmentStats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    const [total, pending, confirmed, completed, cancelled] = await Promise.all([
+      Appointment.countDocuments({ userId }),
+      Appointment.countDocuments({ userId, status: 'Pending' }),
+      Appointment.countDocuments({ userId, status: 'Confirmed' }),
+      Appointment.countDocuments({ userId, status: 'Completed' }),
+      Appointment.countDocuments({ userId, status: { $in: ['Cancelled', 'Rejected'] } })
+    ]);
+
+    // Get upcoming appointments
+    const upcoming = await Appointment.find({
+      userId,
+      status: { $in: ['Pending', 'Confirmed'] },
+      time: { $gte: new Date() }
+    }).sort({ time: 1 }).limit(5);
+
+    res.json({
+      total,
+      pending,
+      confirmed,
+      completed,
+      cancelled,
+      upcoming
+    });
+  } catch (error) {
+    console.error("Error fetching appointment stats:", error);
     res.status(500).json({ error: error.message });
   }
 };

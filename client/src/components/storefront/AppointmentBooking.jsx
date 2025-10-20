@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Clock, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { useSocket } from '@/context/SocketContext';
 
-export default function AppointmentBooking({ onSuccess }) {
-  const [services, setServices] = useState([
-    { id: 1, name: 'Consultation', duration: 30, price: 50 },
-    { id: 2, name: 'Product Demo', duration: 45, price: 75 },
-    { id: 3, name: 'Support Session', duration: 60, price: 100 }
-  ]);
+export default function AppointmentBooking({ onSuccess, preSelectedService }) {
+  const { inviteCode } = useParams();
+  const { socket, connected } = useSocket();
+  const [services, setServices] = useState([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
 
   const [selectedService, setSelectedService] = useState(null);
   const [formData, setFormData] = useState({
@@ -45,20 +46,83 @@ export default function AppointmentBooking({ onSuccess }) {
     setAvailableSlots(generateTimeSlots());
   }, []);
 
-  // Fetch services from backend
+  // Fetch real services from backend
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        // In the future, fetch from API
-        // const { data } = await api.get('/public/services');
-        // setServices(data);
+        setServicesLoading(true);
+        const params = inviteCode ? { inviteCode } : {};
+        const { data } = await api.get('/public/services', { params });
+        
+        // Format services for booking
+        const formattedServices = data.map(service => ({
+          id: service._id,
+          _id: service._id,
+          name: service.name,
+          description: service.description || '',
+          duration: parseInt(service.duration) || 60,
+          price: service.price || 0,
+          category: service.category || 'General'
+        }));
+        
+        setServices(formattedServices);
+        
+        // Auto-select pre-selected service
+        if (preSelectedService && formattedServices.length > 0) {
+          const matchedService = formattedServices.find(s => 
+            s.id === preSelectedService.id || s.name === preSelectedService.name
+          );
+          if (matchedService) {
+            handleServiceSelect(matchedService);
+          }
+        }
       } catch (error) {
         console.error('Error fetching services:', error);
+        toast.error('Could not load services. Please try again.');
+      } finally {
+        setServicesLoading(false);
       }
     };
 
     fetchServices();
-  }, []);
+  }, [inviteCode, preSelectedService]);
+
+  // Real-time service updates
+  useEffect(() => {
+    if (!socket || !connected || !inviteCode) return;
+
+    socket.on('service_sync', (data) => {
+      if (data.type === 'insert') {
+        setServices(prev => [...prev, {
+          id: data.service._id,
+          _id: data.service._id,
+          name: data.service.name,
+          description: data.service.description || '',
+          duration: parseInt(data.service.duration) || 60,
+          price: data.service.price || 0,
+          category: data.service.category || 'General'
+        }]);
+      } else if (data.type === 'update') {
+        setServices(prev => prev.map(s => 
+          s.id === data.service._id ? {
+            id: data.service._id,
+            _id: data.service._id,
+            name: data.service.name,
+            description: data.service.description || '',
+            duration: parseInt(data.service.duration) || 60,
+            price: data.service.price || 0,
+            category: data.service.category || 'General'
+          } : s
+        ));
+      } else if (data.type === 'delete') {
+        setServices(prev => prev.filter(s => s.id !== data.service._id));
+      }
+    });
+
+    return () => {
+      socket.off('service_sync');
+    };
+  }, [socket, connected, inviteCode]);
 
   const handleServiceSelect = (service) => {
     setSelectedService(service);
@@ -102,11 +166,13 @@ export default function AppointmentBooking({ onSuccess }) {
         customerEmail: formData.customerEmail,
         customerPhone: formData.customerPhone,
         service: selectedService.name,
+        serviceId: selectedService._id || selectedService.id,
         time: new Date(`${formData.date}T${formData.time}`),
         durationMinutes: selectedService.duration,
         status: 'Pending',
         notes: formData.notes,
-        price: selectedService.price
+        price: selectedService.price,
+        inviteCode
       };
 
       // Submit to backend
@@ -185,6 +251,18 @@ export default function AppointmentBooking({ onSuccess }) {
         {step === 1 && (
           <div className="space-y-4">
             <h3 className="font-semibold text-lg">Available Services</h3>
+            {servicesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : services.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">No services available at this time.</p>
+                  <p className="text-sm text-muted-foreground mt-2">Please check back later.</p>
+                </CardContent>
+              </Card>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {services.map((service) => (
                 <Card
@@ -205,6 +283,7 @@ export default function AppointmentBooking({ onSuccess }) {
                 </Card>
               ))}
             </div>
+            )}
           </div>
         )}
 

@@ -45,6 +45,9 @@ const initializeSocket = (server) => {
   // Initialize WebRTC signaling
   webrtcSignaling = new WebRTCSignaling(io);
 
+  // Import StorefrontPolling service
+  const storefrontPolling = require('../services/storefrontPolling');
+
   // Handle connections
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.user.email} (${socket.user.role})`);
@@ -54,6 +57,16 @@ const initializeSocket = (server) => {
     
     // Join user to their personal room
     socket.join(`user_${socket.userId}`);
+
+    // Handle storefront room joining
+    socket.on('join_storefront', (inviteCode) => {
+      storefrontPolling.joinStorefront(socket, inviteCode);
+    });
+
+    // Handle storefront room leaving
+    socket.on('leave_storefront', (inviteCode) => {
+      storefrontPolling.leaveStorefront(socket, inviteCode);
+    });
     
     // Join role-based rooms
     socket.join(`role_${socket.userRole}`);

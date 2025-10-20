@@ -318,7 +318,7 @@ const LiveChatWidget = () => {
   // Advanced AI response function with Gemini integration and dashboard-specific training
   const getAIResponse = async (userMessage, context, history) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || localStorage.getItem('customerToken');
       
       // Build dashboard-specific context-aware prompt
       const systemPrompt = buildDashboardSpecificPrompt(context, history);
@@ -332,7 +332,7 @@ const LiveChatWidget = () => {
         previousQueries: getRecentQueries(5),
       };
       
-      // Call backend Gemini AI endpoint
+      // Call backend Gemini AI endpoint with increased timeout and better error handling
       const response = await api.post('/ai/chat', {
         message: userMessage,
         context: enrichedContext,
@@ -340,7 +340,8 @@ const LiveChatWidget = () => {
         systemPrompt: systemPrompt,
         dashboardType: dashboardType // Admin or storefront context
       }, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        timeout: 30000 // 30 second timeout
       });
       
       // Store successful AI interaction for training
@@ -351,6 +352,11 @@ const LiveChatWidget = () => {
       return response.data.response;
     } catch (error) {
       console.error('AI API Error:', error);
+      
+      // If AI service is unavailable, return fallback immediately
+      if (error.response?.status === 503 || error.response?.status === 500) {
+        console.log('AI service unavailable, using intelligent fallback');
+      }
       
       // Fallback to intelligent rule-based responses
       return generateIntelligentFallbackResponse(userMessage, context);

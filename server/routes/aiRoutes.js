@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, optionalAuth } = require('../middlewares/authMiddleware');
 const { requireAdmin } = require('../middlewares/roleMiddleware');
 const {
   chat,
@@ -11,9 +11,9 @@ const {
   chatStream
 } = require('../controllers/aiController');
 
-// AI chat routes
-router.post('/chat', protect, chat);
-router.get('/chat-stream', protect, chatStream);
+// AI chat routes - Allow both authenticated and guest users
+router.post('/chat', optionalAuth, chat);
+router.get('/chat-stream', optionalAuth, chatStream);
 
 // Business insights
 router.get('/insights', protect, generateInsights);

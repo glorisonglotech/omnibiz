@@ -4,9 +4,11 @@ const Order = require('../models/order');
 const Appointment = require('../models/appointment');
 const User = require('../models/user');
 const Product = require('../models/product');
+const Service = require('../models/service');
 const { notificationHelpers, getIO } = require('../config/socket');
 const { emailService } = require('../config/email');
 const { notificationService } = require('../services/notificationService');
+const { getStorefrontDiscounts } = require('../controllers/discountController');
 
 // Helper: find store owner by inviteCode
 async function findOwnerByInviteCode(inviteCode) {
@@ -50,22 +52,16 @@ router.get('/services', async (req, res) => {
         return res.status(400).json({ message: 'Invalid inviteCode' });
       }
       
-      // Get available services from appointments
-      const services = await Appointment.aggregate([
-        { $match: { userId: owner._id } },
-        { $group: { 
-          _id: '$service',
-          count: { $sum: 1 },
-          avgDuration: { $avg: '$durationMinutes' }
-        }},
-        { $project: {
-          name: '$_id',
-          duration: { $concat: [{ $toString: { $round: ['$avgDuration', 0] }}, ' min'] },
-          bookings: '$count',
-          _id: 0
-        }},
-        { $limit: 20 }
-      ]);
+      // Get services from Service model (real-time synced data)
+      const services = await Service.find({ 
+        userId: owner._id, 
+        isActive: true 
+      })
+        .populate('availableTeamMembers', 'name role')
+        .populate('locations', 'name city address')
+        .select('name description price duration category bookings rating image')
+        .sort({ createdAt: -1 })
+        .limit(50);
       
       return res.json(services);
     }
@@ -268,6 +264,9 @@ router.post('/appointments', async (req, res) => {
     return res.status(400).json({ message: error.message || 'Failed to create appointment' });
   }
 });
+
+// GET /api/public/discounts - Get active storefront discounts
+router.get('/discounts', getStorefrontDiscounts);
 
 module.exports = router;
 

@@ -17,20 +17,24 @@ exports.chat = async (req, res) => {
 
     // Check if Gemini AI is initialized
     if (!geminiAI || !geminiAI.initialized) {
-      console.error('❌ Gemini AI not initialized. Check GEMINI_API_KEY in .env');
-      return res.status(503).json({ 
-        error: 'AI service not available. Please contact administrator.',
-        details: 'Gemini AI not initialized'
+      console.error('❌ Gemini AI not initialized. Check GEMINI_API_KEY or DEEPSEEK_API_KEY in .env');
+      // Return a helpful fallback response instead of error
+      return res.json({
+        response: 'AI assistant is currently unavailable. Please ensure your API key is configured in the .env file (GEMINI_API_KEY or DEEPSEEK_API_KEY). For now, I can still help you navigate the dashboard and access features.',
+        model: 'fallback',
+        dashboardType: dashboardType || 'general',
+        timestamp: new Date()
       });
     }
 
     // Build enriched context based on dashboard type
     const aiContext = {
-      businessName: req.user?.businessName || 'Business',
-      userName: req.user?.name || 'User',
-      userRole: req.user?.role || 'user',
-      userId: req.user?._id,
+      businessName: req.user?.businessName || context?.businessName || 'Business',
+      userName: req.user?.name || context?.userName || 'Guest',
+      userRole: req.user?.role || context?.userRole || 'guest',
+      userId: req.user?._id || 'guest',
       dashboardType: dashboardType || context?.dashboardType || 'general',
+      isGuest: !req.user,
       ...context
     };
 
@@ -94,7 +98,13 @@ Be friendly, helpful, and customer-focused in your responses.`;
 
     if (!result.success) {
       console.error('❌ AI generation failed:', result.error);
-      return res.status(500).json({ error: result.error || 'AI response generation failed' });
+      // Return fallback instead of error
+      return res.json({
+        response: 'I apologize, but I\'m having trouble connecting to the AI service right now. However, I can still help you navigate the dashboard and answer questions about your business. What would you like to know?',
+        model: 'fallback',
+        dashboardType: aiContext.dashboardType,
+        timestamp: new Date()
+      });
     }
 
     res.json({
@@ -105,9 +115,12 @@ Be friendly, helpful, and customer-focused in your responses.`;
     });
   } catch (error) {
     console.error('❌ AI chat error:', error);
-    res.status(500).json({ 
-      error: error.message || 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    // Return fallback response instead of 500 error
+    res.json({
+      response: 'I\'m currently experiencing technical difficulties, but I\'m still here to help! I can assist you with navigating the dashboard, viewing reports, managing inventory, and more. What can I help you with?',
+      model: 'fallback-error',
+      dashboardType: dashboardType || 'general',
+      timestamp: new Date()
     });
   }
 };

@@ -55,7 +55,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-
+import { useSocket } from "@/context/SocketContext";
 import { toast } from "sonner";
 
 const Team = () => {

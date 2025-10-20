@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ComprehensiveGraphs from "@/components/ComprehensiveGraphs";
-import { generateMockGraphData } from "@/hooks/useGraphData";
+import { useSocket } from "@/context/SocketContext";
 import {
   Card,
   CardContent,
@@ -66,6 +66,7 @@ const Finances = () => {
     loading: financialLoading,
     refreshFinancialData
   } = useFinancial();
+  const { socket, connected } = useSocket();
 
   // Provide fallback values if data is null
   const financialSummary = financialSummaryData || {

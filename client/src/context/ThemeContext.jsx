@@ -247,6 +247,110 @@ export const AVAILABLE_THEMES = {
       foreground: '#c0caf5'
     }
   },
+  corporate: {
+    name: 'Corporate Blue',
+    description: 'Professional business theme',
+    preview: 'bg-blue-700 text-white',
+    category: 'business',
+    colors: {
+      primary: '#1e40af',
+      secondary: '#1e3a8a',
+      accent: '#3b82f6',
+      background: '#ffffff',
+      foreground: '#1e293b'
+    }
+  },
+  forest: {
+    name: 'Forest Green',
+    description: 'Calm forest vibes',
+    preview: 'bg-green-700 text-white',
+    category: 'nature',
+    colors: {
+      primary: '#047857',
+      secondary: '#065f46',
+      accent: '#10b981',
+      background: '#f0fdf4',
+      foreground: '#064e3b'
+    }
+  },
+  lavender: {
+    name: 'Lavender Dreams',
+    description: 'Soft lavender theme',
+    preview: 'bg-purple-400 text-white',
+    category: 'nature',
+    colors: {
+      primary: '#a855f7',
+      secondary: '#ec4899',
+      accent: '#d946ef',
+      background: '#faf5ff',
+      foreground: '#581c87'
+    }
+  },
+  neon: {
+    name: 'Neon Lights',
+    description: 'Vibrant neon colors',
+    preview: 'bg-gradient-to-r from-pink-500 to-purple-500 text-white',
+    category: 'modern',
+    colors: {
+      primary: '#ec4899',
+      secondary: '#a855f7',
+      accent: '#06b6d4',
+      background: '#18181b',
+      foreground: '#fafafa'
+    }
+  },
+  minimal: {
+    name: 'Minimal Black',
+    description: 'Ultra minimal design',
+    preview: 'bg-black text-white',
+    category: 'modern',
+    colors: {
+      primary: '#18181b',
+      secondary: '#27272a',
+      accent: '#3f3f46',
+      background: '#ffffff',
+      foreground: '#09090b'
+    }
+  },
+  spring: {
+    name: 'Spring Bloom',
+    description: 'Fresh spring colors',
+    preview: 'bg-gradient-to-r from-green-400 to-pink-400 text-white',
+    category: 'seasonal',
+    colors: {
+      primary: '#22c55e',
+      secondary: '#f472b6',
+      accent: '#a3e635',
+      background: '#f0fdf4',
+      foreground: '#14532d'
+    }
+  },
+  autumn: {
+    name: 'Autumn Leaves',
+    description: 'Warm autumn colors',
+    preview: 'bg-gradient-to-r from-orange-600 to-red-700 text-white',
+    category: 'seasonal',
+    colors: {
+      primary: '#ea580c',
+      secondary: '#dc2626',
+      accent: '#f59e0b',
+      background: '#fffbeb',
+      foreground: '#78350f'
+    }
+  },
+  midnight: {
+    name: 'Midnight Blue',
+    description: 'Deep midnight theme',
+    preview: 'bg-blue-950 text-blue-100',
+    category: 'dark',
+    colors: {
+      primary: '#1e3a8a',
+      secondary: '#1e40af',
+      accent: '#3b82f6',
+      background: '#0c1629',
+      foreground: '#dbeafe'
+    }
+  },
   monokai: {
     name: 'Monokai',
     description: 'Classic code theme',
@@ -260,19 +364,6 @@ export const AVAILABLE_THEMES = {
       foreground: '#f8f8f2'
     }
   },
-  neon: {
-    name: 'Neon Dreams',
-    description: 'Vibrant neon colors',
-    preview: 'bg-black text-[#0ff] border border-[#f0f]',
-    category: 'special',
-    colors: {
-      primary: '#00ffff',
-      secondary: '#ff00ff',
-      accent: '#00ff00',
-      background: '#000000',
-      foreground: '#00ffff'
-    }
-  },
   matrix: {
     name: 'Matrix',
     description: 'Enter the matrix',
@@ -284,32 +375,6 @@ export const AVAILABLE_THEMES = {
       accent: '#00ff41',
       background: '#000000',
       foreground: '#00ff00'
-    }
-  },
-  lavender: {
-    name: 'Lavender Fields',
-    description: 'Soft purple tones',
-    preview: 'bg-[#f5f3ff] text-[#5b21b6]',
-    category: 'color',
-    colors: {
-      primary: '#8b5cf6',
-      secondary: '#a78bfa',
-      accent: '#c4b5fd',
-      background: '#f5f3ff',
-      foreground: '#5b21b6'
-    }
-  },
-  midnight: {
-    name: 'Midnight Blue',
-    description: 'Deep midnight colors',
-    preview: 'bg-[#0c1445] text-[#e0e7ff]',
-    category: 'special',
-    colors: {
-      primary: '#4f46e5',
-      secondary: '#818cf8',
-      accent: '#a5b4fc',
-      background: '#0c1445',
-      foreground: '#e0e7ff'
     }
   },
   coral: {

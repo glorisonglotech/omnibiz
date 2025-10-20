@@ -50,6 +50,10 @@ import {
   RefreshCw,
   BarChart3,
   Eye,
+  MessageSquare,
+  MessageCircle,
+  Star,
+  Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
@@ -280,6 +284,34 @@ const Locations = () => {
     await fetchLocationsData();
     setRefreshing(false);
     toast.success("Location data refreshed!");
+  };
+
+  // Communication Functions
+  const handleCall = (phone) => {
+    window.location.href = `tel:${phone}`;
+    toast.success(`Calling ${phone}...`);
+  };
+
+  const handleSMS = (phone) => {
+    window.location.href = `sms:${phone}`;
+    toast.success(`Opening SMS to ${phone}...`);
+  };
+
+  const handleEmail = (email, locationName) => {
+    window.location.href = `mailto:${email}?subject=Regarding ${locationName}`;
+    toast.success(`Opening email to ${email}...`);
+  };
+
+  const handleWhatsApp = (phone, locationName) => {
+    const cleanPhone = phone.replace(/\s+/g, '').replace('+', '');
+    window.open(`https://wa.me/${cleanPhone}?text=Hello, regarding ${locationName}`, '_blank');
+    toast.success(`Opening WhatsApp...`);
+  };
+
+  const handleGetDirections = (address, city) => {
+    const fullAddress = encodeURIComponent(`${address}, ${city}`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${fullAddress}`, '_blank');
+    toast.success('Opening Google Maps...');
   };
 
   // Seed default locations
@@ -802,20 +834,71 @@ const Locations = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm space-y-1">
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {location.phone}
-                      </div>
-                      {location.email && (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          {location.email}
+                    <div className="space-y-2">
+                      <div className="text-sm space-y-1">
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {location.phone}
                         </div>
-                      )}
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {location.operatingHours}
+                        {location.email && (
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Mail className="h-3 w-3" />
+                            {location.email}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {location.operatingHours}
+                        </div>
+                      </div>
+                      
+                      {/* Communication Action Buttons */}
+                      <div className="flex gap-1 flex-wrap">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => handleCall(location.phone)}
+                        >
+                          <Phone className="h-3 w-3 mr-1" />
+                          Call
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => handleSMS(location.phone)}
+                        >
+                          <MessageSquare className="h-3 w-3 mr-1" />
+                          SMS
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => handleEmail(location.email, location.name)}
+                        >
+                          <Mail className="h-3 w-3 mr-1" />
+                          Email
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-7 px-2 text-xs bg-green-50 hover:bg-green-100"
+                          onClick={() => handleWhatsApp(location.phone, location.name)}
+                        >
+                          <MessageCircle className="h-3 w-3 mr-1 text-green-600" />
+                          WhatsApp
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => handleGetDirections(location.address, location.city)}
+                        >
+                          <Navigation className="h-3 w-3 mr-1" />
+                          Map
+                        </Button>
                       </div>
                     </div>
                   </TableCell>

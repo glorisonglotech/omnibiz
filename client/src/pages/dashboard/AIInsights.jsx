@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import ComprehensiveGraphs from '@/components/ComprehensiveGraphs';
-import { generateMockGraphData } from '@/hooks/useGraphData';
 import {
   Card,
   CardContent,
@@ -36,10 +35,10 @@ const AIInsights = () => {
   const [insights, setInsights] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [analytics, setAnalytics] = useState({
-    salesTrend: "up",
-    customerSatisfaction: 85,
-    inventoryOptimization: 78,
-    revenueGrowth: 12.5,
+    salesTrend: "neutral",
+    customerSatisfaction: 0,
+    inventoryOptimization: 0,
+    revenueGrowth: 0,
   });
   const [realData, setRealData] = useState({
     orders: [],
@@ -301,82 +300,6 @@ const AIInsights = () => {
       }
     ]);
   };
-
-  useEffect(() => {
-    const fetchAIInsights = async () => {
-      if (!isAuthenticated) {
-        toast.error("Please log in to view AI insights.");
-        return;
-      }
-
-      try {
-        const token = localStorage.getItem("token");
-        
-        // This is now handled by generateRealInsights
-        const mockInsights = [
-          {
-            id: 1,
-            type: "sales",
-            title: "Sales Performance Analysis",
-            description: "Your sales have increased by 15% this month compared to last month.",
-            confidence: 92,
-            impact: "high",
-            trend: "up",
-          },
-          {
-            id: 2,
-            type: "inventory",
-            title: "Inventory Optimization",
-            description: "5 products are running low on stock and need immediate restocking.",
-            confidence: 88,
-            impact: "medium",
-            trend: "warning",
-          },
-          {
-            id: 3,
-            type: "customer",
-            title: "Customer Behavior Pattern",
-            description: "Peak sales hours are between 2-4 PM. Consider staffing optimization.",
-            confidence: 85,
-            impact: "medium",
-            trend: "neutral",
-          },
-        ];
-
-        const mockRecommendations = [
-          {
-            id: 1,
-            title: "Increase Marketing Budget",
-            description: "Based on current ROI, increasing marketing spend by 20% could boost revenue by 8%.",
-            priority: "high",
-            category: "marketing",
-          },
-          {
-            id: 2,
-            title: "Optimize Product Pricing",
-            description: "3 products are underpriced compared to market standards.",
-            priority: "medium",
-            category: "pricing",
-          },
-          {
-            id: 3,
-            title: "Improve Customer Service",
-            description: "Response time can be improved by 30% with automated chatbot integration.",
-            priority: "low",
-            category: "service",
-          },
-        ];
-
-        setInsights(mockInsights);
-        setRecommendations(mockRecommendations);
-      } catch (error) {
-        toast.error("Error fetching AI insights.");
-        console.error("Error fetching AI insights:", error);
-      }
-    };
-
-    fetchAIInsights();
-  }, [isAuthenticated]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -676,7 +599,7 @@ const AIInsights = () => {
           title="Predictive Sales Trends"
           description="Real-time sales data and forecasting"
           type="area"
-          data={isLoadingData ? generateMockGraphData('growth', 30) : realData.salesData}
+          data={realData.salesData.length > 0 ? realData.salesData : [{ name: 'Loading...', value: 0 }]}
           height={350}
           autoRefresh={true}
           refreshInterval={120000}
@@ -686,7 +609,7 @@ const AIInsights = () => {
           title="Customer Behavior Analysis"
           description="Hourly sales patterns from actual orders"
           type="line"
-          data={isLoadingData ? generateMockGraphData('trend', 30) : realData.customerData}
+          data={realData.customerData.length > 0 ? realData.customerData : [{ name: 'Loading...', value: 0 }]}
           height={350}
           autoRefresh={true}
           refreshInterval={120000}
@@ -698,7 +621,7 @@ const AIInsights = () => {
           title="Market Opportunities"
           description="Monthly revenue trends"
           type="bar"
-          data={isLoadingData ? generateMockGraphData('growth', 12) : realData.salesData.slice(-12)}
+          data={realData.salesData.length > 0 ? realData.salesData.slice(-12) : [{ name: 'Loading...', value: 0 }]}
           height={300}
         />
 
@@ -719,7 +642,7 @@ const AIInsights = () => {
           title="Performance Optimization"
           description="AI-suggested improvements"
           type="composed"
-          data={generateMockGraphData('trend', 20)}
+          data={realData.salesData.length > 0 ? realData.salesData.slice(-20) : [{ name: 'Loading...', value: 0 }]}
           height={300}
         />
       </div>

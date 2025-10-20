@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,38 +18,104 @@ import {
   RefreshCw
 } from 'lucide-react';
 import ComprehensiveGraphs from '@/components/ComprehensiveGraphs';
-import { generateMockGraphData } from '@/hooks/useGraphData';
+import { useSocket } from '@/context/SocketContext';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/lib/api';
 import { toast } from 'sonner';
 
 const GraphsShowcase = () => {
+  const { socket, connected } = useSocket();
+  const { isAuthenticated } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [realData, setRealData] = useState({
+    revenue: [],
+    sales: [],
+    categories: [],
+    traffic: [],
+    performance: []
+  });
+
+  // Fetch real data from API
+  useEffect(() => {
+    const fetchRealData = async () => {
+      if (!isAuthenticated) return;
+      
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+        
+        const [ordersRes, productsRes] = await Promise.all([
+          api.get("/orders", { headers }).catch(() => ({ data: [] })),
+          api.get("/products", { headers }).catch(() => ({ data: [] }))
+        ]);
+        
+        const orders = ordersRes.data || [];
+        const products = productsRes.data || [];
+        
+        // Generate real data from orders
+        const last30Days = [];
+        for (let i = 29; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          const dayOrders = orders.filter(o => {
+            const orderDate = new Date(o.date || o.createdAt);
+            return orderDate.toDateString() === date.toDateString();
+          });
+          last30Days.push({
+            name: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            value: dayOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0),
+            orders: dayOrders.length
+          });
+        }
+        
+        // Category breakdown from products
+        const categories = {};
+        products.forEach(p => {
+          const cat = p.category || 'Other';
+          categories[cat] = (categories[cat] || 0) + (p.price * (p.stockQuantity || 0));
+        });
+        const categoryData = Object.entries(categories).map(([name, value]) => ({ name, value }));
+        
+        // Traffic sources from orders
+        const sources = { 'Online': 0, 'Walk-in': 0, 'Mobile': 0 };
+        orders.forEach(o => {
+          const src = o.source || 'Online';
+          sources[src] = (sources[src] || 0) + 1;
+        });
+        const trafficData = Object.entries(sources).map(([name, value]) => ({ name, value }));
+        
+        // Performance from order status
+        const statuses = {};
+        orders.forEach(o => {
+          const status = o.status || 'Pending';
+          statuses[status] = (statuses[status] || 0) + 1;
+        });
+        const performanceData = Object.entries(statuses).map(([name, value]) => ({ name, value }));
+        
+        setRealData({
+          revenue: last30Days,
+          sales: last30Days,
+          categories: categoryData.length > 0 ? categoryData : [{ name: 'No Data', value: 1 }],
+          traffic: trafficData,
+          performance: performanceData.length > 0 ? performanceData : [{ name: 'No Data', value: 1 }]
+        });
+        
+      } catch (error) {
+        console.error('Error fetching graph data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRealData();
+  }, [isAuthenticated, refreshKey]);
 
   const refreshAllGraphs = () => {
     setRefreshKey(prev => prev + 1);
     toast.success('All graphs refreshed successfully!');
   };
-
-  // Sample data for different chart types
-  const pieData = [
-    { name: 'Desktop', value: 45 },
-    { name: 'Mobile', value: 35 },
-    { name: 'Tablet', value: 20 }
-  ];
-
-  const categoryData = [
-    { name: 'Electronics', value: 35 },
-    { name: 'Clothing', value: 25 },
-    { name: 'Books', value: 20 },
-    { name: 'Home & Garden', value: 15 },
-    { name: 'Sports', value: 5 }
-  ];
-
-  const performanceData = [
-    { name: 'Excellent', value: 40 },
-    { name: 'Good', value: 35 },
-    { name: 'Average', value: 20 },
-    { name: 'Poor', value: 5 }
-  ];
 
   return (
     <div className="space-y-6">
@@ -58,16 +124,21 @@ const GraphsShowcase = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             <BarChart3 className="h-8 w-8 text-green-600" />
-            Comprehensive Graphs Showcase
+            Real-Time Business Analytics
           </h1>
           <p className="text-muted-foreground">
-            Interactive charts and analytics for business insights
+            Live data from your business operations
           </p>
         </div>
-        <Button onClick={refreshAllGraphs} className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Refresh All
-        </Button>
+        <div className="flex items-center gap-2">
+          <Badge variant={connected ? "default" : "secondary"}>
+            {connected ? "● Live" : "Offline"}
+          </Badge>
+          <Button onClick={refreshAllGraphs} className="gap-2" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh All
+          </Button>
+        </div>
       </div>
 
       {/* Feature Overview */}
@@ -135,18 +206,18 @@ const GraphsShowcase = () => {
             <ComprehensiveGraphs
               key={`trend-1-${refreshKey}`}
               title="Revenue Growth Trends"
-              description="Monthly revenue progression with growth indicators"
+              description={`Last 30 days - KES ${realData.revenue.reduce((sum, d) => sum + d.value, 0).toLocaleString()}`}
               type="area"
-              data={generateMockGraphData('growth', 12)}
+              data={realData.revenue}
               height={350}
             />
             
             <ComprehensiveGraphs
               key={`trend-2-${refreshKey}`}
-              title="Customer Acquisition"
-              description="New customer trends over time"
+              title="Daily Sales Performance"
+              description={`${realData.sales.reduce((sum, d) => sum + d.orders, 0)} total orders`}
               type="line"
-              data={generateMockGraphData('trend', 30)}
+              data={realData.sales}
               height={350}
             />
           </div>
@@ -154,9 +225,9 @@ const GraphsShowcase = () => {
           <ComprehensiveGraphs
             key={`trend-3-${refreshKey}`}
             title="Sales Performance Timeline"
-            description="Comprehensive sales data with multiple metrics"
+            description="Real-time sales data with order metrics"
             type="composed"
-            data={generateMockGraphData('growth', 30)}
+            data={realData.sales}
             height={400}
           />
         </TabsContent>
@@ -165,19 +236,19 @@ const GraphsShowcase = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ComprehensiveGraphs
               key={`comp-1-${refreshKey}`}
-              title="Monthly Comparisons"
-              description="Month-over-month performance analysis"
+              title="Daily Revenue Comparison"
+              description="Day-by-day performance analysis"
               type="bar"
-              data={generateMockGraphData('trend', 12)}
+              data={realData.revenue}
               height={350}
             />
             
             <ComprehensiveGraphs
               key={`comp-2-${refreshKey}`}
-              title="Product Performance"
-              description="Comparative analysis of product categories"
+              title="Product Category Performance"
+              description={`${realData.categories.length} categories`}
               type="bar"
-              data={categoryData}
+              data={realData.categories}
               height={350}
               showControls={false}
             />
@@ -188,10 +259,10 @@ const GraphsShowcase = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <ComprehensiveGraphs
               key={`dist-1-${refreshKey}`}
-              title="Traffic Sources"
-              description="Website traffic distribution"
+              title="Order Sources"
+              description="Order source distribution"
               type="pie"
-              data={pieData}
+              data={realData.traffic}
               height={300}
               showControls={false}
             />
@@ -201,17 +272,17 @@ const GraphsShowcase = () => {
               title="Product Categories"
               description="Sales by product category"
               type="pie"
-              data={categoryData}
+              data={realData.categories}
               height={300}
               showControls={false}
             />
             
             <ComprehensiveGraphs
               key={`dist-3-${refreshKey}`}
-              title="Performance Ratings"
-              description="Customer satisfaction distribution"
+              title="Order Status"
+              description="Current order distribution"
               type="pie"
-              data={performanceData}
+              data={realData.performance}
               height={300}
               showControls={false}
             />
@@ -222,19 +293,19 @@ const GraphsShowcase = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ComprehensiveGraphs
               key={`perf-1-${refreshKey}`}
-              title="KPI Dashboard"
-              description="Key performance indicators tracking"
+              title="Sales KPI Dashboard"
+              description="Real-time sales performance"
               type="composed"
-              data={generateMockGraphData('growth', 20)}
+              data={realData.sales}
               height={350}
             />
             
             <ComprehensiveGraphs
               key={`perf-2-${refreshKey}`}
-              title="Efficiency Metrics"
-              description="Operational efficiency over time"
+              title="Revenue Efficiency"
+              description="Revenue generation over time"
               type="area"
-              data={generateMockGraphData('trend', 30)}
+              data={realData.revenue}
               height={350}
             />
           </div>
@@ -245,62 +316,58 @@ const GraphsShowcase = () => {
             <ComprehensiveGraphs
               key={`rt-1-${refreshKey}`}
               title="Live Sales Data"
-              description="Real-time sales monitoring"
+              description="Last 7 days real-time sales"
               type="line"
-              data={generateMockGraphData('trend', 24)}
+              data={realData.sales.slice(-7)}
               height={350}
               autoRefresh={true}
-              refreshInterval={5000}
+              refreshInterval={30000}
             />
             
             <ComprehensiveGraphs
               key={`rt-2-${refreshKey}`}
-              title="Active Users"
-              description="Current active user count"
+              title="Revenue Tracking"
+              description="Real-time revenue monitoring"
               type="area"
-              data={generateMockGraphData('trend', 24)}
+              data={realData.revenue.slice(-7)}
               height={350}
               autoRefresh={true}
-              refreshInterval={3000}
+              refreshInterval={30000}
             />
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <ComprehensiveGraphs
               key={`rt-3-${refreshKey}`}
-              title="Server Performance"
-              description="Real-time server metrics"
+              title="Recent Activity"
+              description="Last 10 days"
               type="line"
-              data={generateMockGraphData('trend', 20)}
+              data={realData.sales.slice(-10)}
               height={250}
               autoRefresh={true}
-              refreshInterval={2000}
+              refreshInterval={30000}
             />
             
             <ComprehensiveGraphs
               key={`rt-4-${refreshKey}`}
-              title="Order Processing"
-              description="Live order processing rate"
+              title="Category Distribution"
+              description="Live category breakdown"
               type="bar"
-              data={generateMockGraphData('trend', 10)}
+              data={realData.categories.slice(0, 5)}
               height={250}
               autoRefresh={true}
-              refreshInterval={4000}
+              refreshInterval={60000}
             />
             
             <ComprehensiveGraphs
               key={`rt-5-${refreshKey}`}
-              title="System Health"
-              description="Overall system status"
+              title="Order Status"
+              description="Current order status"
               type="pie"
-              data={[
-                { name: 'Healthy', value: 85 },
-                { name: 'Warning', value: 12 },
-                { name: 'Critical', value: 3 }
-              ]}
+              data={realData.performance}
               height={250}
               autoRefresh={true}
-              refreshInterval={10000}
+              refreshInterval={30000}
               showControls={false}
             />
           </div>

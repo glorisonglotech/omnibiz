@@ -53,6 +53,8 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState('');
   const [products, setProducts] = useState([]);
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -246,13 +248,40 @@ const Inventory = () => {
     return matchesSearch && matchesCategory;
   });
 
+  // Fetch services data
+  const [services, setServices] = useState([]);
+  const [serviceRevenue, setServiceRevenue] = useState(0);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const response = await api.get("/services", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setServices(response.data || []);
+
+          // Calculate service revenue
+          const revenue = (response.data || []).reduce((sum, service) => {
+            return sum + ((service.price || 0) * (service.bookingsCount || 0));
+          }, 0);
+          setServiceRevenue(revenue);
+        } catch (error) {
+          console.error("Error fetching services:", error);
+        }
+      }
+    };
+    fetchServices();
+  }, []);
+
   // Card Calculations (Total Products, Low Stock, Out of Stock, Total Value)
-  const totalProducts = products.length;
+  const totalProducts = filteredProducts.length;
   const lowStockItems = products.filter(
     (p) => p.stockQuantity <= p.reorderLevel && p.stockQuantity > 0
   ).length;
   const outOfStockItems = products.filter((p) => p.stockQuantity === 0).length;
-  
+
   // Calculate total inventory value (price * stockQuantity for all products)
   const totalValue = products.reduce((sum, p) => {
     const price = Number(p.price) || 0;
@@ -288,7 +317,7 @@ const Inventory = () => {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setShowBarcodeScanner(true)}>
             <QrCode className="mr-2 h-4 w-4" />
             Scan Barcode
           </Button>
@@ -370,13 +399,13 @@ const Inventory = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="price">Price ($)</Label>
+                    <Label htmlFor="price">Price (KES)</Label>
                     <Input
                       id="price"
                       type="number"
                       min="0"
-                      step="0.01"
-                      placeholder="e.g. 29.99"
+                      step="1"
+                      placeholder="e.g. 2500"
                       value={newProduct.price}
                       onChange={(e) =>
                         handleNewProductChange("price", e.target.value)
@@ -544,7 +573,7 @@ const Inventory = () => {
                   <TableCell>{product.sku}</TableCell>
                   <TableCell>{product.category}</TableCell>
                   <TableCell>{product.stockQuantity}</TableCell>
-                  <TableCell>${product.price}</TableCell>
+                  <TableCell>KES {product.price?.toLocaleString() || 0}</TableCell>
                   <TableCell>{product.supplierName}</TableCell>
                   <TableCell>
                     {getStatusBadge(
@@ -654,13 +683,13 @@ const Inventory = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-price">Price ($)</Label>
+                  <Label htmlFor="edit-price">Price (KES)</Label>
                   <Input
                     id="edit-price"
                     type="number"
                     min="0"
-                    step="0.01"
-                    placeholder="e.g. 29.99"
+                    step="1"
+                    placeholder="e.g. 2500"
                     value={editProduct?.price ?? ""}
                     onChange={(e) =>
                       handleEditProductChange("price", e.target.value)
@@ -713,6 +742,79 @@ const Inventory = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Barcode Scanner Dialog */}
+      <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Scan Barcode</DialogTitle>
+            <DialogDescription>
+              Enter barcode/SKU to search for products
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="barcode">Barcode / SKU</Label>
+              <Input
+                id="barcode"
+                placeholder="Enter SKU or barcode..."
+                value={scannedBarcode}
+                onChange={(e) => setScannedBarcode(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && scannedBarcode.trim()) {
+                    const product = products.find(p => 
+                      p.sku?.toLowerCase() === scannedBarcode.trim().toLowerCase()
+                    );
+                    if (product) {
+                      toast.success(`Product found: ${product.name}`);
+                      setEditProduct(product);
+                      setIsEditProductOpen(true);
+                      setShowBarcodeScanner(false);
+                      setScannedBarcode('');
+                    } else {
+                      toast.error('Product not found');
+                    }
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            
+            <div className="text-sm text-muted-foreground">
+              <p>💡 Enter the product SKU and press Enter to search</p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowBarcodeScanner(false);
+              setScannedBarcode('');
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              if (scannedBarcode.trim()) {
+                const product = products.find(p => 
+                  p.sku?.toLowerCase() === scannedBarcode.trim().toLowerCase()
+                );
+                if (product) {
+                  toast.success(`Product found: ${product.name}`);
+                  setEditProduct(product);
+                  setIsEditProductOpen(true);
+                  setShowBarcodeScanner(false);
+                  setScannedBarcode('');
+                } else {
+                  toast.error('Product not found');
+                }
+              }
+            }}>
+              <Search className="mr-2 h-4 w-4" />
+              Search
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

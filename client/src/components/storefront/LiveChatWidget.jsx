@@ -12,12 +12,13 @@ import {
   BarChart3, RefreshCw, Copy, ThumbsUp, ThumbsDown, AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 
 const LiveChatWidget = () => {
   const location = useLocation();
+  const { inviteCode } = useParams();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -91,7 +92,8 @@ const LiveChatWidget = () => {
     const gatherContext = async () => {
       try {
         const currentPage = location.pathname.split('/').pop() || 'dashboard';
-        const token = localStorage.getItem('token');
+        const adminToken = localStorage.getItem('token');
+        const customerToken = localStorage.getItem('customerToken');
         
         // Base context
         const context = {
@@ -105,8 +107,8 @@ const LiveChatWidget = () => {
         };
         
         // Get comprehensive data for admin dashboard
-        if (token && dashboardType === 'admin') {
-          const headers = { Authorization: `Bearer ${token}` };
+        if (adminToken && dashboardType === 'admin') {
+          const headers = { Authorization: `Bearer ${adminToken}` };
           
           try {
             const [orders, products, transactions, appointments] = await Promise.allSettled([
@@ -135,18 +137,18 @@ const LiveChatWidget = () => {
             console.error('Error fetching admin data:', error);
           }
         } 
-        // Get storefront-specific data
-        else if (token && dashboardType === 'storefront') {
-          const headers = { Authorization: `Bearer ${token}` };
-          
+        // Get storefront-specific data (use customerToken for authenticated customers)
+        else if (dashboardType === 'storefront' && inviteCode) {
           try {
+            const headers = customerToken ? { Authorization: `Bearer ${customerToken}` } : {};
+            
             const [products, orders] = await Promise.allSettled([
-              api.get('/public/products', { headers }),
-              api.get('/client/orders', { headers })
+              api.get('/public/products', { params: { inviteCode } }),
+              customerToken ? api.get('/customer/orders', { headers }) : Promise.resolve({ status: 'rejected' })
             ]);
             
             context.availableProducts = products.status === 'fulfilled' ? products.value?.data?.length || 0 : 0;
-            context.myOrders = orders.status === 'fulfilled' ? orders.value?.data?.length || 0 : 0;
+            context.myOrders = orders.status === 'fulfilled' ? orders.value?.data?.orders?.length || 0 : 0;
           } catch (error) {
             console.error('Error fetching storefront data:', error);
           }
@@ -171,7 +173,7 @@ const LiveChatWidget = () => {
     // Refresh context every 30 seconds for real-time data
     const interval = setInterval(gatherContext, 30000);
     return () => clearInterval(interval);
-  }, [location.pathname, user, dashboardType, aiPersonality, trainingEnabled]);
+  }, [location.pathname, user, dashboardType, aiPersonality, trainingEnabled, inviteCode]);
   
   // Generate intelligent suggestions based on context and dashboard type
   const generateSuggestions = (context) => {

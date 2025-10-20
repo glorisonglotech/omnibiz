@@ -84,6 +84,18 @@ export const CustomerAuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // Clear customer-specific cart before logging out
+    const customerToken = localStorage.getItem('customerToken');
+    if (customerToken) {
+      try {
+        const payload = JSON.parse(atob(customerToken.split('.')[1]));
+        const cartKey = `cart_items_${payload.id || payload.email || 'guest'}`;
+        localStorage.removeItem(cartKey);
+      } catch (e) {
+        console.error('Error clearing cart:', e);
+      }
+    }
+    
     localStorage.removeItem('customerToken');
     setCustomer(null);
     setIsAuthenticated(false);

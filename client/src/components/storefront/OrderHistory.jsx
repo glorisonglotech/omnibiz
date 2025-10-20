@@ -2,24 +2,41 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Truck, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Package, Truck, CheckCircle2, Clock, AlertCircle, LogIn } from "lucide-react";
 import api from "@/lib/api";
 import { useSocket } from "@/context/SocketContext";
+import { useParams, useNavigate } from "react-router-dom";
 
 const OrderHistory = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [needsRelogin, setNeedsRelogin] = useState(false);
 
   const { socket } = useSocket();
+  const { inviteCode } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchOrders();
+    // Only fetch if customerToken exists
+    const customerToken = localStorage.getItem('customerToken');
+    if (customerToken) {
+      fetchOrders();
+    } else {
+      setLoading(false);
+      setOrders([]);
+    }
   }, []);
 
   useEffect(() => {
     if (!socket) return;
-    const handler = () => fetchOrders();
+    const customerToken = localStorage.getItem('customerToken');
+    if (!customerToken) return; // Don't listen if not logged in
+    
+    const handler = () => {
+      const token = localStorage.getItem('customerToken');
+      if (token) fetchOrders();
+    };
     socket.on('order_updated', handler);
     return () => {
       socket.off('order_updated', handler);
@@ -29,15 +46,54 @@ const OrderHistory = () => {
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
+    setNeedsRelogin(false);
     try {
-      // Prefer client endpoint which returns paginated structure
-      const response = await api.get('/client/orders');
+      // Use customer-specific endpoint with customerToken
+      const customerToken = localStorage.getItem('customerToken');
+      if (!customerToken) {
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await api.get('/customer/orders', {
+        headers: {
+          Authorization: `Bearer ${customerToken}`
+        }
+      });
+      
       const data = response.data;
       const list = Array.isArray(data) ? data : (data.orders || []);
       setOrders(list);
+      console.log(`✅ Loaded ${list.length} orders for current customer`);
     } catch (err) {
       console.error('Error fetching orders:', err);
-      setError('Failed to load orders. Please try again.');
+      
+      // Handle authentication errors
+      if (err.response?.status === 401) {
+        setError('Please log in to view your orders');
+        setNeedsRelogin(true);
+      } 
+      // Handle old token format (400 with requiresRelogin flag)
+      else if (err.response?.status === 400 && err.response?.data?.requiresRelogin) {
+        setError('Your session has expired. Please log in again to view your orders.');
+        setNeedsRelogin(true);
+        // Clear old token to force re-login
+        localStorage.removeItem('customerToken');
+      }
+      // Handle other 400 errors
+      else if (err.response?.status === 400) {
+        const errorMessage = err.response?.data?.message || 'Unable to load orders';
+        setError(errorMessage);
+        // If it mentions email or login, suggest relogin
+        if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('login')) {
+          setNeedsRelogin(true);
+        }
+      }
+      // Handle other errors
+      else {
+        setError('Failed to load orders. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -97,7 +153,24 @@ const OrderHistory = () => {
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">{error}</h3>
-            <Button onClick={fetchOrders}>Try Again</Button>
+            <div className="flex gap-2 justify-center">
+              {needsRelogin ? (
+                <Button 
+                  onClick={() => {
+                    if (inviteCode) {
+                      navigate(`/client/login/${inviteCode}`);
+                    } else {
+                      navigate('/client/login');
+                    }
+                  }}
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Log In Again
+                </Button>
+              ) : (
+                <Button onClick={fetchOrders}>Try Again</Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       ) : orders.length === 0 ? (

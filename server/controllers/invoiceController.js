@@ -1,22 +1,38 @@
 const Invoice = require("../models/invoice");
 const { createTransactionFromInvoice } = require("./transactionController");
 
-// Create a new invoice
+// Create a new invoice - OPTIMIZED FOR SPEED
 exports.createInvoice = async (req, res) => {
   try {
+    // Quick validation
+    if (!req.body.items || req.body.items.length === 0) {
+      return res.status(400).json({ error: 'Invoice must have at least one item' });
+    }
+
     const invoice = new Invoice({
       ...req.body,
-      userId: req.user.id // ✅ Inject from token
+      userId: req.user.id
     });
 
+    // Save without waiting for population
     await invoice.save();
-    res.status(201).json({ message: 'Invoice created successfully', invoice });
+    
+    // Return lean data immediately for speed
+    res.status(201).json({ 
+      message: 'Invoice created successfully', 
+      invoice: {
+        _id: invoice._id,
+        invoiceNumber: invoice.invoiceNumber,
+        total: invoice.total,
+        paymentStatus: invoice.paymentStatus,
+        createdAt: invoice.createdAt
+      }
+    });
   } catch (error) {
     console.error('Error creating invoice:', error);
     res.status(400).json({ error: error.message });
   }
 };
-
 
 // Get all invoices
 exports.getAllInvoices = async (req, res) => {

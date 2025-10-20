@@ -7,9 +7,9 @@ const crypto = require('crypto');
 const { emailService } = require('../config/email');
 
 // Generate JWT token for customers
-const generateCustomerToken = (customerId) => {
+const generateCustomerToken = (customerId, customerEmail) => {
   return jwt.sign(
-    { id: customerId, type: 'customer' }, // Include type to differentiate from user tokens
+    { id: customerId, email: customerEmail, type: 'customer' }, // Include email and type to differentiate from user tokens
     process.env.JWT_SECRET,
     { expiresIn: '30d' }
   );
@@ -74,7 +74,7 @@ exports.registerCustomer = async (req, res) => {
     });
 
     // Generate token
-    const token = generateCustomerToken(customer._id);
+    const token = generateCustomerToken(customer._id, customer.email);
 
     // Send verification email
     try {
@@ -172,7 +172,7 @@ exports.loginCustomer = async (req, res) => {
     await customer.save();
 
     // Generate token
-    const token = generateCustomerToken(customer._id);
+    const token = generateCustomerToken(customer._id, customer.email);
 
     // Return customer data
     res.status(200).json({

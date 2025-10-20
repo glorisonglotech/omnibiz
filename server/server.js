@@ -66,6 +66,7 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/discounts', discountRoutes);
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/client', require('./routes/clientRoutes'));
+app.use('/api/customer', require('./routes/customerRoutes')); // Customer storefront routes
 app.use('/api/support', require('./routes/supportRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/public', require('./routes/publicRoutes'));

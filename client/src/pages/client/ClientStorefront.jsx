@@ -24,11 +24,13 @@ import {
   ShoppingCart, Search, Filter, Plus, Minus, Trash2, Package, User, LogOut, 
   History, ShieldCheck, Calendar, MapPin, Clock, Star, Heart, MessageCircle,
   Settings, Bell, CreditCard, Shield, Phone, Mail, Edit2, Save, Building, 
-  Users as UsersIcon, Eye
+  Users as UsersIcon, Eye, DollarSign
 } from "lucide-react";
 import ProductDetailDialog  from "@/components/storefront/ProductDetailDialog";
 import CheckoutFlow  from "@/components/storefront/CheckoutFlow";
+import ServiceBookingFlow  from "@/components/storefront/ServiceBookingFlow";
 import  OrderHistory  from "@/components/storefront/OrderHistory";
+import  BookingHistory  from "@/components/storefront/BookingHistory";
 import  LiveChatWidget  from "@/components/storefront/LiveChatWidget";
 import AppointmentBooking from "@/components/storefront/AppointmentBooking";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,6 +44,190 @@ import { toast } from "sonner";
 import ThemeSelector from "@/components/ThemeSelector";
 import { AVAILABLE_THEMES } from "@/context/ThemeContext";
 import { customerAPI } from "@/lib/api";
+
+// Sample services with prices for demo/fallback
+const sampleServices = [
+  {
+    id: 'sample-1',
+    name: 'Professional Haircut & Styling',
+    description: 'Expert haircut and styling service tailored to your preferences. Includes wash, cut, and blow-dry.',
+    price: 1500,
+    duration: '45 min',
+    category: 'Hair & Beauty',
+    bookings: 156,
+    rating: 4.9,
+    staff: 3,
+    image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=500'
+  },
+  {
+    id: 'sample-2',
+    name: 'Full Body Massage',
+    description: 'Relaxing full body massage to relieve stress and tension. Perfect for unwinding after a long day.',
+    price: 3500,
+    duration: '90 min',
+    category: 'Wellness & Spa',
+    bookings: 89,
+    rating: 5.0,
+    staff: 2,
+    image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=500'
+  },
+  {
+    id: 'sample-3',
+    name: 'Manicure & Pedicure',
+    description: 'Complete nail care service including filing, buffing, cuticle care, and polish application.',
+    price: 2000,
+    duration: '60 min',
+    category: 'Hair & Beauty',
+    bookings: 234,
+    rating: 4.8,
+    staff: 4,
+    image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=500'
+  },
+  {
+    id: 'sample-4',
+    name: 'Personal Training Session',
+    description: 'One-on-one fitness training with certified personal trainer. Customized workout plan included.',
+    price: 2500,
+    duration: '60 min',
+    category: 'Fitness & Health',
+    bookings: 67,
+    rating: 4.9,
+    staff: 5,
+    image: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=500'
+  },
+  {
+    id: 'sample-5',
+    name: 'Deep Tissue Massage',
+    description: 'Therapeutic massage targeting deep muscle layers to relieve chronic pain and muscle tension.',
+    price: 4000,
+    duration: '75 min',
+    category: 'Wellness & Spa',
+    bookings: 112,
+    rating: 5.0,
+    staff: 2,
+    image: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=500'
+  },
+  {
+    id: 'sample-6',
+    name: 'Facial Treatment',
+    description: 'Rejuvenating facial treatment with deep cleansing, exfoliation, and hydration for glowing skin.',
+    price: 3000,
+    duration: '60 min',
+    category: 'Hair & Beauty',
+    bookings: 145,
+    rating: 4.8,
+    staff: 3,
+    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=500'
+  },
+  {
+    id: 'sample-7',
+    name: 'Yoga Class',
+    description: 'Group or private yoga session for flexibility, strength, and mindfulness. All levels welcome.',
+    price: 1200,
+    duration: '60 min',
+    category: 'Fitness & Health',
+    bookings: 198,
+    rating: 4.9,
+    staff: 2,
+    image: 'https://images.unsplash.com/photo-1588286840104-8957b019727f?w=500'
+  },
+  {
+    id: 'sample-8',
+    name: 'Hair Coloring Service',
+    description: 'Professional hair coloring with premium products. Includes consultation, application, and styling.',
+    price: 4500,
+    duration: '120 min',
+    category: 'Hair & Beauty',
+    bookings: 78,
+    rating: 4.7,
+    staff: 3,
+    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500'
+  },
+  {
+    id: 'sample-9',
+    name: 'Nutritional Consultation',
+    description: 'Personalized nutrition plan and dietary guidance from certified nutritionist.',
+    price: 2800,
+    duration: '45 min',
+    category: 'Fitness & Health',
+    bookings: 45,
+    rating: 4.8,
+    staff: 1,
+    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500'
+  },
+  {
+    id: 'sample-10',
+    name: 'Hot Stone Massage',
+    description: 'Luxurious massage using heated stones to melt away tension and promote deep relaxation.',
+    price: 4500,
+    duration: '90 min',
+    category: 'Wellness & Spa',
+    bookings: 91,
+    rating: 5.0,
+    staff: 2,
+    image: 'https://images.unsplash.com/photo-1583416750470-965b2707b355?w=500'
+  },
+  {
+    id: 'sample-11',
+    name: 'Makeup Application',
+    description: 'Professional makeup for events, photoshoots, or special occasions. Includes consultation.',
+    price: 3500,
+    duration: '60 min',
+    category: 'Hair & Beauty',
+    bookings: 123,
+    rating: 4.9,
+    staff: 2,
+    image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=500'
+  },
+  {
+    id: 'sample-12',
+    name: 'Aromatherapy Session',
+    description: 'Therapeutic treatment using essential oils to enhance physical and emotional well-being.',
+    price: 3200,
+    duration: '60 min',
+    category: 'Wellness & Spa',
+    bookings: 67,
+    rating: 4.8,
+    staff: 2,
+    image: 'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=500'
+  },
+  {
+    id: 'sample-13',
+    name: 'Group Fitness Class',
+    description: 'High-energy group workout including cardio, strength training, and flexibility exercises.',
+    price: 800,
+    duration: '45 min',
+    category: 'Fitness & Health',
+    bookings: 312,
+    rating: 4.7,
+    staff: 3,
+    image: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=500'
+  },
+  {
+    id: 'sample-14',
+    name: 'Reflexology Treatment',
+    description: 'Foot reflexology targeting pressure points to promote healing and relaxation throughout the body.',
+    price: 2500,
+    duration: '60 min',
+    category: 'Wellness & Spa',
+    bookings: 89,
+    rating: 4.9,
+    staff: 2,
+    image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=500'
+  },
+  {
+    id: 'sample-15',
+    name: 'Bridal Hair & Makeup',
+    description: 'Complete bridal beauty package including hair styling, makeup, and trial session.',
+    price: 8500,
+    duration: '150 min',
+    category: 'Hair & Beauty',
+    bookings: 34,
+    rating: 5.0,
+    staff: 2,
+    image: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=500'
+  }
+];
 
 const ClientStorefront = () => {
   const { inviteCode } = useParams();
@@ -57,7 +243,9 @@ const ClientStorefront = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const { items: cart, add: addCartItem, update: updateCartQty, remove: removeCartItem, clear: clearCart, total: cartTotal, count: cartItemCount } = useCart();
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedService, setSelectedService] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showServiceBooking, setShowServiceBooking] = useState(false);
   const [activeTab, setActiveTab] = useState("shop");
   const [locations, setLocations] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -65,6 +253,8 @@ const ClientStorefront = () => {
   const [userAccount, setUserAccount] = useState(null);
   const [wishlist, setWishlist] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [activeDiscounts, setActiveDiscounts] = useState([]);
+  const [discountedProducts, setDiscountedProducts] = useState([]);
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -109,19 +299,27 @@ const ClientStorefront = () => {
         const token = localStorage.getItem('customerToken');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        // Fetch products, locations, team, services in parallel
-        const [productsRes, locationsRes, teamRes, servicesRes] = await Promise.allSettled([
+        // Fetch products, locations, team, services, discounts in parallel
+        const [productsRes, locationsRes, teamRes, servicesRes, discountsRes] = await Promise.allSettled([
           api.get("/products", { headers, params: { inviteCode } }),
           api.get("/locations", { headers }),
           api.get("/team", { headers }),
           api.get("/public/services", { params: { inviteCode } }),
+          api.get("/public/discounts", { params: { inviteCode, active: true } }),
         ]);
 
-        // Set products
-        if (productsRes.status === 'fulfilled') {
-          setProducts(productsRes.value.data || []);
-        } else {
+        // Set products - ONLY show real products from this store
+        if (productsRes.status === 'fulfilled' && productsRes.value.data?.length > 0) {
+          setProducts(productsRes.value.data);
+          console.log('✅ Loaded', productsRes.value.data.length, 'products from store');
+        } else if (!inviteCode) {
+          // Only use sample products if no invite code
           setProducts(sampleProducts);
+          console.warn('⚠️ No invite code - showing sample products');
+        } else {
+          // Store has no products yet
+          setProducts([]);
+          console.log('ℹ️ Store has no products yet');
         }
 
         // Set locations
@@ -135,6 +333,15 @@ const ClientStorefront = () => {
         // Set team members
         if (teamRes.status === 'fulfilled') {
           setTeamMembers(teamRes.value.data || []);
+        }
+
+        // Set discounts and apply to products
+        if (discountsRes.status === 'fulfilled' && discountsRes.value.data?.length > 0) {
+          setActiveDiscounts(discountsRes.value.data);
+          const discounted = discountsRes.value.data
+            .filter(d => d.active && d.applicableProducts?.length > 0)
+            .flatMap(d => d.applicableProducts.map(pid => ({ productId: pid, discount: d })));
+          setDiscountedProducts(discounted);
         }
 
         // Set services from database with complete details
@@ -153,8 +360,15 @@ const ClientStorefront = () => {
             image: service.image
           }));
           setServices(realServices);
+          console.log('✅ Loaded', realServices.length, 'services from database');
+        } else if (!inviteCode) {
+          // Show sample services only if no invite code (demo mode)
+          setServices(sampleServices);
+          console.log('📋 Showing', sampleServices.length, 'sample services (demo mode)');
         } else {
-          setServices([]); // No services if none exist
+          // Show sample services when store has no services yet
+          setServices(sampleServices);
+          console.log('📋 No services in database, showing', sampleServices.length, 'sample services');
         }
 
       } catch (error) {
@@ -664,6 +878,27 @@ const ClientStorefront = () => {
           </TabsList>
 
           <TabsContent value="shop" className="space-y-6">
+            {/* Active Discounts Banner */}
+            {activeDiscounts.length > 0 && (
+              <Card className="glass-card bg-gradient-to-r from-red-500/10 to-orange-500/10 border-red-300">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center animate-pulse">
+                        <span className="text-white font-bold text-lg">%</span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">Special Offers Active!</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {activeDiscounts.length} discount{activeDiscounts.length > 1 ? 's' : ''} available - Look for products with discount badges
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Trust Badges */}
             <div className="flex flex-wrap items-center justify-center gap-4 py-4">
               <Badge variant="outline" className="gap-2 px-4 py-2">
@@ -879,11 +1114,40 @@ const ClientStorefront = () => {
                         
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="text-lg font-bold text-primary">
-                              KES {product.price.toFixed(2)}
-                            </span>
+                            {/* Check if product has discount */}
+                            {(() => {
+                              const productDiscount = discountedProducts.find(d => d.productId === (product._id || product.id));
+                              if (productDiscount) {
+                                const discount = productDiscount.discount;
+                                const discountAmount = discount.discountType === 'percentage' 
+                                  ? (product.price * discount.discountValue / 100)
+                                  : discount.discountValue;
+                                const finalPrice = product.price - discountAmount;
+                                
+                                return (
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-lg font-bold text-primary">
+                                        KES {finalPrice.toFixed(2)}
+                                      </span>
+                                      <Badge variant="destructive" className="text-xs animate-pulse">
+                                        -{discount.discountType === 'percentage' ? `${discount.discountValue}%` : `KES ${discount.discountValue}`}
+                                      </Badge>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground line-through">
+                                      KES {product.price.toFixed(2)}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return (
+                                <span className="text-lg font-bold text-primary">
+                                  KES {(product.price || 0).toFixed(2)}
+                                </span>
+                              );
+                            })()}
                           </div>
-                          <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                          <Badge variant="outline" className="text-xs">{product.category || 'General'}</Badge>
                         </div>
                       </CardContent>
                       <CardFooter className="p-4 pt-0 gap-2">
@@ -982,28 +1246,75 @@ const ClientStorefront = () => {
 
               {/* Available Services */}
               <div>
-                <h2 className="text-2xl font-bold mb-4">Our Services</h2>
-                {services.length === 0 ? (
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-3xl font-bold text-foreground">Our Services</h2>
+                    <p className="text-muted-foreground mt-1">
+                      Professional services delivered by our expert team {services.length > 0 && `• ${services.length} available`}
+                    </p>
+                  </div>
+                  {services.length > 0 && (
+                    <Badge variant="default" className="text-sm px-4 py-2 animate-pulse">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {services.length} Live Services
+                    </Badge>
+                  )}
+                </div>
+                
+                {loading ? (
+                  <Card className="glass-card">
+                    <CardContent className="p-12 text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Loading services...</p>
+                    </CardContent>
+                  </Card>
+                ) : services.length === 0 ? (
                   <Card className="glass-card">
                     <CardContent className="p-12 text-center">
                       <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                      <h3 className="text-lg font-semibold mb-2">No Services Available</h3>
-                      <p className="text-muted-foreground">Check back soon for available services!</p>
+                      <h3 className="text-lg font-semibold mb-2">No Services Available Yet</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Services will appear here once the store owner adds them.
+                      </p>
+                      <Button variant="outline" onClick={() => {
+                        // Refresh services
+                        window.location.reload();
+                      }}>
+                        Refresh Page
+                      </Button>
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {services.map((service) => (
-                      <Card key={service._id || service.id} className="glass-card hover:shadow-lg transition-shadow">
-                        <CardHeader>
-                          <div className="flex items-start justify-between mb-2">
-                            <CardTitle className="text-lg flex-1">{service.name}</CardTitle>
-                            {service.category && (
-                              <Badge variant="outline" className="text-xs">
+                      <Card key={service._id || service.id} className="glass-card hover:shadow-xl transition-all duration-300 group overflow-hidden">
+                        {/* Service Image/Icon */}
+                        <div className="aspect-video bg-gradient-to-br from-primary/20 to-secondary/20 relative overflow-hidden">
+                          {service.image ? (
+                            <img 
+                              src={service.image} 
+                              alt={service.name} 
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Calendar className="h-16 w-16 text-primary/40" />
+                            </div>
+                          )}
+                          {/* Category Badge Overlay */}
+                          {service.category && (
+                            <div className="absolute top-3 right-3">
+                              <Badge className="bg-white/90 text-foreground backdrop-blur-sm">
                                 {service.category}
                               </Badge>
-                            )}
-                          </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-xl mb-2 group-hover:text-primary transition-colors">
+                            {service.name}
+                          </CardTitle>
                           <CardDescription className="flex items-center gap-2 justify-between">
                             <span className="flex items-center gap-1">
                               <Clock className="h-4 w-4" />
@@ -1043,17 +1354,27 @@ const ClientStorefront = () => {
                               {service.bookings} bookings completed
                             </p>
                           )}
-                          <Button
-                            className="w-full"
-                            onClick={() => {
-                              // Navigate to booking with pre-selected service
-                              setActiveTab('account');
-                              toast.success(`Selected: ${service.name}. Complete booking in Account tab.`);
-                            }}
-                          >
-                            <Calendar className="h-4 w-4 mr-2" />
-                            Book Now
-                          </Button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedService(service);
+                                toast.info('Service details opened');
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Details
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                setSelectedService(service);
+                                setShowServiceBooking(true);
+                              }}
+                            >
+                              <Calendar className="h-4 w-4 mr-2" />
+                              Book Now
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -1092,7 +1413,26 @@ const ClientStorefront = () => {
 
           <TabsContent value="account" className="space-y-6">
             {/* User Account Section */}
-            <div className="max-w-3xl mx-auto space-y-6">
+            {!customer ? (
+              <Card className="glass-card">
+                <CardContent className="p-12 text-center">
+                  <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-bold mb-2">Sign In Required</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Please log in to access your account, orders, and personalized features
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button onClick={() => navigate(`/client/login/${inviteCode}`)}>
+                      Sign In
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate(`/client/register/${inviteCode}`)}>
+                      Create Account
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+            <div className="max-w-4xl mx-auto space-y-6">
               {/* Profile Header */}
               <Card className="glass-card">
                 <CardHeader>
@@ -1154,118 +1494,299 @@ const ClientStorefront = () => {
                 <Card className="glass-card">
                   <CardContent className="p-4 text-center">
                     <History className="h-8 w-8 mx-auto mb-2 text-accent" />
-                    <p className="text-2xl font-bold">12</p>
+                    <p className="text-2xl font-bold">0</p>
                     <p className="text-xs text-muted-foreground">Orders</p>
                   </CardContent>
                 </Card>
                 <Card className="glass-card">
                   <CardContent className="p-4 text-center">
-                    <Calendar className="h-8 w-8 mx-auto mb-2 text-success" />
-                    <p className="text-2xl font-bold">3</p>
-                    <p className="text-xs text-muted-foreground">Appointments</p>
+                    <Star className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
+                    <p className="text-2xl font-bold">100</p>
+                    <p className="text-xs text-muted-foreground">Reward Points</p>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Account Settings */}
+              {/* Quick Actions */}
               <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
-                    Account Settings
-                  </CardTitle>
+                  <CardTitle className="text-lg">Quick Actions</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start gap-2"
-                    onClick={() => toast.info('Notification preferences coming soon!')}
-                  >
-                    <Bell className="h-4 w-4" />
-                    Notification Preferences
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start gap-2"
-                    onClick={() => toast.info('Payment methods coming soon!')}
-                  >
-                    <CreditCard className="h-4 w-4" />
-                    Payment Methods
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start gap-2"
-                    onClick={() => toast.info('Address management coming soon!')}
-                  >
-                    <MapPin className="h-4 w-4" />
-                    Saved Addresses
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start gap-2"
-                    onClick={() => toast.info('Privacy settings coming soon!')}
-                  >
-                    <Shield className="h-4 w-4" />
-                    Privacy & Security
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start gap-2"
-                    onClick={() => {
-                      toast.info('Opening support chat...');
-                      // Could open LiveChatWidget here
-                    }}
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    Contact Support
-                  </Button>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Button variant="outline" className="h-auto flex-col gap-2 py-4" onClick={() => setActiveTab('orders')}>
+                      <ShoppingCart className="h-6 w-6" />
+                      <span className="text-sm">View Orders</span>
+                    </Button>
+                    <Button variant="outline" className="h-auto flex-col gap-2 py-4" onClick={() => setActiveTab('shop')}>
+                      <Package className="h-6 w-6" />
+                      <span className="text-sm">Shop Products</span>
+                    </Button>
+                    <Button variant="outline" className="h-auto flex-col gap-2 py-4" onClick={() => setActiveTab('services')}>
+                      <Calendar className="h-6 w-6" />
+                      <span className="text-sm">Book Service</span>
+                    </Button>
+                    <Button variant="outline" className="h-auto flex-col gap-2 py-4" onClick={() => {
+                      setShowEditProfile(true);
+                    }}>
+                      <Settings className="h-6 w-6" />
+                      <span className="text-sm">Settings</span>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Book Appointment Component */}
+              {/* Wishlist Section */}
+              {wishlist.length > 0 && (
+                <Card className="glass-card">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Heart className="h-5 w-5 text-red-500" />
+                        My Wishlist
+                      </CardTitle>
+                      <Badge>{wishlist.length} items</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {wishlist.slice(0, 4).map((item) => (
+                        <Card key={item._id || item.id} className="group cursor-pointer" onClick={() => setSelectedProduct(item)}>
+                          <CardContent className="p-3">
+                            <div className="aspect-square bg-gradient-to-br from-secondary/30 to-primary/10 rounded-lg flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                              <Package className="h-8 w-8 text-primary/40" />
+                            </div>
+                            <p className="text-sm font-medium line-clamp-1">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">KES {(item.price || 0).toLocaleString()}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                    {wishlist.length > 4 && (
+                      <Button variant="outline" className="w-full mt-4" onClick={() => setActiveTab('shop')}>
+                        View All {wishlist.length} Items
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Rewards & Loyalty */}
+              <Card className="glass-card bg-gradient-to-br from-primary/5 to-accent/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-yellow-500" />
+                    Rewards & Loyalty
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-muted-foreground">Current Points</span>
+                      <span className="text-2xl font-bold text-primary">100</span>
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{width: '20%'}}></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">400 more points to next reward</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-card rounded-lg border">
+                      <p className="text-xs text-muted-foreground">Lifetime Points</p>
+                      <p className="text-lg font-bold">100</p>
+                    </div>
+                    <div className="p-3 bg-card rounded-lg border">
+                      <p className="text-xs text-muted-foreground">Member Since</p>
+                      <p className="text-lg font-bold">2025</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity */}
               <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Book an Appointment
+                    <Clock className="h-5 w-5" />
+                    Recent Activity
                   </CardTitle>
-                  <CardDescription>Schedule a service at your preferred location</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <AppointmentBooking onSuccess={() => {
-                    toast.success("Appointment Booked! You'll receive a confirmation email shortly.");
-                  }} />
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-accent/10 rounded-lg">
+                      <ShoppingCart className="h-5 w-5 text-primary" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Cart updated</p>
+                        <p className="text-xs text-muted-foreground">{cart.length} items in cart</p>
+                      </div>
+                      <Badge variant="secondary">Now</Badge>
+                    </div>
+                    {wishlist.length > 0 && (
+                      <div className="flex items-center gap-3 p-3 bg-accent/10 rounded-lg">
+                        <Heart className="h-5 w-5 text-red-500" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Wishlist updated</p>
+                          <p className="text-xs text-muted-foreground">{wishlist.length} items saved</p>
+                        </div>
+                        <Badge variant="secondary">Recent</Badge>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Booking History */}
+              <BookingHistory />
+
+              {/* Account Actions */}
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="text-lg">Account Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button variant="outline" className="w-full justify-between" onClick={() => setShowEditProfile(true)}>
+                    <span className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Edit Profile
+                    </span>
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" className="w-full justify-between" onClick={() => setActiveTab('orders')}>
+                    <span className="flex items-center gap-2">
+                      <History className="h-4 w-4" />
+                      Order History
+                    </span>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" className="w-full justify-between" onClick={() => setShowThemeSelector(true)}>
+                    <span className="flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      Theme Preferences
+                    </span>
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  <Button variant="destructive" className="w-full justify-between" onClick={handleLogout}>
+                    <span className="flex items-center gap-2">
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </span>
+                  </Button>
                 </CardContent>
               </Card>
             </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
 
       {/* Modals and Widgets */}
-      <ProductDetailDialog
-        product={selectedProduct}
-        open={!!selectedProduct}
-        onClose={() => setSelectedProduct(null)}
-        onAddToCart={addToCart}
-      />
-      
-      <CheckoutFlow
-        open={showCheckout}
-        onClose={() => setShowCheckout(false)}
-        cartItems={cart}
-        cartTotal={cartTotal}
-        onClearCart={clearCart}
-      />
+      {/* Product Detail Dialog */}
+      {selectedProduct && (
+        <ProductDetailDialog 
+          product={selectedProduct} 
+          onClose={() => setSelectedProduct(null)}
+          onAddToCart={addToCart}
+        />
+      )}
+
+      {/* Service Details Dialog */}
+      {selectedService && (
+        <Dialog open={!!selectedService} onOpenChange={() => setSelectedService(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">{selectedService.name}</DialogTitle>
+              <DialogDescription>Complete service details and booking information</DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Service Image */}
+              {selectedService.image && (
+                <div className="aspect-video rounded-lg overflow-hidden">
+                  <img 
+                    src={selectedService.image} 
+                    alt={selectedService.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              
+              {/* Service Info Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <DollarSign className="h-8 w-8 text-green-500" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Price</p>
+                      <p className="text-xl font-bold">KES {(selectedService.price || 0).toLocaleString()}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Clock className="h-8 w-8 text-blue-500" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Duration</p>
+                      <p className="text-xl font-bold">{selectedService.duration}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Description */}
+              <div>
+                <h4 className="font-semibold mb-2">Description</h4>
+                <p className="text-muted-foreground">{selectedService.description || 'Professional service provided by our expert team.'}</p>
+              </div>
+              
+              {/* Stats */}
+              <div className="flex items-center gap-6 pt-2 border-t">
+                <div className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                  <span className="font-semibold">{selectedService.rating || 5}/5</span>
+                </div>
+                {selectedService.bookings > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">{selectedService.bookings} bookings</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" className="flex-1" onClick={() => setSelectedService(null)}>
+                  Close
+                </Button>
+                <Button 
+                  className="flex-1"
+                  onClick={() => {
+                    if (!customer) {
+                      toast.error('Please log in to book services');
+                      navigate(`/client/login/${inviteCode}`);
+                      setSelectedService(null);
+                      return;
+                    }
+                    setActiveTab('account');
+                    toast.success(`Selected: ${selectedService.name}`);
+                    setSelectedService(null);
+                  }}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Book Service
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Edit Profile Dialog */}
       <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Profile</DialogTitle>
-            <DialogDescription>
-              Update your personal information
-            </DialogDescription>
+            <DialogDescription>Update your personal information</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -1313,6 +1834,25 @@ const ClientStorefront = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Checkout Flow */}
+      <CheckoutFlow
+        open={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        cartItems={cart}
+        cartTotal={cartTotal}
+        onClearCart={clearCart}
+      />
+
+      {/* Service Booking Flow */}
+      <ServiceBookingFlow
+        open={showServiceBooking}
+        onClose={() => {
+          setShowServiceBooking(false);
+          setSelectedService(null);
+        }}
+        service={selectedService}
+      />
 
       <LiveChatWidget />
     </div>

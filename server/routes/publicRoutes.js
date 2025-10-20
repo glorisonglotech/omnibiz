@@ -78,24 +78,22 @@ router.get('/products', async (req, res) => {
   try {
     const { inviteCode } = req.query;
     
-    // If inviteCode is provided, get products for that specific user/store
-    if (inviteCode) {
-      const owner = await findOwnerByInviteCode(inviteCode);
-      if (!owner) {
-        return res.status(400).json({ message: 'Invalid inviteCode' });
-      }
-      const products = await Product.find({ userId: owner._id, isActive: true })
-        .select('name description price category stockQuantity image rating')
-        .sort({ createdAt: -1 });
-      return res.json(products);
+    // ALWAYS require inviteCode for security
+    if (!inviteCode) {
+      return res.status(400).json({ message: 'inviteCode is required' });
     }
     
-    // Otherwise, return all active products (for general browsing)
-    const products = await Product.find({ isActive: true })
-      .select('name description price category stockQuantity image rating')
-      .sort({ createdAt: -1 })
-      .limit(100);
+    // Get products for the specific store owner only
+    const owner = await findOwnerByInviteCode(inviteCode);
+    if (!owner) {
+      return res.status(400).json({ message: 'Invalid inviteCode or store not found' });
+    }
     
+    const products = await Product.find({ userId: owner._id })
+      .select('name description price category stockQuantity stock image rating isActive')
+      .sort({ createdAt: -1 });
+    
+    console.log(`✅ [PUBLIC] Loaded ${products.length} products for store: ${owner.email}`);
     res.json(products);
   } catch (error) {
     console.error('Public products error:', error);

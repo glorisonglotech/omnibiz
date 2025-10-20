@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { CheckCircle2, MapPin, User, Mail, Phone, AlertCircle, Wallet, CreditCar
 import { useToast } from "@/hooks/use-toast";
 import PaymentOptions from "@/components/payments/PaymentOptions";
 import api from "@/lib/api";
+import { useParams } from "react-router-dom";
 
 const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
   const { toast } = useToast();
+  const { inviteCode } = useParams();
   const [step, setStep] = useState(1);
   const [orderNumber, setOrderNumber] = useState("");
   const [processingPayment, setProcessingPayment] = useState(false);
@@ -67,22 +69,32 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
       };
 
       // Submit order to backend
-      // If user is authenticated, use client endpoint, otherwise public endpoint requires inviteCode
-      const token = localStorage.getItem('token');
-      const inviteCode = window.location.pathname.split('/').pop();
-      let response;
-      if (token) {
-        response = await api.post('/client/orders', orderData);
-      } else {
-        response = await api.post('/public/orders', { ...orderData, inviteCode });
+      // Get customer token (for authenticated customers) or use public endpoint
+      const customerToken = localStorage.getItem('customerToken');
+      
+      // Extract inviteCode from URL params or pathname
+      const codeFromUrl = inviteCode || window.location.pathname.split('/').filter(Boolean).pop();
+      
+      if (!codeFromUrl) {
+        throw new Error('Store invite code is missing. Please refresh the page and try again.');
       }
       
+      let response;
+      
+      // Always use public endpoint for storefront orders (with optional customer token for linking)
+      const headers = customerToken ? { Authorization: `Bearer ${customerToken}` } : {};
+      response = await api.post('/public/orders', 
+        { ...orderData, inviteCode: codeFromUrl }, 
+        { headers }
+      );
+      
+      console.log('✅ Order created successfully:', response.data);
       return { success: true, orderNum, order: response.data };
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('❌ Error creating order:', error);
       return { 
         success: false, 
-        error: error.response?.data?.error || 'Failed to create order' 
+        error: error.response?.data?.message || error.message || 'Failed to create order. Please try again.' 
       };
     }
   };
@@ -277,7 +289,21 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
                 Back
               </Button>
-              <Button className="flex-1" onClick={() => setStep(3)}>
+              <Button 
+                className="flex-1" 
+                onClick={() => {
+                  // Validate required fields
+                  if (!formData.name || !formData.email || !formData.phone || !formData.address || !formData.city) {
+                    toast({
+                      title: "Missing Information",
+                      description: "Please fill in all required fields before continuing.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  setStep(3);
+                }}
+              >
                 Continue to Payment
               </Button>
             </div>
@@ -398,6 +424,16 @@ const CheckoutFlow = ({ open, onClose, cartItems, cartTotal, onClearCart }) => {
               <Button 
                 className="w-full h-12 text-lg font-bold"
                 onClick={async () => {
+                  // Validate all required fields
+                  if (!formData.name || !formData.email || !formData.phone || !formData.address || !formData.city) {
+                    toast({
+                      title: "Missing Information",
+                      description: "Please go back and fill in all delivery details.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
                   setProcessingPayment(true);
                   const result = await createOrderInDatabase();
                   setProcessingPayment(false);

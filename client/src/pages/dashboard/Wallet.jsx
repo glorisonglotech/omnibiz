@@ -313,9 +313,11 @@ const Wallet = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await api.post('/wallet/link-account', {
-        ...linkAccountData,
-        userId: user?._id
+      const response = await api.post('/wallet/connect-account', {
+        type: linkAccountData.accountType,
+        accountName: linkAccountData.accountName,
+        accountNumber: linkAccountData.accountNumber,
+        provider: linkAccountData.provider
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });

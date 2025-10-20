@@ -1,29 +1,7 @@
-import { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Image as ImageIcon, 
-  Upload, 
-  Link2, 
-  X, 
-  Check,
-  AlertCircle,
-  Loader2,
-  DollarSign,
-  Package,
-  Tag,
-  FileText
-} from "lucide-react";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-
-const EnhancedProductForm = ({ 
+// Re-export the comprehensive enhanced product form from products folder
+// This provides automated dropdowns, predefined features, profit calculation,
+// and comprehensive product management capabilities
+export { default } from '@/components/products/EnhancedProductForm'; 
   isOpen, 
   onClose, 
   onSubmit, 

@@ -26,6 +26,7 @@ import {
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
+import EnhancedProductForm from '@/components/products/EnhancedProductForm';
 
 const Products = () => {
   const navigate = useNavigate();
@@ -37,6 +38,9 @@ const Products = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isEnhancedFormOpen, setIsEnhancedFormOpen] = useState(false);
+  const [enhancedFormMode, setEnhancedFormMode] = useState('add');
+  const [enhancedFormData, setEnhancedFormData] = useState(null);
   const [wishlist, setWishlist] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isProductDetailOpen, setIsProductDetailOpen] = useState(false);
@@ -159,6 +163,57 @@ const Products = () => {
 
   const isInWishlist = (productId) => {
     return wishlist.some(item => item.id === productId);
+  };
+
+  const handleEnhancedFormSubmit = async (formData) => {
+    try {
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        category: formData.category,
+        subcategory: formData.subcategory,
+        brand: formData.brand,
+        stockQuantity: parseInt(formData.stock) || 0,
+        sku: formData.sku,
+        barcode: formData.barcode,
+        unit: formData.unit,
+        weight: parseFloat(formData.weight) || 0,
+        dimensions: formData.dimensions,
+        condition: formData.condition,
+        status: formData.status,
+        supplierName: formData.supplier || 'Default Supplier',
+        cost: parseFloat(formData.cost) || 0,
+        taxRate: parseFloat(formData.taxRate) || 16,
+        featured: formData.featured,
+        freeShipping: formData.freeShipping,
+        allowBackorder: formData.allowBackorder,
+        trackInventory: formData.trackInventory,
+        image: formData.image || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop',
+        tags: formData.tags,
+        specifications: formData.specifications,
+        warranty: formData.warranty,
+        returnPolicy: formData.returnPolicy,
+        minStock: parseInt(formData.minStock) || 0,
+        metaTitle: formData.metaTitle,
+        metaDescription: formData.metaDescription
+      };
+
+      if (enhancedFormMode === 'edit' && enhancedFormData?.id) {
+        await api.put(`/products/${enhancedFormData.id}`, productData);
+        toast.success('Product updated successfully!');
+      } else {
+        await api.post('/products', productData);
+        toast.success('Product added successfully!');
+      }
+
+      await fetchProducts();
+      setIsEnhancedFormOpen(false);
+      setEnhancedFormData(null);
+    } catch (error) {
+      console.error('Error saving product:', error);
+      toast.error('Failed to save product. Please try again.');
+    }
   };
 
   const handleAddProduct = async () => {
@@ -420,11 +475,23 @@ const Products = () => {
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEnhancedFormMode('add');
+              setEnhancedFormData(null);
+              setIsEnhancedFormOpen(true);
+            }}
+            className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+          >
+            <Plus className="h-4 w-4" />
+            Add Product (Enhanced)
+          </Button>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button variant="outline" size="sm">
                 <Plus className="mr-2 h-4 w-4" />
-                Add Product
+                Quick Add
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -736,6 +803,18 @@ const Products = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Enhanced Product Form */}
+      <EnhancedProductForm
+        isOpen={isEnhancedFormOpen}
+        onClose={() => {
+          setIsEnhancedFormOpen(false);
+          setEnhancedFormData(null);
+        }}
+        onSubmit={handleEnhancedFormSubmit}
+        initialData={enhancedFormData}
+        mode={enhancedFormMode}
+      />
     </div>
   );
 };

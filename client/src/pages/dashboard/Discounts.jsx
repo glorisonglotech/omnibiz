@@ -19,6 +19,8 @@ export default function Discounts() {
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingDiscount, setEditingDiscount] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [services, setServices] = useState([]);
   const { socket, connected } = useSocket();
 
   const [formData, setFormData] = useState({
@@ -36,6 +38,8 @@ export default function Discounts() {
       priority: 0
     },
     applicableTo: 'all',
+    applicableProducts: [],
+    applicableServices: [],
     minPurchaseAmount: 0,
     maxDiscountAmount: '',
     usageLimit: {
@@ -51,6 +55,8 @@ export default function Discounts() {
 
   useEffect(() => {
     fetchDiscounts();
+    fetchProducts();
+    fetchServices();
   }, []);
 
   const fetchDiscounts = async () => {
@@ -63,6 +69,30 @@ export default function Discounts() {
       toast.error('Failed to load discounts');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const { data } = await api.get('/products', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const { data } = await api.get('/services', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setServices(Array.isArray(data) ? data : (data?.services || []));
+    } catch (error) {
+      console.error('Error fetching services:', error);
     }
   };
 
@@ -122,6 +152,8 @@ export default function Discounts() {
         priority: 0
       },
       applicableTo: 'all',
+      applicableProducts: [],
+      applicableServices: [],
       minPurchaseAmount: 0,
       maxDiscountAmount: '',
       usageLimit: {

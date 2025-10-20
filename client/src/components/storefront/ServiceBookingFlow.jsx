@@ -58,6 +58,7 @@ const ServiceBookingFlow = ({ open, onClose, service }) => {
         customerEmail: formData.email,
         customerPhone: formData.phone,
         service: service.name,
+        serviceId: service._id || service.id, // Link to Service model
         time: bookingDateTime.toISOString(),
         durationMinutes: parseInt(service.duration) || 60,
         notes: formData.notes,

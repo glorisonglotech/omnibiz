@@ -255,6 +255,7 @@ const ClientStorefront = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [activeDiscounts, setActiveDiscounts] = useState([]);
   const [discountedProducts, setDiscountedProducts] = useState([]);
+  const [discountedServices, setDiscountedServices] = useState([]);
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -335,13 +336,21 @@ const ClientStorefront = () => {
           setTeamMembers(teamRes.value.data || []);
         }
 
-        // Set discounts and apply to products
+        // Set discounts and apply to products and services
         if (discountsRes.status === 'fulfilled' && discountsRes.value.data?.length > 0) {
           setActiveDiscounts(discountsRes.value.data);
+          
+          // Process discounted products
           const discounted = discountsRes.value.data
             .filter(d => d.active && d.applicableProducts?.length > 0)
             .flatMap(d => d.applicableProducts.map(pid => ({ productId: pid, discount: d })));
           setDiscountedProducts(discounted);
+          
+          // Process discounted services
+          const discountedServs = discountsRes.value.data
+            .filter(d => d.active && d.applicableServices?.length > 0)
+            .flatMap(d => d.applicableServices.map(sid => ({ serviceId: sid, discount: d })));
+          setDiscountedServices(discountedServs);
         }
 
         // Set services from database with complete details
@@ -386,6 +395,34 @@ const ClientStorefront = () => {
     const interval = setInterval(fetchAllData, 30000);
     return () => clearInterval(interval);
   }, [inviteCode, teamMembers.length]);
+
+  // Helper function to get discounted price for a service
+  const getServiceDiscount = (serviceId) => {
+    const discountInfo = discountedServices.find(ds => 
+      ds.serviceId === serviceId || ds.serviceId === serviceId.toString()
+    );
+    return discountInfo?.discount || null;
+  };
+
+  const calculateDiscountedPrice = (originalPrice, discount) => {
+    // Ensure originalPrice is a valid number
+    const price = Number(originalPrice) || 0;
+    
+    if (!discount || !discount.value) return price;
+    
+    const discountValue = Number(discount.value) || 0;
+    let finalPrice = price;
+    
+    if (discount.type === 'percentage') {
+      const discountAmount = (price * discountValue) / 100;
+      finalPrice = price - discountAmount;
+    } else if (discount.type === 'fixed') {
+      finalPrice = Math.max(0, price - discountValue);
+    }
+    
+    // Ensure we never return NaN
+    return isNaN(finalPrice) ? price : finalPrice;
+  };
 
   // Socket.IO real-time updates
   useEffect(() => {
@@ -1333,9 +1370,34 @@ const ClientStorefront = () => {
                             </p>
                           )}
                           <div className="flex items-center justify-between mb-4">
-                            <span className="text-2xl font-bold text-primary">
-                              KES {(service.price || 0).toLocaleString()}
-                            </span>
+                            {(() => {
+                              const discount = getServiceDiscount(service._id || service.id);
+                              const originalPrice = Number(service.price) || 0;
+                              const discountedPrice = discount ? calculateDiscountedPrice(originalPrice, discount) : null;
+                              const displayPrice = discountedPrice !== null ? discountedPrice : originalPrice;
+                              
+                              // Ensure we have valid numbers
+                              const safeOriginalPrice = isNaN(originalPrice) ? 0 : originalPrice;
+                              const safeDisplayPrice = isNaN(displayPrice) ? 0 : displayPrice;
+                              
+                              return (
+                                <div className="flex flex-col gap-1">
+                                  {discount && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm text-muted-foreground line-through">
+                                        KES {safeOriginalPrice.toLocaleString()}
+                                      </span>
+                                      <Badge variant="destructive" className="text-xs">
+                                        -{Number(discount.value) || 0}{discount.type === 'percentage' ? '%' : ' KES'} OFF
+                                      </Badge>
+                                    </div>
+                                  )}
+                                  <span className={`text-2xl font-bold ${discount ? 'text-green-600' : 'text-primary'}`}>
+                                    KES {safeDisplayPrice.toLocaleString()}
+                                  </span>
+                                </div>
+                              );
+                            })()}
                             <div className="flex items-center gap-1 text-yellow-500">
                               {[...Array(5)].map((_, i) => (
                                 <Star 
@@ -1681,13 +1743,13 @@ const ClientStorefront = () => {
 
       {/* Modals and Widgets */}
       {/* Product Detail Dialog */}
-      {selectedProduct && (
-        <ProductDetailDialog 
-          product={selectedProduct} 
-          onClose={() => setSelectedProduct(null)}
-          onAddToCart={addToCart}
-        />
-      )}
+      {/* Product Detail Dialog */}
+      <ProductDetailDialog 
+        product={selectedProduct}
+        open={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onAddToCart={addToCart}
+      />
 
       {/* Service Details Dialog */}
       {selectedService && (

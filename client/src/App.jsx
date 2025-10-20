@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Index from "./pages/Index";
 import ECommerce from "./pages/dashboard/ECommerce";
 import Appointments from "./pages/dashboard/Appointments";
+import Services from "./pages/Services";
 import Team from "./pages/dashboard/Team";
 import Finances from "./pages/dashboard/Finances";
 import Subscriptions from "./pages/dashboard/Subscriptions";
@@ -148,6 +149,7 @@ function App() {
                       <Route path="inventory" element={<Inventory />} />
                       <Route path="ecommerce" element={<ECommerce />} />
                       <Route path="discounts" element={<Discounts />} />
+                      <Route path="services" element={<Services />} />
                       <Route path="appointments" element={<Appointments />} />
                       <Route path="finances" element={<Finances />} />
                       <Route path="subscriptions" element={<Subscriptions />} />

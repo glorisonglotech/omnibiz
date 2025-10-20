@@ -67,7 +67,7 @@ const ProductDetailDialog = ({ product, open, onClose, onAddToCart }) => {
                   {averageRating} ({reviewCount} reviews)
                 </span>
               </div>
-              <p className="text-3xl font-bold text-primary">KES {product.price.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-primary">KES {(Number(product.price) || 0).toFixed(2)}</p>
             </div>
 
             <Separator />
@@ -100,8 +100,8 @@ const ProductDetailDialog = ({ product, open, onClose, onAddToCart }) => {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Package className="h-4 w-4 text-success" />
-                <span className={product.stock > 10 ? "text-success" : "text-warning"}>
-                  {product.stock > 10 ? "In Stock" : `Only ${product.stock} left`}
+                <span className={(product.stockQuantity || product.stock || 0) > 10 ? "text-success" : "text-warning"}>
+                  {(product.stockQuantity || product.stock || 0) > 10 ? "In Stock" : `Only ${product.stockQuantity || product.stock || 0} left`}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -129,7 +129,7 @@ const ProductDetailDialog = ({ product, open, onClose, onAddToCart }) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                  onClick={() => setQuantity(Math.min(product.stockQuantity || product.stock || 0, quantity + 1))}
                   className="rounded-l-none"
                 >
                   +
@@ -143,7 +143,7 @@ const ProductDetailDialog = ({ product, open, onClose, onAddToCart }) => {
                   }
                   onClose();
                 }}
-                disabled={product.stock === 0}
+                disabled={(product.stockQuantity || product.stock || 0) === 0}
               >
                 <ShoppingCart className="h-4 w-4" />
                 Add to Cart

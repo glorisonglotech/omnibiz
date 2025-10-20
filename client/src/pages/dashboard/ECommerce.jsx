@@ -70,7 +70,7 @@ const defaultProduct = {
   price: "",
   supplierName: "",
   description: "",
-  currency: "USD", // Default currency
+  currency: "KES", // Default currency
 };
 
 const ECommerce = () => {
@@ -479,7 +479,9 @@ const ECommerce = () => {
   // Derived values from orders for stats
   const totalOrders = orders.length;
   const revenue = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-  const avgOrderValue = totalOrders ? (revenue / totalOrders).toFixed(2) : "0.00";
+  const avgOrderValue = totalOrders && revenue > 0 ? (revenue / totalOrders).toFixed(2) : "0.00";
+  const safeRevenue = isNaN(revenue) ? 0 : revenue;
+  const safeAvgOrderValue = isNaN(parseFloat(avgOrderValue)) ? "0.00" : avgOrderValue;
   
   // Calculate top products from orders
   const topProducts = (() => {
@@ -505,7 +507,7 @@ const ECommerce = () => {
       .slice(0, 4)
       .map(p => ({
         ...p,
-        revenue: `$${p.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        revenue: `KES ${p.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       }));
   })();
 
@@ -715,7 +717,7 @@ const ECommerce = () => {
               </div>
             ) : (
               <>
-                <div className="text-2xl font-bold">${revenue.toLocaleString()}</div>
+                <div className="text-2xl font-bold">KES {safeRevenue.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">Total revenue earned</p>
               </>
             )}
@@ -767,7 +769,7 @@ const ECommerce = () => {
               </div>
             ) : (
               <>
-                <div className="text-2xl font-bold">${avgOrderValue}</div>
+                <div className="text-2xl font-bold">KES {safeAvgOrderValue}</div>
                 <p className="text-xs text-muted-foreground">Average per order</p>
               </>
             )}
@@ -1038,7 +1040,7 @@ const ECommerce = () => {
               </div>
               <div>
                 <Label>Total</Label>
-                <div>${Number(viewOrder.total || 0).toFixed(2)}</div>
+                <div>KES {Number(viewOrder.total || 0).toFixed(2)}</div>
               </div>
               <div>
                 <Label>Status</Label>
@@ -1106,7 +1108,7 @@ const ECommerce = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-total">Total Amount ($)</Label>
+                  <Label htmlFor="edit-total">Total Amount (KES)</Label>
                   <Input
                     id="edit-total"
                     type="number"

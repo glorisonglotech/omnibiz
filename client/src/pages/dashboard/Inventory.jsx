@@ -290,19 +290,20 @@ const Inventory = () => {
     
     // Debug logging to show calculation breakdown
     console.log(`📦 Product: ${p.name}`);
-    console.log(`   Price: $${price}`);
+    console.log(`   Price: KES ${price}`);
     console.log(`   Stock: ${stock} units`);
-    console.log(`   Value: $${itemValue.toFixed(2)}`);
+    console.log(`   Value: KES ${itemValue.toFixed(2)}`);
     console.log('---');
     
     return sum + itemValue;
   }, 0);
   
-  console.log('💰 TOTAL INVENTORY VALUE:', `$${totalValue.toFixed(2)}`);
+  console.log('💰 TOTAL INVENTORY VALUE:', `KES ${totalValue.toFixed(2)}`);
   console.log('📊 Total Products:', products.length);
   console.log('=====================================');
   
-  const formattedTotalValue = totalValue.toFixed(2);
+  const safeTotalValue = isNaN(totalValue) ? 0 : totalValue;
+  const formattedTotalValue = safeTotalValue.toFixed(2);
 
   return (
     <div className="space-y-6">
@@ -511,7 +512,7 @@ const Inventory = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${formattedTotalValue}</div>
+            <div className="text-2xl font-bold">KES {formattedTotalValue}</div>
             <p className="text-xs text-muted-foreground">
               {totalProducts > 0 ? `Value of ${totalProducts} products` : 'No inventory value'}
             </p>

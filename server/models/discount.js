@@ -53,6 +53,14 @@ const discountSchema = new mongoose.Schema({
     itemType: { type: String, enum: ['product', 'service'] },
     itemId: { type: mongoose.Schema.Types.ObjectId }
   }],
+  applicableProducts: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Product' 
+  }],
+  applicableServices: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Service' 
+  }],
   applicableCategories: [String],
   minPurchaseAmount: {
     type: Number,

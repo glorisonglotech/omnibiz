@@ -169,7 +169,7 @@ router.post('/orders', async (req, res) => {
 // POST /api/public/appointments - Guest appointment booking (storefront)
 router.post('/appointments', async (req, res) => {
   try {
-    const { inviteCode, customerName, customerEmail, customerPhone, service, time, durationMinutes, notes, price } = req.body;
+    const { inviteCode, customerName, customerEmail, customerPhone, service, serviceId, time, durationMinutes, notes, price } = req.body;
     
     // Validate required fields
     if (!customerName || !service || !time) {
@@ -181,14 +181,30 @@ router.post('/appointments', async (req, res) => {
       return res.status(400).json({ message: 'Invalid or missing inviteCode' });
     }
 
+    // If serviceId is provided, increment the booking count on the service
+    if (serviceId) {
+      try {
+        await Service.findByIdAndUpdate(serviceId, {
+          $inc: { bookings: 1 }
+        });
+        console.log(`✅ Incremented booking count for service: ${serviceId}`);
+      } catch (serviceError) {
+        console.error('Error updating service bookings:', serviceError);
+      }
+    }
+
     const appointment = new Appointment({
       userId: owner._id,
       customerName,
+      customerEmail,
+      customerPhone,
       service,
+      serviceId: serviceId || null,
       time,
       durationMinutes: durationMinutes || 30,
       status: 'Pending',
-      notes: notes || ''
+      notes: notes || '',
+      price: price || 0
     });
 
     await appointment.save();

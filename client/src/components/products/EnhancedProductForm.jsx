@@ -64,7 +64,7 @@ const EnhancedProductForm = ({
   initialData = null,
   mode = 'add' // 'add' or 'edit'
 }) => {
-  const [formData, setFormData] = useState({
+  const getInitialFormData = () => ({
     name: '',
     description: '',
     price: '',
@@ -96,6 +96,8 @@ const EnhancedProductForm = ({
     metaDescription: ''
   });
 
+  const [formData, setFormData] = useState(initialData || getInitialFormData());
+
   const [currentTag, setCurrentTag] = useState('');
   const [currentSpec, setCurrentSpec] = useState({ key: '', value: '' });
   const [subcategories, setSubcategories] = useState([]);
@@ -106,7 +108,7 @@ const EnhancedProductForm = ({
 
   useEffect(() => {
     if (initialData) {
-      setFormData({ ...formData, ...initialData });
+      setFormData({ ...getInitialFormData(), ...initialData });
     }
   }, [initialData]);
 
@@ -186,8 +188,8 @@ const EnhancedProductForm = ({
 
   const handleSubmit = () => {
     // Validation
-    if (!formData.name || !formData.price || !formData.category) {
-      toast.error('Please fill in all required fields (Name, Price, Category)');
+    if (!formData.name || !formData.price || !formData.category || !formData.supplier) {
+      toast.error('Please fill in all required fields (Name, Price, Category, Supplier)');
       return;
     }
 
@@ -197,13 +199,47 @@ const EnhancedProductForm = ({
     }
 
     // Auto-generate SKU if not provided
-    if (!formData.sku) {
+    let sku = formData.sku;
+    if (!sku) {
       const skuPrefix = formData.category.substring(0, 3).toUpperCase();
       const skuNumber = Date.now().toString().slice(-6);
-      formData.sku = `${skuPrefix}-${skuNumber}`;
+      sku = `${skuPrefix}-${skuNumber}`;
     }
 
-    onSubmit(formData);
+    // Map form fields to server-expected field names
+    const productData = {
+      name: formData.name,
+      description: formData.description,
+      price: parseFloat(formData.price),
+      category: formData.category,
+      subcategory: formData.subcategory,
+      brand: formData.brand,
+      sku: sku,
+      barcode: formData.barcode,
+      stockQuantity: formData.stock ? parseInt(formData.stock) : 0,
+      reorderLevel: formData.minStock ? parseInt(formData.minStock) : 5,
+      supplierName: formData.supplier,
+      status: formData.status,
+      unit: formData.unit,
+      weight: formData.weight,
+      dimensions: formData.dimensions,
+      condition: formData.condition,
+      cost: formData.cost ? parseFloat(formData.cost) : undefined,
+      taxRate: formData.taxRate ? parseFloat(formData.taxRate) : 16,
+      featured: formData.featured,
+      freeShipping: formData.freeShipping,
+      allowBackorder: formData.allowBackorder,
+      trackInventory: formData.trackInventory,
+      image: formData.images && formData.images.length > 0 ? formData.images[0] : undefined,
+      tags: formData.tags,
+      specifications: formData.specifications,
+      warranty: formData.warranty,
+      returnPolicy: formData.returnPolicy,
+      metaTitle: formData.metaTitle,
+      metaDescription: formData.metaDescription
+    };
+
+    onSubmit(productData);
   };
 
   const generateSKU = () => {

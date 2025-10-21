@@ -72,6 +72,7 @@ app.use('/api/customer', require('./routes/customerRoutes')); // Customer storef
 app.use('/api/support', require('./routes/supportRoutes'));
 app.use('/api/sessions', require('./routes/liveSessionRoutes')); // Live sessions/webinars
 app.use('/api/ai', require('./routes/aiRoutes'));
+app.use('/api/security', require('./routes/securityRoutes')); // AI Security Monitoring
 app.use('/api/public', require('./routes/publicRoutes'));
 app.use('/api/wallet', require('./routes/walletRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));

@@ -34,7 +34,8 @@ import {
   CreditCard,
   Map,
   Layout,
-  Globe
+  Globe,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,9 @@ const navigationItems = [
   { name: "Team", href: "/dashboard/team", icon: Users, section: "team" },
   { name: "AI Insights", href: "/dashboard/ai-insights", icon: Brain, section: "team" },
   { name: "Locations", href: "/dashboard/locations", icon: MapPin, section: "team" },
+  
+  // Security & Monitoring
+  { name: "Security", href: "/dashboard/security", icon: Shield, section: "security", badge: "AI", adminOnly: true },
   
   // Tools & Resources
   { name: "Reports", href: "/dashboard/reports", icon: FileText, section: "tools" },
@@ -127,6 +131,11 @@ function DashboardSidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-2 space-y-1">
           {navigationItems.map((item) => {
+            // Filter admin-only items
+            if (item.adminOnly && user?.role !== 'admin' && user?.role !== 'super_admin') {
+              return null;
+            }
+            
             const isActive = location.pathname === item.href;
             return (
               <Link
@@ -150,7 +159,7 @@ function DashboardSidebar() {
                         "ml-2 px-1.5 py-0.5 text-[10px] font-semibold rounded-full",
                         isActive 
                           ? "bg-primary-foreground text-primary"
-                          : "bg-green-500 text-white"
+                          : item.badge === "AI" ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white" : "bg-green-500 text-white"
                       )}>
                         {item.badge}
                       </span>
@@ -158,7 +167,10 @@ function DashboardSidebar() {
                   </div>
                 )}
                 {isCollapsed && item.badge && (
-                  <span className="absolute top-1 right-1 h-2 w-2 bg-green-500 rounded-full"></span>
+                  <span className={cn(
+                    "absolute top-1 right-1 h-2 w-2 rounded-full",
+                    item.badge === "AI" ? "bg-purple-500" : "bg-green-500"
+                  )}></span>
                 )}
               </Link>
             );

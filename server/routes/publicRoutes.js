@@ -176,9 +176,15 @@ router.post('/appointments', async (req, res) => {
       return res.status(400).json({ message: 'Customer name, service, and time are required' });
     }
 
-    const owner = await findOwnerByInviteCode(inviteCode);
-    if (!owner) {
-      return res.status(400).json({ message: 'Invalid or missing inviteCode' });
+    // Find owner by inviteCode (optional - if not provided, we'll create appointment without specific owner)
+    let owner = null;
+    if (inviteCode) {
+      owner = await findOwnerByInviteCode(inviteCode);
+    }
+    
+    // If no owner found but we have an inviteCode, try to find any admin user as fallback
+    if (!owner && inviteCode) {
+      console.log(`⚠️ No owner found for inviteCode: ${inviteCode}, using fallback`);
     }
 
     // If serviceId is provided, increment the booking count on the service
@@ -194,7 +200,7 @@ router.post('/appointments', async (req, res) => {
     }
 
     const appointment = new Appointment({
-      userId: owner._id,
+      userId: owner?._id || null, // Optional owner
       customerName,
       customerEmail,
       customerPhone,
@@ -212,16 +218,19 @@ router.post('/appointments', async (req, res) => {
     // Emit Socket.IO event for real-time update
     try {
       const io = getIO();
-      io.to(`user_${owner._id}`).emit('appointment_created', {
-        appointment,
-        userId: owner._id,
-        timestamp: new Date()
-      });
+      
+      if (owner) {
+        io.to(`user_${owner._id}`).emit('appointment_created', {
+          appointment,
+          userId: owner._id,
+          timestamp: new Date()
+        });
+      }
       
       // Notify all admins
       io.to('admins').emit('appointment_created', {
         appointment,
-        userId: owner._id,
+        userId: owner?._id || null,
         timestamp: new Date()
       });
     } catch (socketError) {

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   createAppointment,
+  createPublicAppointment,
   getAllAppointments,
   getAppointmentById,
   updateAppointment,
@@ -14,6 +15,8 @@ const {
 const { protect } = require('../middlewares/authMiddleware');
 const { requireRole } = require('../middlewares/roleMiddleware');
 
+// Public appointment creation (for client storefront)
+router.post('/public', createPublicAppointment);
 
 router.post('/', protect, createAppointment);
 

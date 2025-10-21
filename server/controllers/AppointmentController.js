@@ -4,6 +4,96 @@ const User = require("../models/user");
 const { getIO } = require('../config/socket');
 const { notificationService } = require('../services/notificationService');
 
+// Create a public appointment (for client storefront bookings)
+exports.createPublicAppointment = async (req, res) => {
+  try {
+    const {
+      inviteCode,
+      customerName,
+      customerEmail,
+      customerPhone,
+      service,
+      serviceId,
+      time,
+      durationMinutes,
+      notes,
+      price
+    } = req.body;
+
+    // Validate required fields
+    if (!customerName || !customerEmail || !customerPhone || !service || !time) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        message: 'Please provide customerName, customerEmail, customerPhone, service, and time' 
+      });
+    }
+
+    // Find the business owner by invite code if provided
+    let businessOwnerId = null;
+    if (inviteCode) {
+      const owner = await User.findOne({ inviteCode });
+      if (owner) {
+        businessOwnerId = owner._id;
+      }
+    }
+
+    // Create appointment
+    const appointment = new Appointment({
+      userId: businessOwnerId, // Link to business owner
+      customerName,
+      customerEmail,
+      customerPhone,
+      service,
+      serviceId,
+      time: new Date(time),
+      durationMinutes: durationMinutes || 60,
+      notes: notes || '',
+      price: price || 0,
+      status: 'pending',
+      createdViaStorefront: true
+    });
+
+    await appointment.save();
+    
+    // Emit Socket.IO event for real-time update
+    try {
+      const io = getIO();
+      io.emit('appointment_created', {
+        appointment,
+        customerName,
+        timestamp: new Date()
+      });
+      
+      // Notify business owner/admins
+      if (businessOwnerId) {
+        io.to(`user_${businessOwnerId}`).emit('new_booking', {
+          appointment,
+          timestamp: new Date()
+        });
+      }
+      io.to('admins').emit('new_booking', {
+        appointment,
+        timestamp: new Date()
+      });
+    } catch (socketError) {
+      console.error('Socket.IO emission error:', socketError);
+    }
+    
+    res.status(201).json({
+      success: true,
+      message: 'Appointment booked successfully',
+      appointment,
+      bookingNumber: `BOOK-${appointment._id.toString().slice(-8).toUpperCase()}`
+    });
+  } catch (error) {
+    console.error("Error creating public appointment:", error);
+    res.status(400).json({ 
+      error: error.message,
+      message: 'Failed to create appointment' 
+    });
+  }
+};
+
 // Create a new appointment
 exports.createAppointment = async (req, res) => {
   try {

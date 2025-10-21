@@ -52,6 +52,16 @@ const ServiceBookingFlow = ({ open, onClose, service }) => {
       const bookingDateTime = new Date(selectedDate);
       bookingDateTime.setHours(hours, minutes, 0, 0);
 
+      // Parse duration from string like "45 min" or "1 hour"
+      const parseDuration = (durationStr) => {
+        if (!durationStr) return 60;
+        const numMatch = durationStr.match(/\d+/);
+        if (!numMatch) return 60;
+        const num = parseInt(numMatch[0]);
+        if (durationStr.toLowerCase().includes('hour')) return num * 60;
+        return num;
+      };
+
       const bookingData = {
         inviteCode: inviteCode || window.location.pathname.split('/').filter(Boolean).pop(),
         customerName: formData.name,
@@ -60,7 +70,7 @@ const ServiceBookingFlow = ({ open, onClose, service }) => {
         service: service.name,
         serviceId: service._id || service.id, // Link to Service model
         time: bookingDateTime.toISOString(),
-        durationMinutes: parseInt(service.duration) || 60,
+        durationMinutes: parseDuration(service.duration),
         notes: formData.notes,
         price: service.price
       };
@@ -76,6 +86,8 @@ const ServiceBookingFlow = ({ open, onClose, service }) => {
       return { success: true, bookingNum, data: response.data };
     } catch (error) {
       console.error('❌ Booking error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Booking data sent:', bookingData);
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'Failed to create booking'

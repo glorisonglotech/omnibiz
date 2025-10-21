@@ -211,8 +211,9 @@ const OrderHistory = () => {
                         {item.name || 'Product'} × {item.quantity}
                       </span>
                       <span className="text-muted-foreground">
-                        {item.currency || '$'} {(item.price * item.quantity).toFixed(2)}
+                        KES {(item.price * item.quantity).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
+
                     </div>
                   ))
                 ) : (
@@ -230,7 +231,7 @@ const OrderHistory = () => {
                 <div>
                   <span className="font-semibold text-foreground">Total: </span>
                   <span className="text-lg font-bold text-green-600">
-                    ${order.total?.toFixed(2) || '0.00'}
+                    KES {order.total?.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                   </span>
                 </div>
                 <div className="flex gap-2">

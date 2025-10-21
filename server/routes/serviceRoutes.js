@@ -17,16 +17,16 @@ const {
 // Apply authentication
 router.use(protect);
 
-// Service CRUD routes
-router.post('/', requireRole(['admin', 'super_admin']), createService);
+// Service CRUD routes (allow any authenticated user to manage their own services)
+router.post('/', createService); // Removed role requirement - users can create their own services
 router.get('/', getServices);
 router.get('/categories', getServiceCategories);
 router.get('/:id', getServiceById);
-router.put('/:id', requireRole(['admin', 'super_admin']), updateService);
-router.delete('/:id', requireRole(['admin', 'super_admin']), deleteService);
-router.patch('/:id/toggle', requireRole(['admin', 'super_admin']), toggleServiceStatus);
+router.put('/:id', updateService); // Removed role requirement
+router.delete('/:id', deleteService); // Removed role requirement
+router.patch('/:id/toggle', toggleServiceStatus); // Removed role requirement
 
-// Bulk operations
-router.post('/bulk', requireRole(['admin', 'super_admin']), bulkCreateServices);
+// Bulk operations (allow any authenticated user)
+router.post('/bulk', bulkCreateServices); // Removed role requirement
 
 module.exports = router;

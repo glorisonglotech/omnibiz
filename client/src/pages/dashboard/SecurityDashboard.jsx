@@ -69,7 +69,10 @@ const SecurityDashboard = () => {
   };
 
   const handleSecurityAlert = (alert) => {
-    setAlerts(prev => [alert, ...prev]);
+    setAlerts(prev => {
+      const currentAlerts = Array.isArray(prev) ? prev : [];
+      return [alert, ...currentAlerts];
+    });
     
     // Show toast notification based on severity
     const toastFn = alert.severity === 'critical' ? toast.error :
@@ -88,7 +91,11 @@ const SecurityDashboard = () => {
   };
 
   const handleNewSecurityEvent = (event) => {
-    setSecurityLogs(prev => [event.securityLog, ...prev].slice(0, 100));
+    setSecurityLogs(prev => {
+      const currentLogs = Array.isArray(prev) ? prev : [];
+      const newLogs = [event.securityLog, ...currentLogs].slice(0, 100);
+      return newLogs;
+    });
   };
 
   const fetchSecurityData = async () => {
@@ -101,7 +108,7 @@ const SecurityDashboard = () => {
         api.get("/security/alerts", { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
-      setSecurityLogs(logsRes.data || []);
+      setSecurityLogs(logsRes.data.logs || []);
       setStats(statsRes.data || {});
       setAlerts(alertsRes.data || []);
     } catch (error) {
@@ -171,7 +178,7 @@ const SecurityDashboard = () => {
     }
   };
 
-  const filteredLogs = securityLogs.filter(log => {
+  const filteredLogs = (Array.isArray(securityLogs) ? securityLogs : []).filter(log => {
     if (filter !== 'all' && log.severity !== filter) return false;
     if (searchTerm) {
       const search = searchTerm.toLowerCase();

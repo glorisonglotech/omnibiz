@@ -227,12 +227,12 @@ const Help = () => {
                           break;
                         case 'Phone Support':
                           // Open phone dialer
-                          window.location.href = 'tel:+254700000000';
+                          window.location.href = 'tel:+254758175275';
                           toast.success('Opening phone dialer...');
                           break;
                         case 'Email Support':
                           // Open email client
-                          window.location.href = 'mailto:support@ominbiz.com?subject=Support Request';
+                          window.location.href = 'mailto:ominbizsolutions@gmail.com?subject=Support Request';
                           toast.success('Opening email client...');
                           break;
                         case 'Video Tutorial':

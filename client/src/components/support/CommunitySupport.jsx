@@ -91,10 +91,10 @@ const CommunitySupport = () => {
   ];
 
   const socialLinks = [
-    { name: 'GitHub', icon: Github, link: 'https://github.com/omnibiz', color: 'text-gray-800' },
-    { name: 'Twitter', icon: Twitter, link: 'https://twitter.com/omnibiz', color: 'text-blue-500' },
-    { name: 'LinkedIn', icon: Linkedin, link: 'https://linkedin.com/company/omnibiz', color: 'text-blue-700' },
-    { name: 'Email', icon: Mail, link: 'mailto:support@omnibiz.com', color: 'text-red-600' }
+    { name: 'GitHub', icon: Github, link: 'https://github.com/omnibiz-solutions', color: 'text-gray-800' },
+    { name: 'Twitter', icon: Twitter, link: 'https://twitter.com/omnibiz_solutions', color: 'text-blue-500' },
+    { name: 'LinkedIn', icon: Linkedin, link: 'https://linkedin.com/company/omnibiz-solutions', color: 'text-blue-700' },
+    { name: 'Email', icon: Mail, link: 'mailto:ominbizsolutions@gmail.com', color: 'text-red-600' }
   ];
 
   const getStatusBadge = (status) => {

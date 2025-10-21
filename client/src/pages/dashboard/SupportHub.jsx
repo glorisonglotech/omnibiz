@@ -128,7 +128,7 @@ const SupportHub = () => {
               </div>
               <h3 className="font-semibold">Email Support</h3>
               <p className="text-sm text-muted-foreground">
-                support@omnibiz.com
+                ominbizsolutions@gmail.com
               </p>
               <Badge variant="outline">Response within 24h</Badge>
             </div>
@@ -143,7 +143,7 @@ const SupportHub = () => {
               </div>
               <h3 className="font-semibold">Phone Support</h3>
               <p className="text-sm text-muted-foreground">
-                +254 XXX XXX XXX
+                +254 758 175 275
               </p>
               <Badge variant="outline">Mon-Fri 9AM-5PM</Badge>
             </div>

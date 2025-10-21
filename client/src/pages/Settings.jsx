@@ -557,7 +557,7 @@ function Settings() {
                   <button
                     className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-md hover:bg-primary/90 transition-colors"
                     onClick={() => {
-                      window.location.href = 'mailto:support@ominbiz.com?subject=Support Request'
+                      window.location.href = 'mailto:ominbizsolutions@gmail.com?subject=Support Request'
                       toast.success('Opening email client...')
                     }}
                   >

@@ -1053,10 +1053,10 @@ const HelpSupport = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-primary" />
+                  <Phone className="h-5 w-5 text-blue-600" />
                   <div>
                     <p className="font-medium">Phone Support</p>
-                    <p className="text-sm text-muted-foreground">+1 (555) 123-4567</p>
+                    <p className="text-sm text-muted-foreground">+254 758 175 275</p>
                     <p className="text-xs text-muted-foreground">Available 24/7</p>
                   </div>
                 </div>
@@ -1064,7 +1064,7 @@ const HelpSupport = () => {
                   <Mail className="h-5 w-5 text-green-600" />
                   <div>
                     <p className="font-medium">Email Support</p>
-                    <p className="text-sm text-muted-foreground">support@ominbiz.com</p>
+                    <p className="text-sm text-muted-foreground">ominbizsolutions@gmail.com</p>
                     <p className="text-xs text-muted-foreground">Response within 2 hours</p>
                   </div>
                 </div>

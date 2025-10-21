@@ -28,13 +28,21 @@ exports.chat = async (req, res) => {
     }
 
     // Build enriched context based on dashboard type
+    // Support admin users, customers, and guests
+    const isCustomer = req.customer !== undefined && req.customer !== null;
+    const isAdmin = req.user !== undefined && req.user !== null && !isCustomer;
+    const isGuest = !isAdmin && !isCustomer;
+    
     const aiContext = {
-      businessName: req.user?.businessName || context?.businessName || 'Business',
-      userName: req.user?.name || context?.userName || 'Guest',
-      userRole: req.user?.role || context?.userRole || 'guest',
-      userId: req.user?._id || 'guest',
+      businessName: req.user?.businessName || context?.businessName || 'OmniBiz Store',
+      userName: req.user?.name || req.customer?.name || context?.userName || 'Guest',
+      userRole: isCustomer ? 'customer' : (req.user?.role || context?.userRole || 'guest'),
+      userId: req.user?._id || req.customer?._id || 'guest',
+      userEmail: req.user?.email || req.customer?.email || null,
       dashboardType: dashboardType || context?.dashboardType || 'general',
-      isGuest: !req.user,
+      isGuest,
+      isCustomer,
+      isAdmin,
       ...context
     };
 
@@ -57,17 +65,31 @@ Provide insights about:
         
 Be professional, data-driven, and actionable in your responses.`;
       } else if (dashboardType === 'storefront' || dashboardType === 'client') {
-        enhancedPrompt = `You are an AI shopping assistant for customers using the ${aiContext.businessName} online store.
+        const customerStatus = aiContext.isCustomer ? 'Registered Customer' : 'Guest Visitor';
+        enhancedPrompt = `You are an AI shopping assistant for ${aiContext.businessName} online store.
         
-Help customers with:
-        - Product recommendations
-        - Order tracking
-        - Appointment booking
-        - Product information
-        - Shopping assistance
-        - Customer service
+Customer: ${aiContext.userName} (${customerStatus})
+${aiContext.isCustomer ? `Email: ${aiContext.userEmail}` : 'Browsing as guest'}
+
+You can help with:
+        - Product discovery and recommendations
+        - Order tracking and status ${aiContext.isCustomer ? '(check their orders)' : '(they need to sign in)'}
+        - Appointment booking and scheduling
+        - Product details and specifications
+        - Shopping cart and checkout assistance
+        - Store policies and information
+        - Customer support and inquiries
+        ${!aiContext.isCustomer ? '- Account creation benefits' : '- Account management'}
         
-Be friendly, helpful, and customer-focused in your responses.`;
+Response Style:
+        - Be warm, friendly, and helpful
+        - Use conversational language
+        - Suggest products when relevant
+        - Encourage sign-up for guests (mention benefits)
+        - Make shopping enjoyable and easy
+        - Use light emojis for friendliness
+        
+Remember: ${aiContext.isCustomer ? 'This is a valued customer, provide personalized service' : 'This is a guest, encourage them to create an account for better experience'}`;
       }
     }
 

@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const Customer = require('../models/customer');
 
 exports.protect = async (req, res, next) => {
   try {
@@ -45,6 +46,7 @@ exports.protect = async (req, res, next) => {
 };
 
 // Optional authentication - allows request through whether authenticated or not
+// Supports both admin users and customers
 exports.optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -52,33 +54,65 @@ exports.optionalAuth = async (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       // No auth provided, continue without user
       req.user = null;
+      req.customer = null;
       return next();
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
       req.user = null;
+      req.customer = null;
       return next();
     }
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id).select('-password');
+      
+      // Try to find admin user first
+      let user = await User.findById(decoded.id).select('-password');
       
       if (user) {
         req.user = user;
+        req.customer = null;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ optionalAuth: Admin user authenticated:', user.email);
+        }
       } else {
-        req.user = null;
+        // Try to find customer
+        const customer = await Customer.findById(decoded.id).select('-password');
+        
+        if (customer) {
+          req.customer = customer;
+          req.user = {
+            _id: customer._id,
+            name: customer.name,
+            email: customer.email,
+            role: 'customer',
+            businessName: 'Customer'
+          };
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ optionalAuth: Customer authenticated:', customer.email);
+          }
+        } else {
+          req.user = null;
+          req.customer = null;
+        }
       }
     } catch (error) {
       // Token invalid, continue without user
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ optionalAuth: Invalid token, continuing as guest');
+      }
       req.user = null;
+      req.customer = null;
     }
     
     next();
   } catch (error) {
     // Any error, continue without user
+    console.error('optionalAuth error:', error);
     req.user = null;
+    req.customer = null;
     next();
   }
 };

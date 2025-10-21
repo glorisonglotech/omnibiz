@@ -62,6 +62,13 @@ const Purchasing = () => {
     priority: 'medium'
   });
 
+  const [newSupplier, setNewSupplier] = useState({
+    name: '',
+    contact: '',
+    email: '',
+    address: ''
+  });
+
   // Sample data - replace with API calls
   const sampleOrders = [
     {
@@ -602,11 +609,27 @@ const Purchasing = () => {
                         <span className="truncate">{supplier.email}</span>
                       </div>
                       <div className="flex gap-2 mt-4">
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => {
+                            window.location.href = `tel:${supplier.contact}`;
+                            toast.info(`Calling ${supplier.name}...`);
+                          }}
+                        >
                           <Phone className="h-4 w-4 mr-1" />
                           Call
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => {
+                            window.location.href = `mailto:${supplier.email}`;
+                            toast.info(`Opening email to ${supplier.name}...`);
+                          }}
+                        >
                           <Mail className="h-4 w-4 mr-1" />
                           Email
                         </Button>
@@ -800,6 +823,84 @@ const Purchasing = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsViewOrderOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Supplier Dialog */}
+      <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Supplier</DialogTitle>
+            <DialogDescription>
+              Add a new supplier contact to your database
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Supplier Name *</Label>
+              <Input
+                placeholder="e.g., ABC Suppliers Ltd"
+                value={newSupplier.name}
+                onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Contact Number *</Label>
+              <Input
+                placeholder="e.g., +254 700 123 456"
+                value={newSupplier.contact}
+                onChange={(e) => setNewSupplier({ ...newSupplier, contact: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Email Address *</Label>
+              <Input
+                type="email"
+                placeholder="e.g., info@supplier.com"
+                value={newSupplier.email}
+                onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Address (Optional)</Label>
+              <Textarea
+                placeholder="Business address"
+                value={newSupplier.address}
+                onChange={(e) => setNewSupplier({ ...newSupplier, address: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsAddSupplierOpen(false);
+              setNewSupplier({ name: '', contact: '', email: '', address: '' });
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={async () => {
+              if (!newSupplier.name || !newSupplier.contact || !newSupplier.email) {
+                toast.error('Please fill in all required fields');
+                return;
+              }
+              
+              try {
+                const token = localStorage.getItem('token');
+                const response = await api.post('/purchasing/suppliers', newSupplier, {
+                  headers: { Authorization: `Bearer ${token}` }
+                });
+                
+                setSuppliers(prev => [...prev, response.data]);
+                setIsAddSupplierOpen(false);
+                setNewSupplier({ name: '', contact: '', email: '', address: '' });
+                toast.success('Supplier added successfully!');
+              } catch (error) {
+                console.error('Error adding supplier:', error);
+                toast.error('Failed to add supplier');
+              }
+            }}>
+              Add Supplier
             </Button>
           </DialogFooter>
         </DialogContent>

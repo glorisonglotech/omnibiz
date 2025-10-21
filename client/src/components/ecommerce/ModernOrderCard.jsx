@@ -78,7 +78,7 @@ const ModernOrderCard = ({ order, onView, onEdit }) => {
           
           <div className="text-right">
             <div className="text-2xl font-bold text-primary">
-              ${Number(order.total || 0).toFixed(2)}
+              KES {Number(order.total || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-muted-foreground">
               {new Date(order.date || order.createdAt).toLocaleDateString('en-US', {
@@ -135,14 +135,14 @@ const ModernOrderCard = ({ order, onView, onEdit }) => {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{item.name || 'Product'}</p>
                     <p className="text-xs text-muted-foreground">
-                      Qty: {item.quantity} × {item.currency || '$'}{Number(item.price || 0).toFixed(2)}
+                      Qty: {item.quantity} × KES {Number(item.price || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   
                   {/* Item Total */}
                   <div className="text-right">
                     <p className="font-semibold text-sm">
-                      {item.currency || '$'}{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
+                      KES {(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>
@@ -178,25 +178,25 @@ const ModernOrderCard = ({ order, onView, onEdit }) => {
           {order.subtotal && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal:</span>
-              <span>${Number(order.subtotal).toFixed(2)}</span>
+              <span>KES {Number(order.subtotal).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
           {order.taxAmount > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Tax:</span>
-              <span>${Number(order.taxAmount).toFixed(2)}</span>
+              <span>KES {Number(order.taxAmount).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
           {order.shippingCost > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Shipping:</span>
-              <span>${Number(order.shippingCost).toFixed(2)}</span>
+              <span>KES {Number(order.shippingCost).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
           {order.discountAmount > 0 && (
             <div className="flex justify-between text-sm text-green-600">
               <span>Discount:</span>
-              <span>-${Number(order.discountAmount).toFixed(2)}</span>
+              <span>-KES {Number(order.discountAmount).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
         </div>

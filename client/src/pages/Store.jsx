@@ -21,16 +21,19 @@ import {
   Plus,
   ArrowLeft,
   Grid3x3,
-  List
+  List,
+  CheckCircle2
 } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 import ProductDetails from "@/components/ProductDetails";
 
 const Store = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { add, count } = useCart();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,6 +41,7 @@ const Store = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -89,6 +93,22 @@ const Store = () => {
     setTimeout(() => setSelectedProduct(null), 300);
   };
 
+  const handleAddToCart = (product) => {
+    setAddingToCart(product._id || product.id);
+    add(product, 1);
+    toast.success(
+      <div className="flex items-center gap-2">
+        <CheckCircle2 className="h-4 w-4 text-green-500" />
+        <span>{product.name} added to cart</span>
+      </div>
+    );
+    setTimeout(() => setAddingToCart(null), 1000);
+  };
+
+  const handleGoToCheckout = () => {
+    navigate('/dashboard/checkout');
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -113,6 +133,19 @@ const Store = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleGoToCheckout}
+            className="relative"
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Cart
+            {count > 0 && (
+              <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                {count}
+              </span>
+            )}
+          </Button>
           <Button
             variant={viewMode === "grid" ? "default" : "outline"}
             size="sm"
@@ -277,14 +310,31 @@ const Store = () => {
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex gap-2">
                   <Button 
-                    className="w-full" 
+                    className="flex-1" 
                     variant="outline"
                     onClick={() => handleViewDetails(product)}
                   >
                     <Eye className="h-4 w-4 mr-2" />
-                    View Details
+                    Details
+                  </Button>
+                  <Button 
+                    className="flex-1"
+                    onClick={() => handleAddToCart(product)}
+                    disabled={product.stockQuantity <= 0 || addingToCart === (product._id || product.id)}
+                  >
+                    {addingToCart === (product._id || product.id) ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Added!
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Add to Cart
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>

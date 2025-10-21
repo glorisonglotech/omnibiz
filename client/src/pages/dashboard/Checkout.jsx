@@ -23,17 +23,27 @@ import {
   Plus,
   Minus,
   Trash2,
-  CheckCircle
+  CheckCircle,
+  RefreshCw,
+  Store as StoreIcon,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentOptions from '@/components/payments/PaymentOptions';
+import { useCart } from '@/context/CartContext';
+import { useSocket } from '@/context/SocketContext';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/lib/api';
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const [cart, setCart] = useState([]);
+  const { items: cart, update, remove, clear, total, count } = useCart();
+  const { socket, connected } = useSocket();
+  const { user, isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   // Customer Information
   const [customerInfo, setCustomerInfo] = useState({
@@ -55,46 +65,45 @@ const Checkout = () => {
     specialInstructions: ''
   });
 
-  // Sample cart data (in real app, this would come from context/state)
+  // Load user data if authenticated
   useEffect(() => {
-    const sampleCart = [
-      {
-        id: 1,
-        name: 'Premium Coffee Beans',
-        price: 2500,
-        quantity: 2,
-        image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=100&h=100&fit=crop'
-      },
-      {
-        id: 3,
-        name: 'Artisan Chocolate Bar',
-        price: 1200,
-        quantity: 1,
-        image: 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=100&h=100&fit=crop'
-      },
-      {
-        id: 5,
-        name: 'Wireless Headphones',
-        price: 15000,
-        quantity: 1,
-        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&h=100&fit=crop'
-      }
-    ];
-    setCart(sampleCart);
-  }, []);
+    if (isAuthenticated && user) {
+      setCustomerInfo({
+        firstName: user.firstName || user.name?.split(' ')[0] || '',
+        lastName: user.lastName || user.name?.split(' ')[1] || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        company: user.company || ''
+      });
+    }
+  }, [isAuthenticated, user]);
+
+  // Socket.IO for real-time order updates
+  useEffect(() => {
+    if (socket && connected && orderNumber) {
+      socket.on('order_status_updated', (data) => {
+        if (data.orderNumber === orderNumber) {
+          toast.info(`Order ${orderNumber}: ${data.status}`);
+        }
+      });
+
+      return () => {
+        socket.off('order_status_updated');
+      };
+    }
+  }, [socket, connected, orderNumber]);
 
   const updateQuantity = (id, newQuantity) => {
     if (newQuantity <= 0) {
-      removeItem(id);
+      remove(id);
+      toast.success('Item removed from cart');
       return;
     }
-    setCart(cart.map(item => 
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    ));
+    update(id, newQuantity);
   };
 
   const removeItem = (id) => {
-    setCart(cart.filter(item => item.id !== id));
+    remove(id);
     toast.success('Item removed from cart');
   };
 
@@ -149,12 +158,55 @@ const Checkout = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handlePaymentSuccess = (paymentData) => {
-    const orderNum = `ORD-${Date.now()}`;
-    setOrderNumber(orderNum);
-    setOrderComplete(true);
-    setCurrentStep(5);
-    toast.success('Order placed successfully!');
+  const handlePaymentSuccess = async (paymentData) => {
+    setProcessing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const orderData = {
+        customer: customerInfo,
+        shipping: shippingInfo,
+        items: cart.map(item => ({
+          product: item._id || item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        payment: paymentData,
+        subtotal: getSubtotal(),
+        shipping: getShippingCost(),
+        tax: getTax(),
+        total: getTotal(),
+        status: 'pending'
+      };
+
+      const response = await api.post('/orders', orderData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const orderNum = response.data.orderNumber || `ORD-${Date.now()}`;
+      setOrderNumber(orderNum);
+      setOrderComplete(true);
+      setCurrentStep(5);
+      
+      // Emit socket event for real-time order tracking
+      if (socket && connected) {
+        socket.emit('order_created', {
+          orderNumber: orderNum,
+          userId: user?._id,
+          total: getTotal()
+        });
+      }
+
+      // Clear cart after successful order
+      clear();
+      
+      toast.success('Order placed successfully!');
+    } catch (error) {
+      console.error('Order creation error:', error);
+      toast.error('Failed to create order. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handlePaymentError = (error) => {

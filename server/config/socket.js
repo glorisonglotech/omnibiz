@@ -142,6 +142,75 @@ const initializeSocket = (server) => {
       });
     });
 
+    // Maps and Locations real-time handlers
+    socket.on('join_maps', ({ userId }) => {
+      socket.join('maps_room');
+      console.log(`User ${userId} joined maps room`);
+      
+      // Send current active deliveries count
+      socket.emit('maps_joined', {
+        message: 'Connected to real-time maps updates',
+        timestamp: new Date()
+      });
+    });
+
+    socket.on('leave_maps', ({ userId }) => {
+      socket.leave('maps_room');
+      console.log(`User ${userId} left maps room`);
+    });
+
+    // Handle support chat
+    socket.on('join_support_chat', ({ userId, userName }) => {
+      socket.join('support_chat');
+      console.log(`${userName} joined support chat`);
+      
+      // Notify support agents
+      socket.to('admins').emit('client_joined_support', {
+        userId,
+        userName,
+        timestamp: new Date()
+      });
+    });
+
+    socket.on('send_message', ({ conversationId, message, senderId, senderName }) => {
+      const messageData = {
+        id: Date.now(),
+        conversationId,
+        senderId,
+        senderName,
+        content: message,
+        timestamp: new Date(),
+        status: 'delivered'
+      };
+      
+      // Broadcast to conversation participants
+      socket.to(`conversation_${conversationId}`).emit('message_received', messageData);
+    });
+
+    // Purchasing room handlers
+    socket.on('join_purchasing', ({ userId }) => {
+      socket.join('purchasing_room');
+      console.log(`User ${userId} joined purchasing room`);
+    });
+
+    socket.on('leave_purchasing', ({ userId }) => {
+      socket.leave('purchasing_room');
+      console.log(`User ${userId} left purchasing room`);
+    });
+
+    // Order creation event from checkout
+    socket.on('order_created', ({ orderNumber, userId, total }) => {
+      console.log(`Order ${orderNumber} created by user ${userId}`);
+      
+      // Notify admins
+      socket.to('admins').emit('new_order', {
+        orderNumber,
+        userId,
+        total,
+        timestamp: new Date()
+      });
+    });
+
     // Handle disconnection
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.user.email}`);

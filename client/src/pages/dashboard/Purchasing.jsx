@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ShoppingCart, 
   Plus, 
@@ -21,18 +22,37 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Phone,
+  Mail,
+  MapPin,
+  User,
+  Building,
+  CreditCard,
+  Activity,
+  TrendingUp,
+  FileText,
+  Radio
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { useSocket } from '@/context/SocketContext';
+import { useAuth } from '@/context/AuthContext';
 
 const Purchasing = () => {
+  const { socket, connected } = useSocket();
+  const { user } = useAuth();
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [isAddOrderOpen, setIsAddOrderOpen] = useState(false);
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false);
+  const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [activities, setActivities] = useState([]);
+  const refreshIntervalRef = useRef(null);
 
   const [newOrder, setNewOrder] = useState({
     supplier: '',
@@ -95,15 +115,91 @@ const Purchasing = () => {
   }, []);
 
   const fetchPurchaseData = async () => {
+    setLoading(true);
     try {
-      // For now, use sample data
-      setPurchaseOrders(sampleOrders);
-      setSuppliers(sampleSuppliers);
+      const token = localStorage.getItem('token');
+      
+      // Fetch purchase orders from database
+      const [ordersRes, suppliersRes] = await Promise.allSettled([
+        api.get('/purchasing/orders', { headers: { Authorization: `Bearer ${token}` } }),
+        api.get('/purchasing/suppliers', { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+
+      // Use API data or fallback to sample data
+      if (ordersRes.status === 'fulfilled' && ordersRes.value?.data) {
+        setPurchaseOrders(ordersRes.value.data);
+      } else {
+        setPurchaseOrders(sampleOrders);
+      }
+
+      if (suppliersRes.status === 'fulfilled' && suppliersRes.value?.data) {
+        setSuppliers(suppliersRes.value.data);
+      } else {
+        setSuppliers(sampleSuppliers);
+      }
+      
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching purchase data:', error);
       toast.error('Error loading purchase data');
+      setPurchaseOrders(sampleOrders);
+      setSuppliers(sampleSuppliers);
+      setLoading(false);
     }
   };
+
+  // Socket.IO real-time updates
+  useEffect(() => {
+    if (socket && connected) {
+      // Join purchasing room
+      socket.emit('join_purchasing', { userId: user?._id });
+
+      // Listen for purchase order updates
+      socket.on('purchase_order_updated', (data) => {
+        setPurchaseOrders(prev => prev.map(order =>
+          order.id === data.id ? { ...order, ...data } : order
+        ));
+        toast.info(`Purchase order ${data.orderNumber}: ${data.status}`);
+        
+        // Add to activities
+        setActivities(prev => [{
+          id: Date.now(),
+          type: 'order_update',
+          message: `PO ${data.orderNumber} status changed to ${data.status}`,
+          timestamp: new Date()
+        }, ...prev]);
+      });
+
+      // Listen for delivery updates
+      socket.on('delivery_status_updated', (data) => {
+        setPurchaseOrders(prev => prev.map(order =>
+          order.id === data.orderId ? { ...order, deliveryStatus: data.status } : order
+        ));
+        toast.success(`Delivery update: ${data.status}`);
+      });
+
+      // Listen for payment updates
+      socket.on('payment_processed', (data) => {
+        setPurchaseOrders(prev => prev.map(order =>
+          order.id === data.orderId ? { ...order, paymentStatus: data.status } : order
+        ));
+        toast.success(`Payment ${data.status} for ${data.orderNumber}`);
+        
+        setActivities(prev => [{
+          id: Date.now(),
+          type: 'payment',
+          message: `Payment ${data.status} - ${data.amount}`,
+          timestamp: new Date()
+        }, ...prev]);
+      });
+
+      return () => {
+        socket.off('purchase_order_updated');
+        socket.off('delivery_status_updated');
+        socket.off('payment_processed');
+      };
+    }
+  }, [socket, connected, user]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -202,13 +298,18 @@ const Purchasing = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Purchasing</h1>
           <p className="text-muted-foreground">
-            Manage purchase orders and supplier relationships
+            Manage purchase orders and supplier relationships •
+            {connected ? (
+              <span className="text-green-600"> 🟢 Real-time Connected</span>
+            ) : (
+              <span className="text-red-600"> 🔴 Offline Mode</span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button 
             onClick={handleRefresh} 
-            disabled={refreshing}
+            disabled={refreshing || loading}
             variant="outline"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
@@ -404,14 +505,23 @@ const Purchasing = () => {
         </Card>
       </div>
 
-      {/* Purchase Orders Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Purchase Orders</CardTitle>
-          <CardDescription>Manage and track all purchase orders</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="orders" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="orders">Purchase Orders</TabsTrigger>
+          <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+          <TabsTrigger value="activity">Activity & Payments</TabsTrigger>
+        </TabsList>
+
+        {/* Purchase Orders Tab */}
+        <TabsContent value="orders">
+          <Card>
+            <CardHeader>
+              <CardTitle>Purchase Orders</CardTitle>
+              <CardDescription>Manage and track all purchase orders</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Order Number</TableHead>
@@ -453,8 +563,184 @@ const Purchasing = () => {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Suppliers Tab */}
+        <TabsContent value="suppliers">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Suppliers</CardTitle>
+                  <CardDescription>Manage supplier contacts and information</CardDescription>
+                </div>
+                <Button onClick={() => setIsAddSupplierOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Supplier
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {suppliers.map((supplier) => (
+                  <Card key={supplier.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Building className="h-5 w-5 text-blue-600" />
+                        {supplier.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span>{supplier.contact}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="truncate">{supplier.email}</span>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Phone className="h-4 w-4 mr-1" />
+                          Call
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Mail className="h-4 w-4 mr-1" />
+                          Email
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Activity & Payments Tab */}
+        <TabsContent value="activity">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Activities */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Recent Activity
+                </CardTitle>
+                <CardDescription>Track purchasing activities in real-time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {activities.length > 0 ? (
+                    activities.slice(0, 10).map((activity) => (
+                      <div key={activity.id} className="flex items-start gap-3 pb-3 border-b last:border-0">
+                        <div className={`mt-1 rounded-full p-2 ${
+                          activity.type === 'payment' ? 'bg-green-100' :
+                          activity.type === 'order_update' ? 'bg-blue-100' : 'bg-gray-100'
+                        }`}>
+                          {activity.type === 'payment' ? (
+                            <CreditCard className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-blue-600" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{activity.message}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(activity.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Activity className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                      <p>No recent activities</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment Tracking */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Payment Tracking
+                </CardTitle>
+                <CardDescription>Monitor payment status for purchase orders</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {purchaseOrders.filter(order => order.status !== 'cancelled').map((order) => (
+                    <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium text-sm">{order.orderNumber}</p>
+                        <p className="text-xs text-muted-foreground">{order.supplier}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-sm">{formatCurrency(order.totalAmount)}</p>
+                        <Badge variant={
+                          order.paymentStatus === 'paid' ? 'default' :
+                          order.paymentStatus === 'pending' ? 'secondary' : 'outline'
+                        } className="text-xs">
+                          {order.paymentStatus || 'Pending'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Delivery Tracking */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                  Delivery Status
+                </CardTitle>
+                <CardDescription>Track delivery status after purchase orders</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order Number</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead>Expected Delivery</TableHead>
+                      <TableHead>Delivery Status</TableHead>
+                      <TableHead>Payment Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {purchaseOrders.filter(o => o.status === 'approved' || o.status === 'delivered').map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                        <TableCell>{order.supplier}</TableCell>
+                        <TableCell>{new Date(order.expectedDelivery).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
+                            {order.deliveryStatus || order.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={order.paymentStatus === 'paid' ? 'default' : 'outline'}>
+                            {order.paymentStatus || 'Pending'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* View Order Dialog */}
       <Dialog open={isViewOrderOpen} onOpenChange={setIsViewOrderOpen}>

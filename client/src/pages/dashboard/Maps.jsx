@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   MapPin, 
   Navigation, 
@@ -17,11 +19,29 @@ import {
   Maximize,
   Layers,
   Route,
-  Clock
+  Clock,
+  Building,
+  Warehouse,
+  Store,
+  Target,
+  TrendingUp,
+  MapPinned,
+  Radio,
+  Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+import { useSocket } from '@/context/SocketContext';
+import api from '@/lib/api';
+import InteractiveMap from '@/components/InteractiveMap';
 
 const Maps = () => {
+  const { user, isAuthenticated } = useAuth();
+  const { socket, connected } = useSocket();
+  const [realTimeSync, setRealTimeSync] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const refreshIntervalRef = useRef(null);
+  
   const [mapData, setMapData] = useState({
     locations: [
       {
@@ -114,14 +134,177 @@ const Maps = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [mapView, setMapView] = useState('locations');
   const [refreshing, setRefreshing] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showRoutes, setShowRoutes] = useState(false);
+
+  // Fetch locations from database
+  const fetchLocationsFromDB = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await api.get('/locations', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        const formattedLocations = response.data.map(loc => ({
+          id: loc._id || loc.id,
+          name: loc.name,
+          address: `${loc.address}, ${loc.city || ''}`,
+          coordinates: loc.coordinates || { lat: -1.2921, lng: 36.8219 },
+          status: loc.status || 'active',
+          employees: loc.employees || 0,
+          dailyRevenue: loc.revenue || 0,
+          customers: loc.customers || 0,
+          type: loc.type || 'branch',
+          phone: loc.phone,
+          manager: loc.manager,
+          operatingHours: loc.operatingHours
+        }));
+        
+        setMapData(prev => ({
+          ...prev,
+          locations: formattedLocations,
+          analytics: {
+            ...prev.analytics,
+            totalLocations: formattedLocations.length
+          }
+        }));
+        
+        setLoading(false);
+        return formattedLocations;
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      toast.error('Failed to fetch locations from database');
+      setLoading(false);
+    }
+  };
+
+  // Fetch deliveries/orders data
+  const fetchDeliveriesFromDB = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await api.get('/orders?status=in_transit,pending', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        const formattedDeliveries = response.data.map(order => ({
+          id: order._id || order.id,
+          orderId: order.orderNumber || `ORD-${order.id}`,
+          customer: order.customerName || order.customer?.name || 'Customer',
+          address: order.deliveryAddress || order.address,
+          coordinates: order.deliveryCoordinates || { lat: -1.2921, lng: 36.8219 },
+          status: order.status || 'pending',
+          estimatedTime: order.estimatedDelivery || '30 mins',
+          driver: order.driver || 'Assigned'
+        }));
+        
+        setMapData(prev => ({
+          ...prev,
+          deliveries: formattedDeliveries,
+          analytics: {
+            ...prev.analytics,
+            activeDeliveries: formattedDeliveries.filter(d => d.status === 'in_transit').length
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching deliveries:', error);
+    }
+  };
+
+  // Setup real-time updates with Socket.IO
+  useEffect(() => {
+    if (socket && connected && realTimeSync) {
+      // Join maps room
+      socket.emit('join_maps', { userId: user?._id });
+
+      // Listen for location updates
+      socket.on('location_updated', (location) => {
+        setMapData(prev => ({
+          ...prev,
+          locations: prev.locations.map(loc =>
+            loc.id === location.id ? { ...loc, ...location } : loc
+          )
+        }));
+        toast.info(`Location "${location.name}" updated`);
+      });
+
+      // Listen for new locations
+      socket.on('location_added', (location) => {
+        setMapData(prev => ({
+          ...prev,
+          locations: [...prev.locations, location],
+          analytics: {
+            ...prev.analytics,
+            totalLocations: prev.analytics.totalLocations + 1
+          }
+        }));
+        toast.success(`New location "${location.name}" added`);
+      });
+
+      // Listen for delivery updates
+      socket.on('delivery_updated', (delivery) => {
+        setMapData(prev => ({
+          ...prev,
+          deliveries: prev.deliveries.map(del =>
+            del.id === delivery.id ? { ...del, ...delivery } : del
+          )
+        }));
+      });
+
+      // Listen for new deliveries
+      socket.on('delivery_started', (delivery) => {
+        setMapData(prev => ({
+          ...prev,
+          deliveries: [...prev.deliveries, delivery],
+          analytics: {
+            ...prev.analytics,
+            activeDeliveries: prev.analytics.activeDeliveries + 1
+          }
+        }));
+        toast.info(`New delivery started: ${delivery.orderId}`);
+      });
+
+      return () => {
+        socket.off('location_updated');
+        socket.off('location_added');
+        socket.off('delivery_updated');
+        socket.off('delivery_started');
+      };
+    }
+  }, [socket, connected, realTimeSync, user]);
+
+  // Initial data fetch
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchLocationsFromDB();
+      fetchDeliveriesFromDB();
+    }
+  }, [isAuthenticated]);
+
+  // Auto-refresh interval when real-time sync is off
+  useEffect(() => {
+    if (!realTimeSync && isAuthenticated) {
+      refreshIntervalRef.current = setInterval(() => {
+        fetchLocationsFromDB();
+        fetchDeliveriesFromDB();
+      }, 30000); // Refresh every 30 seconds
+
+      return () => {
+        if (refreshIntervalRef.current) {
+          clearInterval(refreshIntervalRef.current);
+        }
+      };
+    }
+  }, [realTimeSync, isAuthenticated]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-      toast.success('Map data refreshed!');
-    }, 1000);
+    await Promise.all([fetchLocationsFromDB(), fetchDeliveriesFromDB()]);
+    setRefreshing(false);
+    toast.success('Map data refreshed!');
   };
 
   const getStatusColor = (status) => {
@@ -162,19 +345,40 @@ const Maps = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Maps & Locations</h1>
           <p className="text-muted-foreground">
-            Track locations, deliveries, and geographic analytics
+            Track locations, deliveries, and geographic analytics • 
+            {connected ? (
+              <span className="text-green-600"> 🟢 Real-time Connected</span>
+            ) : (
+              <span className="text-red-600"> 🔴 Offline Mode</span>
+            )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Real-time Sync Toggle */}
+          <div className="flex items-center gap-2 px-3 py-2 border rounded-lg bg-background">
+            <Zap className={`h-4 w-4 ${realTimeSync ? 'text-green-500' : 'text-gray-400'}`} />
+            <Label htmlFor="realtime-sync" className="text-sm cursor-pointer">
+              Real-time Sync
+            </Label>
+            <Switch
+              id="realtime-sync"
+              checked={realTimeSync}
+              onCheckedChange={(checked) => {
+                setRealTimeSync(checked);
+                toast.info(checked ? 'Real-time sync enabled' : 'Real-time sync disabled');
+              }}
+            />
+          </div>
+          
           <Button 
             onClick={handleRefresh} 
-            disabled={refreshing}
+            disabled={refreshing || loading}
             variant="outline"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => toast.info('Full screen mode - Coming soon')}>
             <Maximize className="h-4 w-4 mr-2" />
             Full Screen
           </Button>
@@ -396,24 +600,119 @@ const Maps = () => {
               <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => window.open('/dashboard/locations', '_blank')}
+              >
                 <MapPin className="h-4 w-4 mr-2" />
-                Add New Location
+                Manage Locations
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => toast.info('Route planning - Coming soon')}
+              >
                 <Route className="h-4 w-4 mr-2" />
                 Plan Route
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setMapView('deliveries')}
+              >
                 <Navigation className="h-4 w-4 mr-2" />
-                Track Delivery
+                Track Deliveries
               </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter View
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => {
+                  setShowHeatmap(!showHeatmap);
+                  toast.info(showHeatmap ? 'Heatmap disabled' : 'Heatmap enabled');
+                }}
+              >
+                <Target className="h-4 w-4 mr-2" />
+                {showHeatmap ? 'Hide' : 'Show'} Heatmap
               </Button>
             </CardContent>
           </Card>
+
+          {/* Map Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Map Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="show-routes" className="text-sm">Show Routes</Label>
+                <Switch
+                  id="show-routes"
+                  checked={showRoutes}
+                  onCheckedChange={setShowRoutes}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="show-heatmap" className="text-sm">Revenue Heatmap</Label>
+                <Switch
+                  id="show-heatmap"
+                  checked={showHeatmap}
+                  onCheckedChange={setShowHeatmap}
+                />
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={() => {
+                  setSearchQuery('');
+                  setMapView('locations');
+                  setShowHeatmap(false);
+                  setShowRoutes(false);
+                  toast.success('Map view reset');
+                }}
+              >
+                Reset View
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Sync Status */}
+          {loading ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Loading map data...</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Radio className="h-4 w-4" />
+                  Sync Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Connection</span>
+                  <Badge variant={connected ? "default" : "secondary"}>
+                    {connected ? '🟢 Connected' : '🔴 Disconnected'}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Real-time</span>
+                  <Badge variant={realTimeSync ? "default" : "outline"}>
+                    {realTimeSync ? 'Enabled' : 'Disabled'}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Last Updated</span>
+                  <span className="text-xs">{new Date().toLocaleTimeString()}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

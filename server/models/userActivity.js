@@ -4,8 +4,8 @@ const userActivitySchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
+    // Index created in compound index below
   },
   
   // Activity Details

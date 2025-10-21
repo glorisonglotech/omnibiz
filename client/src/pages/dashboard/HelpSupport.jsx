@@ -43,10 +43,12 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { supportAPI } from '@/lib/apiHelpers';
+import { useNavigate } from 'react-router-dom';
 
 const HelpSupport = () => {
   const { user } = useAuth();
   const { socket, connected } = useSocket();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat');
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -622,6 +624,78 @@ const HelpSupport = () => {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Help & Support</h1>
         <p className="text-muted-foreground mt-2">Get instant help from our support team • {connected ? '🟢 Connected' : '🔴 Offline'}</p>
+      </div>
+
+      {/* Communication Channels Quick Access */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary group"
+          onClick={() => navigate('/dashboard/sessions')}
+        >
+          <CardContent className="p-6">
+            <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 w-fit mb-3 group-hover:scale-110 transition-transform">
+              <Video className="h-6 w-6 text-blue-500" />
+            </div>
+            <h3 className="font-semibold mb-1 flex items-center gap-2">
+              Live Sessions
+              <Badge className="bg-green-500 text-white text-[10px] px-1.5 py-0">New</Badge>
+            </h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              Schedule video meetings & webinars
+            </p>
+            <Button variant="link" className="p-0 h-auto text-sm">
+              Schedule Now →
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+          onClick={() => navigate('/dashboard/messages')}
+        >
+          <CardContent className="p-6">
+            <div className="bg-purple-50 dark:bg-purple-950 rounded-lg p-3 w-fit mb-3">
+              <MessageCircle className="h-6 w-6 text-purple-500" />
+            </div>
+            <h3 className="font-semibold mb-1">Messages</h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              Direct messaging with team
+            </p>
+            <Button variant="link" className="p-0 h-auto text-sm">
+              Open Messages →
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer hover:shadow-lg transition-all hover:border-primary">
+          <CardContent className="p-6">
+            <div className="bg-green-50 dark:bg-green-950 rounded-lg p-3 w-fit mb-3">
+              <FileText className="h-6 w-6 text-green-500" />
+            </div>
+            <h3 className="font-semibold mb-1">Support Tickets</h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              Track your support requests
+            </p>
+            <Button variant="link" className="p-0 h-auto text-sm" onClick={() => setActiveTab('tickets')}>
+              View Tickets →
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer hover:shadow-lg transition-all hover:border-primary">
+          <CardContent className="p-6">
+            <div className="bg-orange-50 dark:bg-orange-950 rounded-lg p-3 w-fit mb-3">
+              <Phone className="h-6 w-6 text-orange-500" />
+            </div>
+            <h3 className="font-semibold mb-1">Contact Us</h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              Phone, email & social media
+            </p>
+            <Button variant="link" className="p-0 h-auto text-sm" onClick={() => setActiveTab('contact')}>
+              Get in Touch →
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

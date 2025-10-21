@@ -59,6 +59,9 @@ import ProductCatalog from "@/pages/client/ProductCatalog";
 import BookAppointment from "@/pages/client/BookAppointment";
 import MyBookings from "@/pages/client/MyBookings";
 import ClientLogin from "./pages/client/ClientLogin";
+import LiveSessions from "@/pages/dashboard/LiveSessions";
+import SessionJoin from "@/pages/SessionJoin";
+import Messages from "@/pages/dashboard/Messages";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -141,6 +144,9 @@ function App() {
                     <Route path="/client/book" element={<BookAppointment />} />
                     <Route path="/client/my-bookings" element={<MyBookings />} />
 
+                    {/* Live Session Join (Public) */}
+                    <Route path="/session/join/:accessLink" element={<SessionJoin />} />
+
                     {/* Dashboard Routes */}
                     <Route path="/dashboard" element={<DashboardLayout />}>
                       {/* Dashboard Main Route */}
@@ -173,6 +179,8 @@ function App() {
                       <Route path="graphs" element={<GraphsShowcase />} />
                       <Route path="reports" element={<Reports />} />
                       <Route path="gui" element={<GUIImplementation />} />
+                      <Route path="sessions" element={<LiveSessions />} />
+                      <Route path="messages" element={<Messages />} />
                     </Route>
 
                     {/* Catch-all Route for 404 */}

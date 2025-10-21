@@ -149,12 +149,15 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
 const Profile = () => {
   const { user, isAuthenticated, loading } = useAuth();
   const { theme, customAccentColor } = useAppTheme();
+  const { isOnline } = useOnlineStatus();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [showQRCode, setShowQRCode] = useState(false);
@@ -977,6 +980,7 @@ const Profile = () => {
                 <div className={`px-2 py-1 rounded-full text-xs font-medium ${getAvailabilityColor(profileData.availability)} text-white`}>
                   {getAvailabilityText(profileData.availability)}
                 </div>
+                <OnlineStatusIndicator showBadge={true} className="bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full" />
               </div>
 
               <div className="flex items-center gap-4 text-sm opacity-90 mb-3">

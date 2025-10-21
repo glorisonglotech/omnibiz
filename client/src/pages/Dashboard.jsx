@@ -26,6 +26,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from 'xlsx'; // Import XLSX to handle Excel file generation
 import api from "@/lib/api";
+import CommunicationHub from "@/components/CommunicationHub";
 
 // Fetch real-time dynamic data from backend
 const fetchDashboardData = async () => {
@@ -298,6 +299,9 @@ const Dashboard = () => {
           );
         })}
       </div>
+
+      {/* Communication Hub */}
+      <CommunicationHub />
 
       {/* Quick Actions */}
         <Card>

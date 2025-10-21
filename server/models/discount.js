@@ -113,7 +113,7 @@ const discountSchema = new mongoose.Schema({
 
 // Indexes
 discountSchema.index({ userId: 1, isActive: 1 });
-discountSchema.index({ code: 1 });
+// code already has unique: true which creates an index, no need for duplicate
 discountSchema.index({ validFrom: 1, validUntil: 1 });
 discountSchema.index({ isSeasonalPromotion: 1, showOnStorefront: 1 });
 

@@ -26,7 +26,15 @@ import {
   Tag,
   Briefcase,
   BookOpen,
-  Headphones
+  Headphones,
+  Video,
+  MessageCircle,
+  Mail,
+  Phone,
+  CreditCard,
+  Map,
+  Layout,
+  Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,25 +42,40 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const navigationItems = [
-  { name: "Overview", href: "/dashboard", icon: BarChart3 },
-  { name: "Analytics", href: "/dashboard/analytics", icon: TrendingUp },
-  { name: "Graphs", href: "/dashboard/graphs", icon: PieChart },
-  { name: "Inventory", href: "/dashboard/inventory", icon: Package },
-  { name: "Products", href: "/dashboard/products", icon: Package },
-  { name: "E-Commerce", href: "/dashboard/ecommerce", icon: ShoppingCart },
-  { name: "Discounts", href: "/dashboard/discounts", icon: Tag },
-  { name: "Services", href: "/dashboard/services", icon: Briefcase },
-  { name: "Appointments", href: "/dashboard/appointments", icon: Calendar },
-  { name: "Finances", href: "/dashboard/finances", icon: DollarSign },
-  { name: "Team", href: "/dashboard/team", icon: Users },
-  { name: "AI Insights", href: "/dashboard/ai-insights", icon: Brain },
-  { name: "Locations", href: "/dashboard/locations", icon: MapPin },
-  { name: "History", href: "/dashboard/history", icon: History },
-  { name: "Search", href: "/dashboard/search", icon: Search },
-  { name: "Reports", href: "/dashboard/reports", icon: FileText },
-  { name: "GUI Demo", href: "/dashboard/gui", icon: Monitor },
-  { name: "Live Support", href: "/dashboard/support", icon: Headphones },
-  { name: "Learning Center", href: "/dashboard/resources", icon: BookOpen },
+  // Dashboard & Analytics
+  { name: "Overview", href: "/dashboard", icon: BarChart3, section: "main" },
+  { name: "Analytics", href: "/dashboard/analytics", icon: TrendingUp, section: "main" },
+  { name: "Graphs", href: "/dashboard/graphs", icon: PieChart, section: "main" },
+  { name: "Maps", href: "/dashboard/maps", icon: Map, section: "main" },
+  
+  // Business Operations
+  { name: "Inventory", href: "/dashboard/inventory", icon: Package, section: "business" },
+  { name: "Products", href: "/dashboard/products", icon: Package, section: "business" },
+  { name: "E-Commerce", href: "/dashboard/ecommerce", icon: ShoppingCart, section: "business" },
+  { name: "Checkout", href: "/dashboard/checkout", icon: CreditCard, section: "business" },
+  { name: "Discounts", href: "/dashboard/discounts", icon: Tag, section: "business" },
+  { name: "Services", href: "/dashboard/services", icon: Briefcase, section: "business" },
+  { name: "Appointments", href: "/dashboard/appointments", icon: Calendar, section: "business" },
+  { name: "Finances", href: "/dashboard/finances", icon: DollarSign, section: "business" },
+  { name: "Purchasing", href: "/dashboard/purchasing", icon: ShoppingCart, section: "business" },
+  { name: "Subscriptions", href: "/dashboard/subscriptions", icon: CreditCard, section: "business" },
+  
+  // Communication & Support
+  { name: "Live Sessions", href: "/dashboard/sessions", icon: Video, section: "communication", badge: "New" },
+  { name: "Messages", href: "/dashboard/messages", icon: MessageCircle, section: "communication" },
+  { name: "Live Support", href: "/dashboard/support", icon: Headphones, section: "communication" },
+  
+  // Team & Management
+  { name: "Team", href: "/dashboard/team", icon: Users, section: "team" },
+  { name: "AI Insights", href: "/dashboard/ai-insights", icon: Brain, section: "team" },
+  { name: "Locations", href: "/dashboard/locations", icon: MapPin, section: "team" },
+  
+  // Tools & Resources
+  { name: "Reports", href: "/dashboard/reports", icon: FileText, section: "tools" },
+  { name: "History", href: "/dashboard/history", icon: History, section: "tools" },
+  { name: "Search", href: "/dashboard/search", icon: Search, section: "tools" },
+  { name: "Learning Center", href: "/dashboard/resources", icon: BookOpen, section: "tools" },
+  { name: "UI Components", href: "/dashboard/gui", icon: Layout, section: "tools" },
 ];
 
 function DashboardSidebar() {
@@ -102,7 +125,7 @@ function DashboardSidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 p-2">
+        <nav className="flex-1 overflow-y-auto p-2 space-y-1">
           {navigationItems.map((item) => {
             const isActive = location.pathname === item.href;
             return (
@@ -110,16 +133,33 @@ function DashboardSidebar() {
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors relative group",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
                 <item.icon
-                  className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "mr-3")}
+                  className={cn("h-5 w-5 flex-shrink-0", isCollapsed ? "mx-auto" : "mr-3")}
                 />
-                {!isCollapsed && <span>{item.name}</span>}
+                {!isCollapsed && (
+                  <div className="flex items-center justify-between flex-1 min-w-0">
+                    <span className="truncate">{item.name}</span>
+                    {item.badge && (
+                      <span className={cn(
+                        "ml-2 px-1.5 py-0.5 text-[10px] font-semibold rounded-full",
+                        isActive 
+                          ? "bg-primary-foreground text-primary"
+                          : "bg-green-500 text-white"
+                      )}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {isCollapsed && item.badge && (
+                  <span className="absolute top-1 right-1 h-2 w-2 bg-green-500 rounded-full"></span>
+                )}
               </Link>
             );
           })}

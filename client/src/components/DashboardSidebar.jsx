@@ -72,7 +72,7 @@ const navigationItems = [
   { name: "Locations", href: "/dashboard/locations", icon: MapPin, section: "team" },
   
   // Security & Monitoring
-  { name: "Security", href: "/dashboard/security", icon: Shield, section: "security", badge: "AI", adminOnly: true },
+  { name: "Security", href: "/dashboard/security-dashboard", icon: Shield, section: "security", badge: "AI" },
   
   // Tools & Resources
   { name: "Reports", href: "/dashboard/reports", icon: FileText, section: "tools" },

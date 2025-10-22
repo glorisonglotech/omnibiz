@@ -34,12 +34,16 @@ const liveSessionSchema = new mongoose.Schema({
   sessionId: {
     type: String,
     unique: true,
-    required: true
+    required: function() {
+      return this.isNew; // Only required for new documents
+    }
   },
   accessLink: {
     type: String,
     unique: true,
-    required: true
+    required: function() {
+      return this.isNew; // Only required for new documents
+    }
   },
   
   // Session details
@@ -188,17 +192,14 @@ const liveSessionSchema = new mongoose.Schema({
 
 // Generate unique session ID and access link before saving
 liveSessionSchema.pre('save', function(next) {
-  if (!this.sessionId) {
-    this.sessionId = `SES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-  }
+  const generateSessionId = () => `SES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+  const generateAccessLink = () => crypto.randomBytes(16).toString('hex');
   
-  if (!this.accessLink) {
-    const uniqueToken = crypto.randomBytes(16).toString('hex');
-    this.accessLink = uniqueToken;
-  }
-  
-  if (!this.webrtcRoomId) {
-    this.webrtcRoomId = `room_${this.sessionId}_${Date.now()}`;
+  if (this.isNew) {
+    // Only generate these for new documents
+    this.sessionId = this.sessionId || generateSessionId();
+    this.accessLink = this.accessLink || generateAccessLink();
+    this.webrtcRoomId = this.webrtcRoomId || `room_${this.sessionId}_${Date.now()}`;
   }
   
   next();

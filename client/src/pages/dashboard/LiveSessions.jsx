@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
+import { Link } from "react-router-dom";
 
 const LiveSessions = () => {
   const { socket } = useSocket();
@@ -72,8 +73,34 @@ const LiveSessions = () => {
 
   const handleCreateSession = async () => {
     try {
+      if (!formData.title || !formData.scheduledStartTime || !formData.scheduledEndTime) {
+        toast.error('Title, start time, and end time are required');
+        return;
+      }
+
+      // Validate start and end times
+      const startTime = new Date(formData.scheduledStartTime);
+      const endTime = new Date(formData.scheduledEndTime);
+      
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        toast.error('Invalid date format for start or end time');
+        return;
+      }
+
+      if (endTime <= startTime) {
+        toast.error('End time must be after start time');
+        return;
+      }
+
       const token = localStorage.getItem('token');
-      const response = await api.post('/sessions', formData, {
+      const dataToSend = {
+        ...formData,
+        maxParticipants: parseInt(formData.maxParticipants, 10) || 100,
+        scheduledStartTime: startTime.toISOString(),
+        scheduledEndTime: endTime.toISOString()
+      };
+
+      const response = await api.post('/sessions', dataToSend, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -196,6 +223,14 @@ const LiveSessions = () => {
           <Video className="w-4 h-4 mr-2" />
           Schedule Session
         </Button>
+      </div>
+
+      {/* Security Dashboard Link */}
+      <div className="mb-4">
+        <Link to="/dashboard/security-dashboard" className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2l7 4v6c0 5.25-3.5 10-7 10s-7-4.75-7-10V6l7-4z" /></svg>
+          Security Dashboard
+        </Link>
       </div>
 
       <Tabs defaultValue="upcoming">
@@ -372,8 +407,9 @@ const LiveSessions = () => {
                 <Label>Max Participants</Label>
                 <Input
                   type="number"
-                  value={formData.maxParticipants}
-                  onChange={(e) => setFormData({ ...formData, maxParticipants: parseInt(e.target.value) })}
+                  min="1"
+                  value={formData.maxParticipants || ''}
+                  onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value ? parseInt(e.target.value, 10) : 100 })}
                 />
               </div>
             </div>

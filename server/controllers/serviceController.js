@@ -78,7 +78,7 @@ exports.getServices = async (req, res) => {
     if (isActive !== undefined) filter.isActive = isActive === 'true';
 
     const services = await Service.find(filter)
-      .populate('availableTeamMembers', 'name role')
+      .populate('availableTeamMembers', 'fullName role')
       .populate('locations', 'name city address')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
@@ -110,7 +110,7 @@ exports.getServiceById = async (req, res) => {
       _id: req.params.id,
       userId: req.user._id
     })
-      .populate('availableTeamMembers', 'name role email phone')
+      .populate('availableTeamMembers', 'fullName role contactEmail phoneNumber')
       .populate('locations', 'name city address phone operatingHours');
 
     if (!service) {

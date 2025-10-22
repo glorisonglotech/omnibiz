@@ -30,20 +30,16 @@ const participantSchema = new mongoose.Schema({
 });
 
 const liveSessionSchema = new mongoose.Schema({
-  // Session identification
+  // Session identification (auto-generated)
   sessionId: {
     type: String,
     unique: true,
-    required: function() {
-      return this.isNew; // Only required for new documents
-    }
+    sparse: true // Allow null during creation before pre-save hook runs
   },
   accessLink: {
     type: String,
     unique: true,
-    required: function() {
-      return this.isNew; // Only required for new documents
-    }
+    sparse: true // Allow null during creation before pre-save hook runs
   },
   
   // Session details
@@ -192,17 +188,31 @@ const liveSessionSchema = new mongoose.Schema({
 
 // Generate unique session ID and access link before saving
 liveSessionSchema.pre('save', function(next) {
-  const generateSessionId = () => `SES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-  const generateAccessLink = () => crypto.randomBytes(16).toString('hex');
-  
-  if (this.isNew) {
-    // Only generate these for new documents
-    this.sessionId = this.sessionId || generateSessionId();
-    this.accessLink = this.accessLink || generateAccessLink();
-    this.webrtcRoomId = this.webrtcRoomId || `room_${this.sessionId}_${Date.now()}`;
+  try {
+    const generateSessionId = () => `SES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const generateAccessLink = () => crypto.randomBytes(16).toString('hex');
+    
+    // Generate values if not present (for new documents)
+    if (!this.sessionId) {
+      this.sessionId = generateSessionId();
+      console.log('✅ Generated sessionId:', this.sessionId);
+    }
+    
+    if (!this.accessLink) {
+      this.accessLink = generateAccessLink();
+      console.log('✅ Generated accessLink:', this.accessLink);
+    }
+    
+    if (!this.webrtcRoomId) {
+      this.webrtcRoomId = `room_${this.sessionId}_${Date.now()}`;
+      console.log('✅ Generated webrtcRoomId:', this.webrtcRoomId);
+    }
+    
+    next();
+  } catch (error) {
+    console.error('❌ Pre-save hook error:', error);
+    next(error);
   }
-  
-  next();
 });
 
 // Generate full access URL

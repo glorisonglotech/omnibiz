@@ -57,19 +57,25 @@ router.get('/services', async (req, res) => {
         userId: owner._id, 
         isActive: true 
       })
-        .populate('availableTeamMembers', 'name role')
+        .populate('availableTeamMembers', 'fullName role')
         .populate('locations', 'name city address')
-        .select('name description price duration category bookings rating image')
+        .select('name description price duration category bookings rating image isActive')
         .sort({ createdAt: -1 })
-        .limit(50);
+        .limit(50)
+        .lean(); // Use lean for better performance
       
+      console.log(`✅ [PUBLIC] Loaded ${services.length} services for store: ${owner.email}`);
       return res.json(services);
     }
     
     res.json([]);
   } catch (error) {
-    console.error('Services fetch error:', error);
-    res.status(500).json({ message: 'Failed to fetch services' });
+    console.error('❌ Services fetch error:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Failed to fetch services',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

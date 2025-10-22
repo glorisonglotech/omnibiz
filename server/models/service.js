@@ -39,7 +39,7 @@ const serviceSchema = new mongoose.Schema({
   },
   availableTeamMembers: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Team'
+    ref: 'TeamMember'
   }],
   locations: [{
     type: mongoose.Schema.Types.ObjectId,

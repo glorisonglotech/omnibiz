@@ -106,8 +106,10 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        navigateFallback: null, // Disable offline page for development
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
+        navigateFallback: null,
+        navigateFallbackDenylist: [/^\/api/], // Don't fallback for API routes
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB limit
         runtimeCaching: [
           {
             // Only cache GET requests to API
@@ -164,6 +166,21 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  build: {
+    chunkSizeWarningLimit: 1000, // Increase warning limit to 1 MB
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor libraries
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['lucide-react', 'sonner', 'date-fns'],
+          'chart-vendor': ['recharts'],
+          'socket-vendor': ['socket.io-client'],
+          'radix-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs', '@radix-ui/react-scroll-area']
+        }
+      }
+    }
   },
   server: {
     hmr: {

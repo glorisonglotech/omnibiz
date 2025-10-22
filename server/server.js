@@ -32,11 +32,42 @@ const server = http.createServer(app);
 const port = process.env.PORT || 5000;
 const CALLBACK_PATH = process.env.CALLBACK_PATH || '/api/mpesa/callback';
 
+// Allowed origins for CORS
+const allowedOrigins = [
+  'http://localhost:5173',              // Vite dev server (dashboard)
+  'http://localhost:5174',              // Vite dev server (storefront)
+  'http://localhost:5175',              // Alternative dev port
+  'https://ominbiz-business-solution.netlify.app', // Hosted client storefront
+  'https://omnibiz.onrender.com',       // Render hosted backend
+  process.env.CLIENT_URL,               // Dynamic client URL from env
+  process.env.FRONTEND_URL              // Alternative env variable
+].filter(Boolean); // Remove undefined values
+
 // Default CALLBACK_URL setup
 if (!process.env.CALLBACK_URL) {
   const host = process.env.HOST || `http://localhost:${port}`;
   process.env.CALLBACK_URL = `${host}${CALLBACK_PATH}`;
 }
+
+// CORS Configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 hours
+};
 
 // Middleware
 app.use((req, res, next) => {
@@ -44,7 +75,12 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '10mb' }));
-app.use(cors());
+app.use(cors(corsOptions));
+
+// Log configured origins on startup
+console.log('\n🌐 Configured CORS Origins:');
+allowedOrigins.forEach(origin => console.log(`  ✓ ${origin}`));
+console.log('');
 
 // Routes
 app.get('/', (req, res) => {
@@ -82,6 +118,7 @@ app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 app.use('/api/search', require('./routes/searchRoutes'));
 app.use('/api/customers/auth', require('./routes/customerAuthRoutes'));
+app.use('/api/messages', require('./routes/messageRoutes')); // Real-time messaging
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 404 and error handling

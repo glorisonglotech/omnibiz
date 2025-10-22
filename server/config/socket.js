@@ -1,22 +1,39 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const Customer = require('../models/customer');
 const { WebRTCSignaling } = require('../services/webrtcSignaling');
 
 let io;
 let webrtcSignaling;
 
+// Allowed origins for Socket.IO (must match server.js CORS origins)
+const allowedOrigins = [
+  'http://localhost:5173',              // Vite dev server (dashboard)
+  'http://localhost:5174',              // Vite dev server (storefront)
+  'http://localhost:5175',              // Alternative dev port
+  'https://ominbiz-business-solution.netlify.app', // Hosted client storefront
+  'https://omnibiz.onrender.com',       // Render hosted backend
+  process.env.CLIENT_URL,               // Dynamic client URL from env
+  process.env.FRONTEND_URL              // Alternative env variable
+].filter(Boolean); // Remove undefined values
+
 // Initialize Socket.IO
 const initializeSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || "http://localhost:5175",
+      origin: allowedOrigins,
       methods: ["GET", "POST"],
       credentials: true
-    }
+    },
+    transports: ['websocket', 'polling'],
+    allowEIO3: true
   });
+  
+  console.log('🔌 Socket.IO initialized with allowed origins:');
+  allowedOrigins.forEach(origin => console.log(`  ✓ ${origin}`));
 
-  // Authentication middleware for Socket.IO
+  // Authentication middleware for Socket.IO (supports both User and Customer)
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
@@ -26,15 +43,31 @@ const initializeSocket = (server) => {
       }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id).select('-password');
       
-      if (!user) {
-        return next(new Error('Authentication error: User not found'));
-      }
+      // Check if it's a customer token or user token
+      if (decoded.type === 'customer') {
+        const customer = await Customer.findById(decoded.id).select('-password');
+        
+        if (!customer || !customer.isActive) {
+          return next(new Error('Authentication error: Customer not found or inactive'));
+        }
 
-      socket.userId = user._id.toString();
-      socket.userRole = user.role;
-      socket.user = user;
+        socket.userId = customer._id.toString();
+        socket.userRole = 'customer';
+        socket.userType = 'customer';
+        socket.user = customer;
+      } else {
+        const user = await User.findById(decoded.id).select('-password');
+        
+        if (!user) {
+          return next(new Error('Authentication error: User not found'));
+        }
+
+        socket.userId = user._id.toString();
+        socket.userRole = user.role;
+        socket.userType = 'user';
+        socket.user = user;
+      }
       
       next();
     } catch (error) {
@@ -172,19 +205,113 @@ const initializeSocket = (server) => {
       });
     });
 
-    socket.on('send_message', ({ conversationId, message, senderId, senderName }) => {
-      const messageData = {
-        id: Date.now(),
+    // Messaging handlers
+    socket.on('join_conversation', (conversationId) => {
+      socket.join(`conversation_${conversationId}`);
+      console.log(`User ${socket.user.email} joined conversation: ${conversationId}`);
+    });
+
+    socket.on('leave_conversation', (conversationId) => {
+      socket.leave(`conversation_${conversationId}`);
+      console.log(`User ${socket.user.email} left conversation: ${conversationId}`);
+    });
+
+    socket.on('send_message', async ({ conversationId, message, senderId, senderName }) => {
+      const Message = require('../models/Message');
+      const Conversation = require('../models/Conversation');
+
+      try {
+        // Verify user is part of the conversation
+        const conversation = await Conversation.findById(conversationId);
+        
+        if (!conversation) {
+          socket.emit('message_error', { error: 'Conversation not found' });
+          return;
+        }
+
+        const isBusinessOwner = conversation.businessOwnerId.toString() === socket.userId;
+        const isCustomer = conversation.customerId.toString() === socket.userId;
+
+        if (!isBusinessOwner && !isCustomer) {
+          socket.emit('message_error', { error: 'Unauthorized' });
+          return;
+        }
+
+        // Create message in database
+        const newMessage = new Message({
+          conversationId,
+          senderId: socket.userId,
+          senderModel: isBusinessOwner ? 'User' : 'Customer',
+          senderName: socket.user.name,
+          senderRole: isBusinessOwner ? 'business_owner' : 'customer',
+          content: message,
+          status: 'sent'
+        });
+
+        await newMessage.save();
+
+        // Update conversation
+        conversation.lastMessage = {
+          content: message,
+          senderId: socket.userId,
+          timestamp: new Date()
+        };
+
+        // Increment unread count
+        if (isBusinessOwner) {
+          conversation.unreadCount.customer += 1;
+        } else {
+          conversation.unreadCount.businessOwner += 1;
+        }
+
+        conversation.updatedAt = new Date();
+        await conversation.save();
+
+        const messageData = {
+          id: newMessage._id,
+          conversationId,
+          senderId: socket.userId,
+          senderName: socket.user.name,
+          content: message,
+          timestamp: newMessage.createdAt,
+          status: 'delivered'
+        };
+        
+        // Send to sender (confirmation)
+        socket.emit('message_sent', messageData);
+        
+        // Broadcast to conversation participants
+        socket.to(`conversation_${conversationId}`).emit('message_received', messageData);
+
+        // Notify recipient's personal room
+        const recipientId = isBusinessOwner ? conversation.customerId : conversation.businessOwnerId;
+        socket.to(`user_${recipientId}`).emit('new_message_notification', {
+          conversationId,
+          from: socket.user.name,
+          preview: message.substring(0, 50)
+        });
+
+      } catch (error) {
+        console.error('Error sending message:', error);
+        socket.emit('message_error', { error: 'Failed to send message' });
+      }
+    });
+
+    socket.on('typing_start', (data) => {
+      const { conversationId } = data;
+      socket.to(`conversation_${conversationId}`).emit('user_typing', {
         conversationId,
-        senderId,
-        senderName,
-        content: message,
-        timestamp: new Date(),
-        status: 'delivered'
-      };
-      
-      // Broadcast to conversation participants
-      socket.to(`conversation_${conversationId}`).emit('message_received', messageData);
+        userId: socket.userId,
+        userName: socket.user.name
+      });
+    });
+
+    socket.on('typing_stop', (data) => {
+      const { conversationId } = data;
+      socket.to(`conversation_${conversationId}`).emit('user_stopped_typing', {
+        conversationId,
+        userId: socket.userId
+      });
     });
 
     // Purchasing room handlers

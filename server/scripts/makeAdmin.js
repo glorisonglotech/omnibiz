@@ -22,10 +22,10 @@ const defaultSuperAdmins = [
   },
   {
     email: 'glorisonglotech@gmail.com',
-    password: 'password123',
-    name: 'Gloria Song',
-    businessName: 'GloriSong Technologies',
-    phone: '+254758175275',
+    password: '1234',
+    name: 'Glorison Ouma',
+    businessName: 'glotech',
+    phone: '+254717055797',
     role: 'super_admin'
   }
 ];

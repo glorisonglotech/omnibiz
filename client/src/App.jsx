@@ -60,6 +60,7 @@ import ProductCatalog from "@/pages/client/ProductCatalog";
 import BookAppointment from "@/pages/client/BookAppointment";
 import MyBookings from "@/pages/client/MyBookings";
 import ClientLogin from "./pages/client/ClientLogin";
+import ClientMessages from "@/pages/client/Messages";
 import LiveSessions from "@/pages/dashboard/LiveSessions";
 import SessionJoin from "@/pages/SessionJoin";
 import Messages from "@/pages/dashboard/Messages";
@@ -145,6 +146,7 @@ function App() {
                     <Route path="/store" element={<Store />} />
                     <Route path="/client/book" element={<BookAppointment />} />
                     <Route path="/client/my-bookings" element={<MyBookings />} />
+                    <Route path="/client/messages" element={<ClientMessages />} />
 
                     {/* Live Session Join (Public) */}
                     <Route path="/session/join/:accessLink" element={<SessionJoin />} />

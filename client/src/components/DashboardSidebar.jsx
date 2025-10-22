@@ -53,7 +53,6 @@ const navigationItems = [
   { name: "Inventory", href: "/dashboard/inventory", icon: Package, section: "business" },
   { name: "Products", href: "/dashboard/products", icon: Package, section: "business" },
   { name: "E-Commerce", href: "/dashboard/ecommerce", icon: ShoppingCart, section: "business" },
-  { name: "Checkout", href: "/dashboard/checkout", icon: CreditCard, section: "business" },
   { name: "Discounts", href: "/dashboard/discounts", icon: Tag, section: "business" },
   { name: "Services", href: "/dashboard/services", icon: Briefcase, section: "business" },
   { name: "Appointments", href: "/dashboard/appointments", icon: Calendar, section: "business" },

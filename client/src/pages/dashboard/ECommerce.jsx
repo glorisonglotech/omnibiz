@@ -227,6 +227,33 @@ const ECommerce = () => {
     }
   };
 
+  const handleDeleteOrder = async (order) => {
+    if (!window.confirm(`Are you sure you want to delete order ${order.orderId}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const id = order._id || order.id;
+      await api.delete(`/client/orders/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      setOrders((prev) => prev.filter((o) => (o._id || o.id) !== id));
+      toast.success("Order deleted successfully!");
+
+      // Refresh financial data if it was a paid order
+      if (order.paymentStatus === "Paid") {
+        refreshFinancialData?.();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete order");
+      // eslint-disable-next-line no-console
+      console.error("Error deleting order:", error);
+    }
+  };
+
   // Add Product Handlers
   const handleNewProductChange = (field, value) => {
     setNewProduct((prev) => ({
@@ -848,6 +875,7 @@ const ECommerce = () => {
                     order={order}
                     onView={handleViewClick}
                     onEdit={handleEditClick}
+                    onDelete={handleDeleteOrder}
                   />
                 ))}
               </Suspense>

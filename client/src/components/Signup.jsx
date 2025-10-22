@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import api from "@/lib/api";
+import { User, Mail, Phone, Briefcase, Lock, Eye, EyeOff, Sparkles, ArrowRight, UserPlus } from "lucide-react";
 
 export function Signup({ className, ...props }) {
   const [formData, setFormData] = useState({
@@ -25,6 +27,8 @@ export function Signup({ className, ...props }) {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -87,120 +91,178 @@ export function Signup({ className, ...props }) {
   };
 
   return (
-    <div className={className} {...props}>
-      <Card className="bg-white border border-green-100 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-green-700">Create your account</CardTitle>
-          <CardDescription className="text-green-500">
+    <div className={cn("flex flex-col gap-6 relative", className)} {...props}>
+      {/* Background Effects */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 left-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
+      
+      {/* Logo/Brand */}
+      <div className="text-center mb-4 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="inline-flex items-center gap-2 mb-2">
+          <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+          <h1 className="text-4xl font-bold text-primary">
+            ominbiz
+          </h1>
+        </div>
+        <p className="text-muted-foreground text-sm">Business Management Platform</p>
+      </div>
+      
+      <Card className="border-2 shadow-2xl backdrop-blur-sm bg-card/95 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <CardHeader className="space-y-2">
+          <CardTitle className="text-2xl font-bold flex items-center gap-2">
+            <UserPlus className="h-6 w-6 text-primary" />
+            Create Your Account
+          </CardTitle>
+          <CardDescription className="text-base">
             Enter your details below to get started
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
           <form onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-3">
-                <Label htmlFor="name" className="text-green-700">
-                  Full Name
-                </Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="border-green-300 focus-visible:ring-green-500"
-                />
+            <div className="flex flex-col gap-5">
+              {/* Full Name Field */}
+              <div className="grid gap-2">
+                <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="John Doe"
+                    required
+                    className="pl-10 h-11 transition-all allow-select"
+                  />
+                </div>
               </div>
 
-              <div className="grid gap-3">
-                <Label htmlFor="email" className="text-green-700">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="you@example.com"
-                  required
-                  className="border-green-300 focus-visible:ring-green-500"
-                />
+              {/* Email Field */}
+              <div className="grid gap-2">
+                <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@example.com"
+                    required
+                    className="pl-10 h-11 transition-all allow-select"
+                  />
+                </div>
               </div>
 
-              <div className="grid gap-3">
-                <Label htmlFor="phone" className="text-green-700">
-                  Phone Number
-                </Label>
-                <Input
-                  id="phone"
-                  type="text"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  className="border-green-300 focus-visible:ring-green-500"
-                />
+              {/* Phone Field */}
+              <div className="grid gap-2">
+                <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="+1 (555) 000-0000"
+                    required
+                    className="pl-10 h-11 transition-all allow-select"
+                  />
+                </div>
               </div>
 
-              <div className="grid gap-3">
-                <Label htmlFor="businessName" className="text-green-700">
-                  Business Name
-                </Label>
-                <Input
-                  id="businessName"
-                  type="text"
-                  value={formData.businessName}
-                  onChange={handleChange}
-                  required
-                  className="border-green-300 focus-visible:ring-green-500"
-                />
+              {/* Business Name Field */}
+              <div className="grid gap-2">
+                <Label htmlFor="businessName" className="text-sm font-medium">Business Name</Label>
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="businessName"
+                    type="text"
+                    value={formData.businessName}
+                    onChange={handleChange}
+                    placeholder="Your Business"
+                    required
+                    className="pl-10 h-11 transition-all allow-select"
+                  />
+                </div>
               </div>
 
-              <div className="grid gap-3">
-                <Label htmlFor="password" className="text-green-700">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="border-green-300 focus-visible:ring-green-500"
-                />
+              {/* Password Field */}
+              <div className="grid gap-2">
+                <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    className="pl-10 pr-10 h-11 transition-all allow-select"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
 
-              <div className="grid gap-3">
-                <Label htmlFor="confirmPassword" className="text-green-700">
-                  Confirm Password
-                </Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  className="border-green-300 focus-visible:ring-green-500"
-                />
+              {/* Confirm Password Field */}
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                    className="pl-10 pr-10 h-11 transition-all allow-select"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-3">
-                <Button
-                  type="submit"
-                  className="w-full bg-green-600 text-white hover:bg-green-500"
-                  disabled={loading}
-                >
-                  {loading ? "Signing Up..." : "Sign Up"}
-                </Button>
-              </div>
+              {/* Signup Button */}
+              <Button
+                type="submit"
+                className="w-full h-11 bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl group"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Creating account...
+                  </>
+                ) : (
+                  <>
+                    Sign up
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </Button>
             </div>
 
-            <div className="mt-4 text-center text-sm text-green-700">
+            <div className="mt-6 text-center text-sm">
               Already have an account?{" "}
-              <Link
-                to="/loginpage"
-                className="underline underline-offset-4 text-green-600 hover:text-green-700"
-              >
+              <Link to="/loginpage" className="font-medium text-primary hover:underline">
                 Log in
               </Link>
             </div>

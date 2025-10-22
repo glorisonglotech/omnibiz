@@ -10,6 +10,7 @@ const {
   updateOrder,
   submitOrder,
   cancelOrder,
+  deleteOrder,
   createServiceRequest,
   getMyServiceRequests,
   respondToServiceProposal,
@@ -29,6 +30,7 @@ router.get('/orders/:id', getOrderDetails);
 router.put('/orders/:id', updateOrder);
 router.put('/orders/:id/submit', submitOrder);
 router.put('/orders/:id/cancel', cancelOrder);
+router.delete('/orders/:id', deleteOrder);
 
 // Service Request Routes
 router.post('/service-requests', createServiceRequest);

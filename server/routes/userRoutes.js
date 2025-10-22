@@ -23,4 +23,7 @@ router.put('/last-login', protect, userController.updateLastLogin);
 router.post('/invite-code', protect, userController.saveInviteCode);
 router.get('/store-owner/:inviteCode', userController.getStoreOwnerByInviteCode);
 
+// DELETE /api/user/account - Delete user account
+router.delete('/account', protect, userController.deleteAccount);
+
 module.exports = router;

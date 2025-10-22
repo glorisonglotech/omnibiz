@@ -33,12 +33,15 @@ import  OrderHistory  from "@/components/storefront/OrderHistory";
 import  BookingHistory  from "@/components/storefront/BookingHistory";
 import  LiveChatWidget  from "@/components/storefront/LiveChatWidget";
 import AppointmentBooking from "@/components/storefront/AppointmentBooking";
+import ChatInterface from "@/components/storefront/ChatInterface";
+import NotificationBell from "@/components/storefront/NotificationBell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCart } from "@/context/CartContext";
 import { useSocket } from "@/context/SocketContext";
 import { useCustomerAuth } from "@/context/CustomerAuthContext";
+import { NotificationProvider, useNotifications } from "@/context/NotificationContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import ThemeSelector from "@/components/ThemeSelector";
@@ -263,6 +266,7 @@ const ClientStorefront = () => {
     name: '',
     phone: '',
   });
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -270,6 +274,17 @@ const ClientStorefront = () => {
     businessName: "ominbiz Store",
     ownerName: "Store Owner",
   });
+
+  // Access control - redirect if not logged in when accessing protected tabs
+  useEffect(() => {
+    const protectedTabs = ['chats', 'orders', 'account'];
+    if (protectedTabs.includes(activeTab) && !customer) {
+      toast.error('Please login to access this feature');
+      setActiveTab('shop');
+      // Optional: Navigate to login
+      // navigate('/client/login');
+    }
+  }, [activeTab, customer]);
 
   // Fetch store owner data on mount
   useEffect(() => {
@@ -831,6 +846,7 @@ const ClientStorefront = () => {
   };
 
   return (
+    <NotificationProvider>
     <div className="storefront-container min-h-screen bg-gradient-to-br from-background via-secondary/10 to-background smooth-scroll">
       {/* Header */}
       <header className="sticky top-0 z-40 glass-panel">
@@ -846,6 +862,16 @@ const ClientStorefront = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant={activeTab === "chats" ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setActiveTab("chats")}
+                className="hidden sm:flex"
+                title="Messages"
+              >
+                <MessageCircle className="h-5 w-5" />
+              </Button>
+              <NotificationBell />
               <Button
                 variant={activeTab === "orders" ? "default" : "ghost"}
                 size="icon"
@@ -895,7 +921,7 @@ const ClientStorefront = () => {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4">
+          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-5">
             <TabsTrigger value="shop" className="gap-1">
               <ShoppingCart className="h-4 w-4" />
               <span className="hidden sm:inline">Shop</span>
@@ -903,6 +929,10 @@ const ClientStorefront = () => {
             <TabsTrigger value="services" className="gap-1">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Services</span>
+            </TabsTrigger>
+            <TabsTrigger value="chats" className="gap-1 relative">
+              <MessageCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Chats</span>
             </TabsTrigger>
             <TabsTrigger value="orders" className="gap-1">
               <History className="h-4 w-4" />
@@ -1469,6 +1499,33 @@ const ClientStorefront = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="chats" className="space-y-6">
+            {/* Chats Section */}
+            {!customer ? (
+              <Card className="glass-card max-w-md mx-auto">
+                <CardContent className="p-12 text-center">
+                  <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">Login Required</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Please sign in to chat with {storeOwner.businessName}
+                  </p>
+                  <Button onClick={() => navigate('/client/login')} className="gap-2">
+                    <User className="h-4 w-4" />
+                    Sign In
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="max-w-4xl mx-auto">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold">Messages</h2>
+                  <p className="text-muted-foreground">Chat with {storeOwner.businessName}</p>
+                </div>
+                <ChatInterface />
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="orders">
             <OrderHistory />
           </TabsContent>
@@ -1587,6 +1644,10 @@ const ClientStorefront = () => {
                     <Button variant="outline" className="h-auto flex-col gap-2 py-4" onClick={() => setActiveTab('services')}>
                       <Calendar className="h-6 w-6" />
                       <span className="text-sm">Book Service</span>
+                    </Button>
+                    <Button variant="outline" className="h-auto flex-col gap-2 py-4" onClick={() => navigate('/client/messages')}>
+                      <MessageCircle className="h-6 w-6" />
+                      <span className="text-sm">Messages</span>
                     </Button>
                     <Button variant="outline" className="h-auto flex-col gap-2 py-4" onClick={() => {
                       setShowEditProfile(true);
@@ -1918,6 +1979,7 @@ const ClientStorefront = () => {
 
       <LiveChatWidget />
     </div>
+    </NotificationProvider>
   );
 };
 

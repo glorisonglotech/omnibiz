@@ -23,7 +23,7 @@ const defaultSuperAdmins = [
   {
     email: 'glorisonglotech@gmail.com',
     password: '1234',
-    name: 'Glorison',
+    name: 'Glorison Ouma',
     businessName: 'glotech',
     phone: '+254717055797',
     role: 'super_admin'

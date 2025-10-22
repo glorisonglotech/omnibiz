@@ -218,4 +218,56 @@ exports.getStoreOwnerByInviteCode = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch store owner' });
   }
 };
-//moified
+
+// Delete user account and all associated data
+exports.deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Find user first to verify existence
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Delete all user-related data from other collections
+    // This should be expanded based on your schema relationships
+    const mongoose = require('mongoose');
+    const db = mongoose.connection;
+
+    // Delete orders
+    if (db.models.Order) {
+      await db.models.Order.deleteMany({ userId: userId });
+    }
+
+    // Delete products
+    if (db.models.Product) {
+      await db.models.Product.deleteMany({ userId: userId });
+    }
+
+    // Delete invoices
+    if (db.models.Invoice) {
+      await db.models.Invoice.deleteMany({ userId: userId });
+    }
+
+    // Delete appointments
+    if (db.models.Appointment) {
+      await db.models.Appointment.deleteMany({ userId: userId });
+    }
+
+    // Delete user activity
+    if (db.models.UserActivity) {
+      await db.models.UserActivity.deleteMany({ userId: userId });
+    }
+
+    // Finally, delete the user account
+    await User.findByIdAndDelete(userId);
+
+    console.log(`✅ User account ${userId} and all associated data deleted successfully`);
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
+};
+//modified

@@ -11,6 +11,7 @@ exports.createOrder = async (req, res) => {
   try {
     const {
       customer,
+      supplier,
       items,
       deliveryInfo,
       orderType = 'standard',
@@ -19,38 +20,58 @@ exports.createOrder = async (req, res) => {
       subtotal,
       taxAmount = 0,
       shippingCost = 0,
-      attachments = []
+      attachments = [],
+      total: providedTotal,
+      status,
+      paymentStatus,
+      paymentMethod,
+      shippingMethod,
+      notes,
+      notificationMethod = 'email',
+      date
     } = req.body;
 
     // Generate order ID
     const orderCount = await Order.countDocuments();
     const orderId = `ORD${String(orderCount + 1).padStart(6, '0')}`;
 
-    // Calculate total
-    const total = subtotal + taxAmount + shippingCost;
+    // Calculate total from items if not provided
+    let calculatedTotal = providedTotal;
+    let calculatedFromItems = false;
+    
+    if (!calculatedTotal && items && items.length > 0) {
+      calculatedTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      calculatedFromItems = true;
+    } else if (!calculatedTotal && subtotal) {
+      calculatedTotal = subtotal + taxAmount + shippingCost;
+    }
 
     // Determine if approval is required
-    const approvalRequired = total > 10000 || orderType === 'bulk' || orderType === 'custom' || priority === 'urgent';
+    const approvalRequired = calculatedTotal > 10000 || orderType === 'bulk' || orderType === 'custom' || priority === 'urgent';
 
     const order = new Order({
       userId: req.user._id,
       orderId,
-      customer: customer || {
-        name: req.user.name,
-        email: req.user.email,
-        phone: req.user.phone
-      },
-      items,
+      customer: customer || null,
+      supplier: supplier || null,
+      items: items || [],
       deliveryInfo,
       orderType,
       priority,
-      clientNotes,
-      subtotal,
-      taxAmount,
-      shippingCost,
-      total,
+      clientNotes: clientNotes || notes,
+      // If calculated from items, don't set subtotal (let it be 0) to avoid pre-save recalculation
+      subtotal: calculatedFromItems ? 0 : (subtotal || 0),
+      taxAmount: taxAmount || 0,
+      shippingCost: shippingCost || 0,
+      total: calculatedTotal || 0,
       approvalRequired,
-      status: 'Draft', // Always start as draft
+      status: status || 'Pending',
+      paymentStatus: paymentStatus || 'Unpaid',
+      paymentMethod: paymentMethod || '',
+      shippingMethod: shippingMethod || '',
+      notes: notes || '',
+      notificationMethod,
+      date: date || new Date(),
       attachments: attachments || []
     });
 
@@ -63,35 +84,72 @@ exports.createOrder = async (req, res) => {
       await order.save();
     }
 
+    // Send notifications to supplier if this is a supplier order
+    if (supplier && supplier.email) {
+      try {
+        // Send Email notification if email or both
+        if (notificationMethod === 'email' || notificationMethod === 'both') {
+          const emailContent = `
+            <h2>New Order from ${req.user.businessName || req.user.name}</h2>
+            <p>You have received a new order:</p>
+            <ul>
+              <li><strong>Order ID:</strong> ${order.orderId}</li>
+              <li><strong>Total Amount:</strong> KES ${order.total.toFixed(2)}</li>
+              <li><strong>Items:</strong> ${items.length} product(s)</li>
+              <li><strong>Status:</strong> ${order.status}</li>
+            </ul>
+            <h3>Order Details:</h3>
+            ${items.map(item => `
+              <p>• ${item.name} (SKU: ${item.sku}) - Qty: ${item.quantity} @ KES ${item.price.toFixed(2)}</p>
+            `).join('')}
+            ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
+            <p>Please prepare this order for processing.</p>
+          `;
+          
+          await emailService.sendEmail(
+            supplier.email,
+            `New Order ${order.orderId} from ${req.user.businessName || req.user.name}`,
+            emailContent
+          );
+        }
+
+        // Send SMS notification if sms or both
+        if ((notificationMethod === 'sms' || notificationMethod === 'both') && supplier.phone) {
+          const twilioClient = require('twilio')(
+            process.env.TWILIO_ACCOUNT_SID,
+            process.env.TWILIO_AUTH_TOKEN
+          );
+          
+          const smsMessage = `New Order ${order.orderId} from ${req.user.businessName || req.user.name}. Total: KES ${order.total.toFixed(2)}. ${items.length} items. Status: ${order.status}.`;
+          
+          await twilioClient.messages.create({
+            body: smsMessage,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: supplier.phone
+          });
+        }
+      } catch (notifError) {
+        console.error('Error sending supplier notification:', notifError);
+        // Don't fail the order creation if notification fails
+      }
+    }
+
     // Send real-time notification to admins about new order
-    notificationHelpers.notifyNewOrder({
-      orderId: order._id,
-      orderNumber: order.orderId,
-      clientName: order.customer.name,
-      total: order.total,
-      status: order.status,
-      requiresApproval: approvalRequired,
-      priority: order.priority,
-      orderType: order.orderType
-    });
-
-    // Send email confirmation to client
-    emailService.sendTemplateEmail('orderCreated', req.user.email, {
-      primary: order,
-      user: req.user
-    });
-
-    // Send email notification to admins
-    const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } });
-    for (const admin of admins) {
-      emailService.sendTemplateEmail('newOrderNotification', admin.email, {
-        primary: order,
-        user: req.user
+    if (notificationHelpers && notificationHelpers.notifyNewOrder) {
+      notificationHelpers.notifyNewOrder({
+        orderId: order._id,
+        orderNumber: order.orderId,
+        clientName: (supplier && supplier.name) || (customer && customer.name) || req.user.name,
+        total: order.total,
+        status: order.status,
+        requiresApproval: approvalRequired,
+        priority: order.priority,
+        orderType: order.orderType
       });
     }
 
     res.status(201).json({
-      message: 'Order created successfully',
+      message: supplier ? 'Supplier order created successfully' : 'Order created successfully',
       order,
       requiresApproval: approvalRequired
     });
@@ -260,6 +318,30 @@ exports.cancelOrder = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to cancel order', error: error.message });
+  }
+};
+
+// @desc    Delete order
+// @route   DELETE /api/client/orders/:id
+// @access  Private (Client - own orders only)
+exports.deleteOrder = async (req, res) => {
+  try {
+    const order = await Order.findOne({ 
+      _id: req.params.id, 
+      userId: req.user._id 
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    await Order.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      message: 'Order deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete order', error: error.message });
   }
 };
 

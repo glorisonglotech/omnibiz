@@ -16,9 +16,21 @@ const orderSchema = new mongoose.Schema(
       trim: true,
     },
     customer: {
-      name: { type: String, required: true },
+      name: { type: String },
       email: { type: String },
       phone: { type: String },
+      address: { type: String },
+    },
+    supplier: {
+      name: { type: String },
+      email: { type: String },
+      phone: { type: String },
+      address: { type: String },
+    },
+    notificationMethod: {
+      type: String,
+      enum: ["email", "sms", "both"],
+      default: "email"
     },
     date: {
       type: Date,
@@ -26,12 +38,13 @@ const orderSchema = new mongoose.Schema(
     },
     total: {
       type: Number,
-      required: true,
+      default: 0,
       min: 0,
     },
     status: {
       type: String,
       enum: [
+        "Pending",
         "Draft",
         "Submitted",
         "Under_Review",
@@ -43,12 +56,21 @@ const orderSchema = new mongoose.Schema(
         "Cancelled",
         "Returned"
       ],
-      default: "Draft",
+      default: "Pending",
     },
     paymentStatus: {
       type: String,
-      enum: ["Pending", "Paid", "Failed", "Refunded", "Partial"],
+      enum: ["Pending", "Paid", "Failed", "Refunded", "Partial", "Unpaid"],
       default: "Pending",
+    },
+    paymentMethod: {
+      type: String,
+    },
+    shippingMethod: {
+      type: String,
+    },
+    notes: {
+      type: String,
     },
     items: {
       type: mongoose.Schema.Types.Mixed,
@@ -207,8 +229,11 @@ orderSchema.pre('save', function(next) {
                            this.orderType === 'custom' ||
                            this.priority === 'urgent';
 
-    // Calculate totals
-    this.total = this.subtotal + this.taxAmount + this.shippingCost - this.discountAmount;
+    // Only recalculate total if subtotal exists (old order format)
+    // For new supplier orders, total is calculated from items in controller
+    if (this.subtotal && this.subtotal > 0) {
+      this.total = this.subtotal + this.taxAmount + this.shippingCost - this.discountAmount;
+    }
   }
   next();
 });

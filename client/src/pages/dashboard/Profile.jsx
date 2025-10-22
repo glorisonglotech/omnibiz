@@ -255,6 +255,9 @@ const Profile = () => {
   const [loadingConnections, setLoadingConnections] = useState(false);
   const [showAddConnectionDialog, setShowAddConnectionDialog] = useState(false);
   const [newConnection, setNewConnection] = useState({ email: '', message: '' });
+  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Fetch connections data
   const fetchConnections = async () => {
@@ -318,6 +321,36 @@ const Profile = () => {
     } catch (error) {
       console.error('Error adding connection:', error);
       toast.error(error.response?.data?.message || 'Failed to send invitation');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      toast.error('Please type DELETE to confirm');
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      const token = localStorage.getItem('token');
+      await api.delete('/user/account', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Clear all local storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      toast.success('Account deleted successfully. Redirecting...');
+      
+      // Redirect to landing page after a short delay
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1500);
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete account');
+      setIsDeletingAccount(false);
     }
   };
 
@@ -1816,7 +1849,11 @@ const Profile = () => {
                   <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
                     <h4 className="font-medium text-red-900 dark:text-red-100 mb-2">Danger Zone</h4>
                     <p className="text-sm text-red-700 dark:text-red-300 mb-4">Irreversible actions</p>
-                    <Button variant="destructive" size="sm">
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => setShowDeleteAccountDialog(true)}
+                    >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Account
                     </Button>
@@ -1856,6 +1893,71 @@ const Profile = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog open={showDeleteAccountDialog} onOpenChange={setShowDeleteAccountDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              Delete Account
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">Type <strong>DELETE</strong> to confirm</Label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="allow-select"
+              />
+            </div>
+            <div className="bg-red-50 dark:bg-red-950 p-3 rounded-lg">
+              <p className="text-sm text-red-800 dark:text-red-200 font-medium">Warning:</p>
+              <ul className="text-xs text-red-700 dark:text-red-300 mt-2 space-y-1 list-disc list-inside">
+                <li>All your profile data will be deleted</li>
+                <li>All your orders and transactions will be removed</li>
+                <li>All your products and inventory will be deleted</li>
+                <li>This action cannot be reversed</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteAccountDialog(false);
+                setDeleteConfirmText('');
+              }}
+              disabled={isDeletingAccount}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={isDeletingAccount || deleteConfirmText !== 'DELETE'}
+            >
+              {isDeletingAccount ? (
+                <>
+                  <RotateCw className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Account
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

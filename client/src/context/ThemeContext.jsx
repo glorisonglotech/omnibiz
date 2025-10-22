@@ -416,7 +416,7 @@ export const AVAILABLE_THEMES = {
       foreground: '#78350f'
     }
   },
-  forest: {
+  deepForest: {
     name: 'Deep Forest',
     description: 'Dark forest theme',
     preview: 'bg-[#064e3b] text-[#d1fae5]',

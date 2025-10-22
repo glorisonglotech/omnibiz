@@ -164,7 +164,7 @@ const Checkout = () => {
       const token = localStorage.getItem('token');
       const orderData = {
         customer: customerInfo,
-        shipping: shippingInfo,
+        shippingAddress: shippingInfo,
         items: cart.map(item => ({
           product: item._id || item.id,
           name: item.name,
@@ -173,7 +173,7 @@ const Checkout = () => {
         })),
         payment: paymentData,
         subtotal: getSubtotal(),
-        shipping: getShippingCost(),
+        shippingCost: getShippingCost(),
         tax: getTax(),
         total: getTotal(),
         status: 'pending'

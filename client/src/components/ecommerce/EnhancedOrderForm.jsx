@@ -20,7 +20,9 @@ import {
   Trash2,
   ShoppingCart,
   Check,
-  AlertCircle
+  AlertCircle,
+  Bell,
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,7 +35,7 @@ const EnhancedOrderForm = ({
   mode = 'add' // 'add' or 'edit'
 }) => {
   const [formData, setFormData] = useState(initialData || {
-    customer: {
+    supplier: {
       name: "",
       email: "",
       phone: "",
@@ -46,11 +48,16 @@ const EnhancedOrderForm = ({
     paymentMethod: "",
     shippingMethod: "",
     notes: "",
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    notificationMethod: "email"
   });
 
-  const [selectedProduct, setSelectedProduct] = useState("");
-  const [quantity, setQuantity] = useState(1);
+  const [manualProduct, setManualProduct] = useState({
+    name: "",
+    sku: "",
+    price: 0,
+    quantity: 1
+  });
 
   // Calculate total
   useEffect(() => {
@@ -76,47 +83,43 @@ const EnhancedOrderForm = ({
   };
 
   const addItem = () => {
-    if (!selectedProduct) {
-      toast.error("Please select a product");
+    if (!manualProduct.name || !manualProduct.sku) {
+      toast.error("Product name and SKU are required");
       return;
     }
 
-    const product = products.find(p => p._id === selectedProduct || p.id === selectedProduct);
-    if (!product) return;
-
-    if (quantity > product.stockQuantity) {
-      toast.error(`Only ${product.stockQuantity} units available in stock`);
+    if (manualProduct.price <= 0) {
+      toast.error("Price must be greater than 0");
       return;
     }
 
-    const existingItem = formData.items.find(item => item.productId === product._id || item.productId === product.id);
+    if (manualProduct.quantity < 1) {
+      toast.error("Quantity must be at least 1");
+      return;
+    }
+
+    // Add the manually entered product
+    setFormData(prev => ({
+      ...prev,
+      items: [...prev.items, {
+        productId: `manual-${Date.now()}`,
+        name: manualProduct.name,
+        sku: manualProduct.sku,
+        price: Number(manualProduct.price),
+        quantity: Number(manualProduct.quantity),
+        image: null
+      }]
+    }));
+
+    // Reset manual product form
+    setManualProduct({
+      name: "",
+      sku: "",
+      price: 0,
+      quantity: 1
+    });
     
-    if (existingItem) {
-      setFormData(prev => ({
-        ...prev,
-        items: prev.items.map(item => 
-          (item.productId === product._id || item.productId === product.id)
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        )
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        items: [...prev.items, {
-          productId: product._id || product.id,
-          name: product.name,
-          sku: product.sku,
-          price: product.price,
-          quantity: quantity,
-          image: product.images?.[0]?.url || null
-        }]
-      }));
-    }
-
-    setSelectedProduct("");
-    setQuantity(1);
-    toast.success(`Added ${product.name} to order`);
+    toast.success(`Added ${manualProduct.name} to order`);
   };
 
   const removeItem = (index) => {
@@ -140,8 +143,8 @@ const EnhancedOrderForm = ({
 
   const handleSubmit = async () => {
     // Validation
-    if (!formData.customer.name || !formData.customer.email) {
-      toast.error("Customer name and email are required");
+    if (!formData.supplier.name || !formData.supplier.email) {
+      toast.error("Supplier name and email are required");
       return;
     }
 
@@ -152,7 +155,7 @@ const EnhancedOrderForm = ({
 
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.customer.email)) {
+    if (!emailRegex.test(formData.supplier.email)) {
       toast.error("Please enter a valid email address");
       return;
     }
@@ -180,50 +183,50 @@ const EnhancedOrderForm = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-primary" />
-            {mode === 'add' ? 'Create New Order' : 'Edit Order'}
+            {mode === 'add' ? 'Create Supplier Order' : 'Edit Supplier Order'}
           </DialogTitle>
           <DialogDescription>
             {mode === 'add' 
-              ? 'Enter customer details and add products to create an order' 
-              : 'Update order information and status'}
+              ? 'Place an order to your supplier - enter supplier details and products' 
+              : 'Update supplier order information and status'}
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-180px)] pr-4">
           <div className="space-y-6">
-            {/* Customer Information */}
+            {/* Supplier Information */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-lg font-semibold">
                 <User className="h-5 w-5 text-primary" />
-                Customer Information
+                Supplier Information
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="customer-name" className="flex items-center gap-2">
+                  <Label htmlFor="supplier-name" className="flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    Full Name *
+                    Supplier Name *
                   </Label>
                   <Input
-                    id="customer-name"
-                    placeholder="John Doe"
-                    value={formData.customer.name}
-                    onChange={(e) => handleChange('customer.name', e.target.value)}
+                    id="supplier-name"
+                    placeholder="ABC Supplies Ltd"
+                    value={formData.supplier.name}
+                    onChange={(e) => handleChange('supplier.name', e.target.value)}
                     className="border-primary/30 focus:border-primary"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="customer-email" className="flex items-center gap-2">
+                  <Label htmlFor="supplier-email" className="flex items-center gap-2">
                     <Mail className="h-4 w-4" />
                     Email *
                   </Label>
                   <Input
-                    id="customer-email"
+                    id="supplier-email"
                     type="email"
-                    placeholder="john@example.com"
-                    value={formData.customer.email}
-                    onChange={(e) => handleChange('customer.email', e.target.value)}
+                    placeholder="supplier@example.com"
+                    value={formData.supplier.email}
+                    onChange={(e) => handleChange('supplier.email', e.target.value)}
                     className="border-primary/30 focus:border-primary"
                   />
                 </div>
@@ -231,29 +234,29 @@ const EnhancedOrderForm = ({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="customer-phone" className="flex items-center gap-2">
+                  <Label htmlFor="supplier-phone" className="flex items-center gap-2">
                     <Phone className="h-4 w-4" />
                     Phone
                   </Label>
                   <Input
-                    id="customer-phone"
+                    id="supplier-phone"
                     type="tel"
                     placeholder="+1 (555) 000-0000"
-                    value={formData.customer.phone}
-                    onChange={(e) => handleChange('customer.phone', e.target.value)}
+                    value={formData.supplier.phone}
+                    onChange={(e) => handleChange('supplier.phone', e.target.value)}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="customer-address" className="flex items-center gap-2">
+                  <Label htmlFor="supplier-address" className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
                     Address
                   </Label>
                   <Input
-                    id="customer-address"
+                    id="supplier-address"
                     placeholder="123 Main St, City, State"
-                    value={formData.customer.address}
-                    onChange={(e) => handleChange('customer.address', e.target.value)}
+                    value={formData.supplier.address}
+                    onChange={(e) => handleChange('supplier.address', e.target.value)}
                   />
                 </div>
               </div>
@@ -273,39 +276,50 @@ const EnhancedOrderForm = ({
                 </Badge>
               </div>
 
-              {/* Add Item */}
-              <div className="flex gap-2 p-4 bg-accent/30 rounded-lg">
-                <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map(product => (
-                      <SelectItem 
-                        key={product._id || product.id} 
-                        value={product._id || product.id}
-                        disabled={product.stockQuantity === 0}
-                      >
-                        {product.name} - ${product.price} 
-                        {product.stockQuantity === 0 && " (Out of Stock)"}
-                        {product.stockQuantity > 0 && ` (${product.stockQuantity} in stock)`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                  className="w-24"
-                  placeholder="Qty"
-                />
-
-                <Button onClick={addItem} className="gap-2">
+              {/* Add Item - Manual Entry */}
+              <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
+                <div className="text-sm font-medium">Add Product Manually</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Product Name *</Label>
+                    <Input
+                      placeholder="e.g., Office Chair"
+                      value={manualProduct.name}
+                      onChange={(e) => setManualProduct({...manualProduct, name: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">SKU/Code *</Label>
+                    <Input
+                      placeholder="e.g., SKU-001"
+                      value={manualProduct.sku}
+                      onChange={(e) => setManualProduct({...manualProduct, sku: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Unit Price *</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={manualProduct.price}
+                      onChange={(e) => setManualProduct({...manualProduct, price: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Quantity *</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={manualProduct.quantity}
+                      onChange={(e) => setManualProduct({...manualProduct, quantity: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <Button onClick={addItem} className="w-full gap-2">
                   <Plus className="h-4 w-4" />
-                  Add
+                  Add Product to Order
                 </Button>
               </div>
 
@@ -314,7 +328,7 @@ const EnhancedOrderForm = ({
                 <div className="text-center py-8 text-muted-foreground bg-accent/20 rounded-lg">
                   <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>No items added yet</p>
-                  <p className="text-xs mt-1">Select a product and click "Add" to add it to the order</p>
+                  <p className="text-xs mt-1">Enter product details above and click "Add Product to Order"</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -459,6 +473,45 @@ const EnhancedOrderForm = ({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Notification Method Selector */}
+              <div className="space-y-2">
+                <Label htmlFor="notification-method" className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  Supplier Notification Method
+                </Label>
+                <Select 
+                  value={formData.notificationMethod} 
+                  onValueChange={(value) => handleChange('notificationMethod', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select notification method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        Email
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="sms">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4" />
+                        SMS
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="both">
+                      <div className="flex items-center gap-2">
+                        <Bell className="h-4 w-4" />
+                        Email & SMS
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Choose how you want to notify the supplier about this order
+                </p>
               </div>
 
               <div className="space-y-2">

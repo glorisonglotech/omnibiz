@@ -490,8 +490,8 @@ CLOUDINARY_API_SECRET=your_api_secret
 ## 📈 Project Metrics
 
 ### **Code Statistics**
-- **Frontend:** ~151 React components, 54 pages, 98 total components
-- **Backend:** 90+ files (31 routes, 25 controllers, 21 models)
+- **Frontend:** ~151 React components, 54 pages, 98 total component files
+- **Backend:** 90+ files (31 routes, 25 controllers, 21 models, 8 services)
 - **Documentation:** 200+ markdown files with comprehensive guides
 - **Total Lines of Code:** 500,000+ lines across all files
 

@@ -9,8 +9,10 @@ import { Separator } from '@/components/ui/separator';
 import { 
   MessageCircle, Send, Search, Phone, Video, MoreVertical, 
   Paperclip, Smile, Check, CheckCheck, Clock, Pin, Archive,
-  Mic, Image as ImageIcon, FileText, Plus, Users, Settings
+  Mic, Image as ImageIcon, FileText, Plus, Users, Settings, UserPlus
 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import DashboardNotificationBell from '@/components/dashboard/DashboardNotificationBell';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { toast } from 'sonner';
@@ -21,17 +23,21 @@ const Messages = () => {
   const { user } = useAuth();
   const { socket, connected } = useSocket();
   const [conversations, setConversations] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState({});
+  const [activeTab, setActiveTab] = useState('conversations');
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchConversations();
+    fetchCustomers();
     setupSocketListeners();
 
     return () => {
@@ -39,6 +45,8 @@ const Messages = () => {
         socket.off('message_received');
         socket.off('user_typing');
         socket.off('user_stopped_typing');
+        socket.off('message_sent');
+        socket.off('new_message_notification');
       }
     };
   }, [socket]);
@@ -46,8 +54,19 @@ const Messages = () => {
   useEffect(() => {
     if (activeConversation) {
       fetchMessages(activeConversation.id);
+      // Join conversation room for real-time updates
+      if (socket && connected) {
+        socket.emit('join_conversation', activeConversation.id);
+      }
     }
-  }, [activeConversation]);
+
+    return () => {
+      // Leave conversation room when switching
+      if (activeConversation && socket) {
+        socket.emit('leave_conversation', activeConversation.id);
+      }
+    };
+  }, [activeConversation, socket, connected]);
 
   useEffect(() => {
     scrollToBottom();
@@ -80,6 +99,31 @@ const Messages = () => {
         });
       }
     });
+
+    socket.on('message_sent', (message) => {
+      // Confirmation that message was sent successfully
+      setMessages(prev => prev.map(m => 
+        m.id === message.id ? { ...m, status: 'delivered' } : m
+      ));
+    });
+
+    socket.on('new_message_notification', (data) => {
+      toast.info(`New message from ${data.from}`);
+      fetchConversations();
+    });
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await api.get('/messages/customers', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCustomers(response.data.customers || []);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      toast.error('Failed to load customers');
+    }
   };
 
   const fetchConversations = async () => {
@@ -123,10 +167,10 @@ const Messages = () => {
         const response = await api.get('/messages/conversations', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setConversations(response.data.conversations || demoConversations);
+        setConversations(response.data.conversations || []);
       } catch (error) {
-        console.log('Using demo conversations');
-        setConversations(demoConversations);
+        console.error('Error loading conversations:', error);
+        setConversations([]);
       }
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -295,38 +339,121 @@ const Messages = () => {
     }
   };
 
+  const startConversation = async (customer) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      // Check if conversation already exists
+      if (customer.hasConversation && customer.conversationId) {
+        // Find and activate existing conversation
+        const existingConv = conversations.find(c => c.id === customer.conversationId);
+        if (existingConv) {
+          setActiveConversation(existingConv);
+          setActiveTab('conversations');
+          return;
+        }
+      }
+
+      // Create new conversation
+      const response = await api.post('/messages/conversations', {
+        customerId: customer.id,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        customerPhone: customer.phone
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        toast.success(`Started conversation with ${customer.name}`);
+        // Refresh conversations and switch to conversation tab
+        await fetchConversations();
+        setActiveTab('conversations');
+        // Find and activate the new conversation
+        const newConv = {
+          id: response.data.conversation.id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          lastMessage: '',
+          lastMessageTime: new Date(),
+          unreadCount: 0,
+          isOnline: false,
+          type: 'direct'
+        };
+        setActiveConversation(newConv);
+      }
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      toast.error('Failed to start conversation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredConversations = conversations.filter(conv =>
     conv.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredCustomers = customers.filter(customer =>
+    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    customer.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="h-[calc(100vh-4rem)] p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Messages</h1>
-        <p className="text-muted-foreground">Chat with your team and support • {connected ? '🟢 Connected' : '🔴 Offline'}</p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Messages</h1>
+          <p className="text-muted-foreground">Chat with your customers and support • {connected ? '🟢 Connected' : '🔴 Offline'}</p>
+        </div>
+        <DashboardNotificationBell />
       </div>
 
       <div className="grid grid-cols-12 gap-6 h-[calc(100%-5rem)]">
-        {/* Conversations List */}
+        {/* Conversations & Customers List */}
         <Card className="col-span-12 lg:col-span-4 h-full flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              Conversations
-            </CardTitle>
-            <div className="relative mt-2">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between mb-2">
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" />
+                Messages
+              </CardTitle>
+              <Badge variant="secondary">{customers.length} customers</Badge>
+            </div>
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search conversations..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
               />
             </div>
           </CardHeader>
-          <CardContent className="flex-1 p-0 overflow-hidden">
-            <ScrollArea className="h-full">
-              {filteredConversations.map((conv) => (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <TabsList className="grid w-full grid-cols-2 mx-4">
+              <TabsTrigger value="conversations" className="gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Chats ({conversations.length})
+              </TabsTrigger>
+              <TabsTrigger value="customers" className="gap-2">
+                <Users className="h-4 w-4" />
+                Customers ({customers.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="conversations" className="flex-1 mt-0 overflow-hidden">
+              <ScrollArea className="h-full">
+                {filteredConversations.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No conversations yet</p>
+                    <p className="text-sm mt-1">Start a chat with a customer</p>
+                  </div>
+                ) : (
+                  filteredConversations.map((conv) => (
                 <div
                   key={conv.id}
                   onClick={() => setActiveConversation(conv)}
@@ -362,9 +489,75 @@ const Messages = () => {
                     </div>
                   </div>
                 </div>
-              ))}
-            </ScrollArea>
-          </CardContent>
+              ))
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="customers" className="flex-1 mt-0 overflow-hidden">
+              <ScrollArea className="h-full">
+                {filteredCustomers.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No customers found</p>
+                  </div>
+                ) : (
+                  filteredCustomers.map((customer) => (
+                    <div
+                      key={customer.id}
+                      className="p-4 hover:bg-accent transition-colors border-b"
+                    >
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {customer.name[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-semibold truncate">{customer.name}</h3>
+                            {customer.unreadCount > 0 && (
+                              <Badge className="bg-primary text-primary-foreground">
+                                {customer.unreadCount}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{customer.email}</p>
+                          {customer.phone && (
+                            <p className="text-xs text-muted-foreground">{customer.phone}</p>
+                          )}
+                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                            <span>{customer.totalOrders || 0} orders</span>
+                            <span>•</span>
+                            <span>KES {(customer.totalSpent || 0).toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={customer.hasConversation ? "outline" : "default"}
+                          onClick={() => startConversation(customer)}
+                          disabled={loading}
+                          className="gap-2"
+                        >
+                          {customer.hasConversation ? (
+                            <>
+                              <MessageCircle className="h-4 w-4" />
+                              Open
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="h-4 w-4" />
+                              Chat
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
         </Card>
 
         {/* Chat Window */}

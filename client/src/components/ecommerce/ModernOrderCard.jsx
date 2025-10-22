@@ -1,10 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Eye, Edit, Clock, CheckCircle2, Truck, AlertCircle } from "lucide-react";
+import { Package, Eye, Edit, Clock, CheckCircle2, Truck, AlertCircle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ModernOrderCard = ({ order, onView, onEdit }) => {
+const ModernOrderCard = ({ order, onView, onEdit, onDelete }) => {
   const getStatusIcon = (status) => {
     const statusMap = {
       Draft: Clock,
@@ -220,6 +220,14 @@ const ModernOrderCard = ({ order, onView, onEdit }) => {
           >
             <Edit className="h-4 w-4" />
             Edit Order
+          </Button>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => onDelete?.(order)}
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </CardContent>

@@ -13,9 +13,16 @@ export const useCustomerAuth = () => {
 };
 
 export const CustomerAuthProvider = ({ children }) => {
-  const [customer, setCustomer] = useState(null);
+  const [customer, setCustomer] = useState(() => {
+    // Initialize from localStorage
+    const savedCustomer = localStorage.getItem('customerData');
+    return savedCustomer ? JSON.parse(savedCustomer) : null;
+  });
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Initialize from token existence
+    return !!localStorage.getItem('customerToken');
+  });
 
   // Check if customer is authenticated on mount
   useEffect(() => {
@@ -24,20 +31,75 @@ export const CustomerAuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     const token = localStorage.getItem('customerToken');
+    const savedCustomer = localStorage.getItem('customerData');
+    
     if (!token) {
+      setCustomer(null);
+      setIsAuthenticated(false);
       setLoading(false);
       return;
     }
 
+    // Check if token is expired before making API call
     try {
-      // Temporarily set token in axios
+      const jwt = require('jsonwebtoken');
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      const now = Date.now() / 1000;
+      
+      if (decoded.exp && decoded.exp < now) {
+        console.log('⏰ Token expired, clearing session');
+        localStorage.removeItem('customerToken');
+        localStorage.removeItem('customerData');
+        setCustomer(null);
+        setIsAuthenticated(false);
+        setLoading(false);
+        toast.error('Session expired. Please log in again.');
+        return;
+      }
+    } catch (e) {
+      console.error('Error checking token expiry:', e);
+    }
+
+    // If we have saved customer data, use it immediately
+    if (savedCustomer) {
+      try {
+        setCustomer(JSON.parse(savedCustomer));
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error('Error parsing saved customer:', e);
+      }
+    }
+
+    try {
+      // Verify token is still valid with backend
       const response = await customerAPI.getProfile();
-      setCustomer(response.data.customer);
+      const customerData = response.data.customer;
+      
+      // Update state and localStorage
+      setCustomer(customerData);
       setIsAuthenticated(true);
+      localStorage.setItem('customerData', JSON.stringify(customerData));
+      
+      console.log('✅ Customer authenticated:', customerData.email);
     } catch (error) {
-      console.error('Customer auth check failed:', error);
-      localStorage.removeItem('customerToken');
-      setIsAuthenticated(false);
+      console.error('❌ Customer auth check failed:', error);
+      
+      // Handle different error types
+      if (error.response?.status === 401) {
+        const isExpired = error.response?.data?.expired;
+        
+        localStorage.removeItem('customerToken');
+        localStorage.removeItem('customerData');
+        setCustomer(null);
+        setIsAuthenticated(false);
+        
+        if (isExpired) {
+          toast.error('Session expired. Please log in again.');
+        } else {
+          toast.error('Authentication failed. Please log in.');
+        }
+      }
+      // Don't clear on network errors (5xx, timeout)
     } finally {
       setLoading(false);
     }
@@ -48,12 +110,14 @@ export const CustomerAuthProvider = ({ children }) => {
       const response = await customerAPI.login(credentials);
       const { customer, token, storeOwner } = response.data;
       
-      // Store customer token separately from user token
+      // Store customer token and data
       localStorage.setItem('customerToken', token);
+      localStorage.setItem('customerData', JSON.stringify(customer));
       
       setCustomer(customer);
       setIsAuthenticated(true);
       
+      console.log('✅ Customer logged in:', customer.email);
       toast.success(`Welcome back, ${customer.name}!`);
       return { success: true, customer, storeOwner };
     } catch (error) {
@@ -68,12 +132,14 @@ export const CustomerAuthProvider = ({ children }) => {
       const response = await customerAPI.register(registrationData);
       const { customer, token, storeOwner } = response.data;
       
-      // Store customer token
+      // Store customer token and data
       localStorage.setItem('customerToken', token);
+      localStorage.setItem('customerData', JSON.stringify(customer));
       
       setCustomer(customer);
       setIsAuthenticated(true);
       
+      console.log('✅ Customer registered:', customer.email);
       toast.success('Registration successful! Please verify your email.');
       return { success: true, customer, storeOwner };
     } catch (error) {
@@ -96,16 +162,25 @@ export const CustomerAuthProvider = ({ children }) => {
       }
     }
     
+    // Clear all customer data
     localStorage.removeItem('customerToken');
+    localStorage.removeItem('customerData');
     setCustomer(null);
     setIsAuthenticated(false);
+    
+    console.log('✅ Customer logged out');
     toast.info('Logged out successfully');
   };
 
   const updateProfile = async (profileData) => {
     try {
       const response = await customerAPI.updateProfile(profileData);
-      setCustomer(response.data.customer);
+      const updatedCustomer = response.data.customer;
+      
+      // Update state and localStorage
+      setCustomer(updatedCustomer);
+      localStorage.setItem('customerData', JSON.stringify(updatedCustomer));
+      
       toast.success('Profile updated successfully');
       return { success: true };
     } catch (error) {

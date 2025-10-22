@@ -185,7 +185,7 @@ function App() {
                       <Route path="gui" element={<GUIImplementation />} />
                       <Route path="sessions" element={<LiveSessions />} />
                       <Route path="messages" element={<Messages />} />
-                      <Route path="security" element={<SecurityDashboard />} />
+                      <Route path="security-dashboard" element={<SecurityDashboard />} />
                     </Route>
 
                     {/* Catch-all Route for 404 */}

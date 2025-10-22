@@ -35,6 +35,7 @@ import  LiveChatWidget  from "@/components/storefront/LiveChatWidget";
 import AppointmentBooking from "@/components/storefront/AppointmentBooking";
 import ChatInterface from "@/components/storefront/ChatInterface";
 import NotificationBell from "@/components/storefront/NotificationBell";
+import DiscountBanner from "@/components/storefront/DiscountBanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -72,7 +73,7 @@ const sampleServices = [
     bookings: 89,
     rating: 5.0,
     staff: 2,
-    image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=500'
+    image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=500'
   },
   {
     id: 'sample-3',
@@ -235,7 +236,7 @@ const sampleServices = [
 const ClientStorefront = () => {
   const { inviteCode } = useParams();
   const navigate = useNavigate();
-  const { customer, isAuthenticated, logout } = useCustomerAuth();
+  const { customer, isAuthenticated, logout, loading: authLoading } = useCustomerAuth();
   const { socket, connected } = useSocket();
   
   // Storefront-specific theme state (separate from main dashboard)
@@ -275,16 +276,19 @@ const ClientStorefront = () => {
     ownerName: "Store Owner",
   });
 
-  // Access control - redirect if not logged in when accessing protected tabs
+  // Guide user to login for protected features (but allow navigation)
   useEffect(() => {
     const protectedTabs = ['chats', 'orders', 'account'];
     if (protectedTabs.includes(activeTab) && !customer) {
-      toast.error('Please login to access this feature');
-      setActiveTab('shop');
-      // Optional: Navigate to login
-      // navigate('/client/login');
+      toast.info('Please login to access all features', {
+        action: {
+          label: 'Login',
+          onClick: () => navigate(`/client/login/${inviteCode}`)
+        }
+      });
+      // Don't force redirect - let them see what's available
     }
-  }, [activeTab, customer]);
+  }, [activeTab, customer, inviteCode, navigate]);
 
   // Fetch store owner data on mount
   useEffect(() => {
@@ -831,19 +835,39 @@ const ClientStorefront = () => {
 
   // Handle profile update
   const handleProfileUpdate = async () => {
+    if (!editFormData.name || !editFormData.phone) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
     try {
-      const response = await customerAPI.updateProfile(editFormData);
-      if (response.data.success) {
-        toast.success('Profile updated successfully!');
-        setShowEditProfile(false);
-        // Refresh customer data
-        window.location.reload();
-      }
+      await customerAPI.updateProfile(editFormData);
+      toast.success('Profile updated successfully!');
+      setShowEditProfile(false);
+      
+      // Update local customer state
+      const updatedCustomer = { ...customer, ...editFormData };
+      localStorage.setItem('customerData', JSON.stringify(updatedCustomer));
+      
+      // Refresh to get latest data
+      setTimeout(() => window.location.reload(), 500);
     } catch (error) {
       console.error('Profile update error:', error);
       toast.error(error.response?.data?.message || 'Failed to update profile');
     }
   };
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/10 to-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg text-muted-foreground">Loading storefront...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <NotificationProvider>
@@ -945,27 +969,6 @@ const ClientStorefront = () => {
           </TabsList>
 
           <TabsContent value="shop" className="space-y-6">
-            {/* Active Discounts Banner */}
-            {activeDiscounts.length > 0 && (
-              <Card className="glass-card bg-gradient-to-r from-red-500/10 to-orange-500/10 border-red-300">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center animate-pulse">
-                        <span className="text-white font-bold text-lg">%</span>
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-lg">Special Offers Active!</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {activeDiscounts.length} discount{activeDiscounts.length > 1 ? 's' : ''} available - Look for products with discount badges
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Trust Badges */}
             <div className="flex flex-wrap items-center justify-center gap-4 py-4">
               <Badge variant="outline" className="gap-2 px-4 py-2">
@@ -980,6 +983,11 @@ const ClientStorefront = () => {
                 <ShieldCheck className="h-4 w-4 text-warning" />
                 7-Day Returns
               </Badge>
+            </div>
+
+            {/* Animated Discount Banners - Better positioned */}
+            <div className="mb-6">
+              <DiscountBanner discounts={activeDiscounts} />
             </div>
 
             {/* Search and Filters */}

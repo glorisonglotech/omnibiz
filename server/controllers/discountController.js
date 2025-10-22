@@ -257,7 +257,14 @@ exports.getStorefrontDiscounts = async (req, res) => {
       showOnStorefront: true,
       validFrom: { $lte: now },
       validUntil: { $gte: now }
-    }).sort({ displayOrder: -1, createdAt: -1 });
+    })
+    .populate('applicableProducts', 'name image price category')
+    .populate('applicableServices', 'name image price duration category')
+    .sort({ 
+      'seasonalDetails.priority': -1, 
+      displayOrder: -1, 
+      createdAt: -1 
+    });
 
     // Increment view count
     await Discount.updateMany(
@@ -265,8 +272,18 @@ exports.getStorefrontDiscounts = async (req, res) => {
       { $inc: { 'stats.views': 1 } }
     );
 
-    res.json({ discounts });
+    // Format response with populated data
+    const formattedDiscounts = discounts.map(discount => ({
+      ...discount.toObject(),
+      products: discount.applicableProducts || [],
+      services: discount.applicableServices || []
+    }));
+
+    console.log(`✅ [STOREFRONT] Loaded ${formattedDiscounts.length} active discounts for ${owner.email}`);
+    
+    res.json({ discounts: formattedDiscounts });
   } catch (error) {
+    console.error('Error fetching storefront discounts:', error);
     res.status(500).json({ message: error.message });
   }
 };

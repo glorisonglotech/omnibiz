@@ -12,8 +12,10 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     (config) => {
-        // Check if this is a customer API request
-        const isCustomerRequest = config.url?.includes('/customers/auth');
+        // Check if this is a customer API request (any /customers/ endpoint or public storefront)
+        const isCustomerRequest = config.url?.includes('/customers/') || 
+                                 config.url?.includes('/public/orders') ||
+                                 config.url?.includes('/public/appointments');
         
         // Use appropriate token
         const token = isCustomerRequest 
@@ -43,16 +45,42 @@ api.interceptors.response.use(
         } else if (error.response) {
             // Server responded with error status
             const status = error.response.status;
+            const isCustomerRequest = error.config?.url?.includes('/customers/') || 
+                                     error.config?.url?.includes('/customer/');
+            
             if (status === 401) {
-                // Unauthorized - redirect to login
-                localStorage.removeItem('token');
-                if (window.location.pathname !== '/loginpage') {
-                    window.location.href = '/loginpage';
+                // Handle customer vs admin auth differently
+                if (isCustomerRequest) {
+                    // Customer auth error
+                    const requiresLogin = error.response?.data?.requiresLogin;
+                    const expired = error.response?.data?.expired;
+                    
+                    if (requiresLogin || expired) {
+                        localStorage.removeItem('customerToken');
+                        localStorage.removeItem('customerData');
+                        
+                        if (expired) {
+                            toast.error('Session expired. Please log in again.');
+                        }
+                        
+                        // Redirect to customer login if on customer pages
+                        if (window.location.pathname.includes('/client/')) {
+                            const inviteCode = window.location.pathname.split('/')[3] || '';
+                            window.location.href = `/client/login/${inviteCode}`;
+                        }
+                    }
+                } else {
+                    // Admin auth error
+                    localStorage.removeItem('token');
+                    if (window.location.pathname !== '/loginpage') {
+                        window.location.href = '/loginpage';
+                    }
                 }
             } else if (status === 403) {
                 toast.error('Access denied.');
             } else if (status === 404) {
-                toast.error('Resource not found.');
+                // Don't show toast for 404s, let component handle it
+                console.log('Resource not found:', error.config?.url);
             } else if (status >= 500) {
                 toast.error('Server error. Please try again later.');
             }
@@ -139,6 +167,20 @@ export const customerAPI = {
   forgotPassword: (email) => api.post('/customers/auth/forgot-password', { email }),
   resetPassword: (data) => api.post('/customers/auth/reset-password', data),
   verifyEmail: (token) => api.get(`/customers/auth/verify-email/${token}`),
+  
+  // Orders
+  getMyOrders: (params) => api.get('/customers/orders', { params }),
+  getOrderDetails: (orderId) => api.get(`/customers/orders/${orderId}`),
+  
+  // Appointments/Bookings
+  getMyBookings: (params) => api.get('/customers/bookings', { params }),
+  getBookingDetails: (bookingId) => api.get(`/customers/bookings/${bookingId}`),
+  cancelBooking: (bookingId, reason) => api.put(`/customers/bookings/${bookingId}/cancel`, { reason }),
+  
+  // Messages
+  getMessages: (params) => api.get('/customers/messages', { params }),
+  sendMessage: (messageData) => api.post('/customers/messages', messageData),
+  markAsRead: (messageId) => api.put(`/customers/messages/${messageId}/read`),
 };
 
 export { api };

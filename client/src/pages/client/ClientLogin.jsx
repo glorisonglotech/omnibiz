@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,22 @@ import { useCustomerAuth } from "@/context/CustomerAuthContext";
 const ClientLogin = () => {
   const navigate = useNavigate();
   const { inviteCode } = useParams();
-  const { login } = useCustomerAuth();
+  const { login, customer, isAuthenticated, loading } = useCustomerAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  // Redirect if already logged in (only after loading completes)
+  useEffect(() => {
+    if (!loading && isAuthenticated && customer) {
+      console.log('✅ Already logged in, redirecting to storefront');
+      const targetUrl = inviteCode ? `/client/store/${inviteCode}` : '/client/store';
+      navigate(targetUrl, { replace: true });
+    }
+  }, [loading, isAuthenticated, customer, inviteCode, navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -31,18 +40,42 @@ const ClientLogin = () => {
     setIsLoading(true);
 
     try {
+      console.log('🔐 Attempting login...');
       const result = await login(formData);
+      
       if (result.success) {
-        toast.success(`Welcome Back! Successfully logged in`);
-        // Navigate to storefront with invite code if available
-        navigate(inviteCode ? `/client/store/${inviteCode}` : '/client/store');
+        console.log('✅ Login successful, customer:', result.customer?.email);
+        console.log('✅ Token saved to localStorage');
+        toast.success(`Welcome Back ${result.customer?.name || ''}!`);
+        
+        // Wait for state to fully update before navigating
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        const targetUrl = inviteCode ? `/client/store/${inviteCode}` : '/client/store';
+        console.log('🔄 Navigating to:', targetUrl);
+        navigate(targetUrl, { replace: true });
+      } else {
+        toast.error(result.error || 'Login failed');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
+      toast.error('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">

@@ -105,6 +105,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/client', require('./routes/clientRoutes'));
 app.use('/api/customer', require('./routes/customerRoutes')); // Customer storefront routes
+app.use('/api/customers', require('./routes/customerRoutes')); // Customer storefront routes (plural alias)
 app.use('/api/support', require('./routes/supportRoutes'));
 app.use('/api/sessions', require('./routes/liveSessionRoutes')); // Live sessions/webinars
 app.use('/api/ai', require('./routes/aiRoutes'));

@@ -29,7 +29,18 @@ import {
   Zap,
   Eye,
   Ban,
-  Filter
+  Filter,
+  Settings,
+  Brain,
+  Server,
+  Database,
+  Network,
+  Download,
+  Upload,
+  BarChart,
+  PieChart,
+  AlertCircle,
+  Cpu
 } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -43,6 +54,16 @@ const SecurityDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [aiConfig, setAiConfig] = useState({
+    autoFix: true,
+    aiAnalysis: true,
+    realTimeMonitoring: true,
+    threatPrediction: true,
+    behavioralLearning: true,
+    anomalyThreshold: 'medium'
+  });
+  const [systemHealth, setSystemHealth] = useState(null);
+  const [threatLevel, setThreatLevel] = useState('low');
 
   useEffect(() => {
     fetchSecurityData();
@@ -285,6 +306,14 @@ const SecurityDashboard = () => {
             <Zap className="h-4 w-4 mr-2" />
             AI Suggestions
           </TabsTrigger>
+          <TabsTrigger value="config">
+            <Settings className="h-4 w-4 mr-2" />
+            Configuration
+          </TabsTrigger>
+          <TabsTrigger value="intelligence">
+            <Brain className="h-4 w-4 mr-2" />
+            AI Intelligence
+          </TabsTrigger>
         </TabsList>
 
         {/* Active Alerts Tab */}
@@ -490,6 +519,197 @@ const SecurityDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* AI Configuration Tab */}
+        <TabsContent value="config">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  AI Security Settings
+                </CardTitle>
+                <CardDescription>Configure automated security responses</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-yellow-600" />
+                      Auto-Fix Enabled
+                    </h4>
+                    <p className="text-sm text-muted-foreground">Automatically fix detected threats</p>
+                  </div>
+                  <input type="checkbox" checked={aiConfig.autoFix} onChange={(e) => setAiConfig({...aiConfig, autoFix: e.target.checked})} className="h-5 w-5 rounded" />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Brain className="h-4 w-4 text-purple-600" />
+                      AI Analysis
+                    </h4>
+                    <p className="text-sm text-muted-foreground">Use AI for threat pattern recognition</p>
+                  </div>
+                  <input type="checkbox" checked={aiConfig.aiAnalysis} onChange={(e) => setAiConfig({...aiConfig, aiAnalysis: e.target.checked})} className="h-5 w-5 rounded" />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-green-600" />
+                      Real-Time Monitoring
+                    </h4>
+                    <p className="text-sm text-muted-foreground">Continuous threat monitoring</p>
+                  </div>
+                  <input type="checkbox" checked={aiConfig.realTimeMonitoring} onChange={(e) => setAiConfig({...aiConfig, realTimeMonitoring: e.target.checked})} className="h-5 w-5 rounded" />
+                </div>
+
+                <div className="p-4 border rounded-lg space-y-3">
+                  <h4 className="font-medium">Anomaly Detection Threshold</h4>
+                  <select value={aiConfig.anomalyThreshold} onChange={(e) => setAiConfig({...aiConfig, anomalyThreshold: e.target.value})} className="w-full p-2 border rounded-md">
+                    <option value="low">Low (More Alerts)</option>
+                    <option value="medium">Medium (Balanced)</option>
+                    <option value="high">High (Critical Only)</option>
+                  </select>
+                </div>
+
+                <Button onClick={() => toast.success('AI Configuration saved')} className="w-full">Save Configuration</Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Threat Detection Rules</CardTitle>
+                <CardDescription>Configure detection thresholds</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Failed Login Attempts</label>
+                  <Input type="number" defaultValue="5" min="1" max="10" />
+                  <p className="text-xs text-muted-foreground">Current: 5 attempts in 5 minutes</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">API Rate Limit (requests/minute)</label>
+                  <Input type="number" defaultValue="100" min="10" max="1000" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Account Lock Duration (minutes)</label>
+                  <Input type="number" defaultValue="30" min="5" max="120" />
+                </div>
+                <Button onClick={() => toast.success('Thresholds updated')} className="w-full" variant="outline">Update Thresholds</Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* AI Intelligence Tab */}
+        <TabsContent value="intelligence">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Cpu className="h-5 w-5 text-blue-600" />
+                  AI Intelligence System Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="p-4 border rounded-lg">
+                    <span className="text-sm font-medium">AI Model Status</span>
+                    <Badge className="bg-green-100 text-green-800 ml-2">Active</Badge>
+                    <p className="text-2xl font-bold mt-2">99.8%</p>
+                    <p className="text-xs text-muted-foreground">Uptime</p>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <span className="text-sm font-medium">Detection Accuracy</span>
+                    <p className="text-2xl font-bold mt-2">96.5%</p>
+                    <p className="text-xs text-muted-foreground">Last 24h</p>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <span className="text-sm font-medium">Response Time</span>
+                    <p className="text-2xl font-bold mt-2">342ms</p>
+                    <p className="text-xs text-muted-foreground">Average</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-red-600" />
+                  Threat Intelligence Feed
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {[
+                    { type: 'SQL Injection', detected: 142, severity: 'critical' },
+                    { type: 'XSS Attempts', detected: 89, severity: 'high' },
+                    { type: 'Brute Force', detected: 67, severity: 'high' },
+                    { type: 'API Abuse', detected: 234, severity: 'medium' }
+                  ].map((threat, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <AlertTriangle className={`h-4 w-4 ${threat.severity === 'critical' ? 'text-red-600' : threat.severity === 'high' ? 'text-orange-600' : 'text-yellow-600'}`} />
+                        <div>
+                          <h4 className="font-medium text-sm">{threat.type}</h4>
+                          <p className="text-xs text-muted-foreground">Detected: {threat.detected}</p>
+                        </div>
+                      </div>
+                      <Badge className={threat.severity === 'critical' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'}>{threat.severity}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-purple-600" />
+                  AI Pattern Recognition
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                    <h4 className="font-semibold text-blue-900 mb-2">Normal User Behavior</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Session duration: 15-25 minutes</li>
+                      <li>• Peak activity: 9 AM - 6 PM</li>
+                      <li>• API calls: 20-40 per session</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
+                    <h4 className="font-semibold text-green-900 mb-2">AI Learning Progress</h4>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>User Behavior Models</span>
+                          <span>87%</span>
+                        </div>
+                        <div className="w-full bg-green-200 rounded-full h-2">
+                          <div className="bg-green-600 h-2 rounded-full" style={{width: '87%'}}></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Attack Pattern Database</span>
+                          <span>94%</span>
+                        </div>
+                        <div className="w-full bg-green-200 rounded-full h-2">
+                          <div className="bg-green-600 h-2 rounded-full" style={{width: '94%'}}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

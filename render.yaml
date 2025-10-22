@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: omnibiz
+    env: node
+    buildCommand: npm install && cd server && npm install && cd .. && npm run build
+    startCommand: cd server && node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0

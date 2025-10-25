@@ -197,6 +197,7 @@ const ChatInterface = () => {
         });
 
         if (createResponse.data.success) {
+          console.log('✅ Conversation created successfully');
           const newConv = createResponse.data.conversation;
           setConversation({
             id: newConv.id,
@@ -252,10 +253,19 @@ const ChatInterface = () => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      
+      // Better error message
+      const errorMsg = error.response?.data?.message || 'Failed to send message';
+      toast.error(errorMsg);
+      
       setMessages(prev => prev.map(m => 
         m.tempId === tempId ? { ...m, status: 'failed' } : m
       ));
+      
+      // Remove failed temp message after 3 seconds
+      setTimeout(() => {
+        setMessages(prev => prev.filter(m => m.tempId !== tempId));
+      }, 3000);
     } finally {
       setSending(false);
     }

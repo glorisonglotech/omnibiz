@@ -221,6 +221,14 @@ exports.createConversation = async (req, res) => {
       customerPhone = customer.phone;
       businessOwnerId = customer.invitedBy;
 
+      // Validate business owner ID
+      if (!businessOwnerId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Customer is not associated with a business owner'
+        });
+      }
+
       // Get business owner info
       const businessOwner = await User.findById(businessOwnerId).select('name');
       if (!businessOwner) {

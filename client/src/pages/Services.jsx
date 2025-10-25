@@ -27,7 +27,9 @@ const Services = () => {
     duration: "60",
     category: "General",
     image: "",
-    availableTeamMembers: []
+    availableTeamMembers: [],
+    maxBookingsPerSlot: 1,
+    isActive: true
   });
 
   const categories = [
@@ -97,7 +99,9 @@ const Services = () => {
         ...formData,
         price: parseFloat(formData.price),
         duration: `${formData.duration} min`,
-        owner: user._id
+        owner: user._id,
+        maxBookingsPerSlot: formData.maxBookingsPerSlot || 1,
+        isActive: formData.isActive !== false
       };
 
       if (editingService) {
@@ -140,7 +144,9 @@ const Services = () => {
       duration: service.duration?.replace(' min', '') || "60",
       category: service.category || "General",
       image: service.image || "",
-      availableTeamMembers: service.availableTeamMembers || []
+      availableTeamMembers: service.availableTeamMembers || [],
+      maxBookingsPerSlot: service.maxBookingsPerSlot || 1,
+      isActive: service.isActive !== false
     });
     setShowDialog(true);
   };
@@ -169,7 +175,9 @@ const Services = () => {
       duration: "60",
       category: "General",
       image: "",
-      availableTeamMembers: []
+      availableTeamMembers: [],
+      maxBookingsPerSlot: 1,
+      isActive: true
     });
     setEditingService(null);
   };
@@ -274,14 +282,61 @@ const Services = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="image">Image URL (Optional)</Label>
-                <Input
-                  id="image"
-                  name="image"
-                  value={formData.image}
-                  onChange={handleInputChange}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <Label htmlFor="image">Service Image URL (Optional)</Label>
+                <div className="space-y-2">
+                  <Input
+                    id="image"
+                    name="image"
+                    value={formData.image}
+                    onChange={handleInputChange}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                  {formData.image && (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                      <img 
+                        src={formData.image} 
+                        alt="Service preview" 
+                        className="w-full h-32 object-cover rounded-lg border"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Use high-quality images for better customer engagement
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Max Bookings per Slot</Label>
+                  <Input
+                    type="number"
+                    value={formData.maxBookingsPerSlot || 1}
+                    onChange={(e) => setFormData(prev => ({ ...prev, maxBookingsPerSlot: parseInt(e.target.value) || 1 }))}
+                    placeholder="1"
+                    min="1"
+                  />
+                  <p className="text-xs text-muted-foreground">How many bookings per time slot</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select 
+                    value={formData.isActive !== false ? 'active' : 'inactive'}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, isActive: value === 'active' }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4">

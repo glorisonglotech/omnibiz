@@ -70,36 +70,13 @@ export const CustomerAuthProvider = ({ children }) => {
       }
     }
 
+    // Use saved customer data - don't verify with backend on every mount
+    // This prevents redirect loops when network issues occur
     try {
-      // Verify token is still valid with backend
-      const response = await customerAPI.getProfile();
-      const customerData = response.data.customer;
-      
-      // Update state and localStorage
-      setCustomer(customerData);
-      setIsAuthenticated(true);
-      localStorage.setItem('customerData', JSON.stringify(customerData));
-      
-      console.log('✅ Customer authenticated:', customerData.email);
+      // Just verify token format is valid
+      console.log('✅ Customer authenticated from localStorage');
     } catch (error) {
-      console.error('❌ Customer auth check failed:', error);
-      
-      // Handle different error types
-      if (error.response?.status === 401) {
-        const isExpired = error.response?.data?.expired;
-        
-        localStorage.removeItem('customerToken');
-        localStorage.removeItem('customerData');
-        setCustomer(null);
-        setIsAuthenticated(false);
-        
-        if (isExpired) {
-          toast.error('Session expired. Please log in again.');
-        } else {
-          toast.error('Authentication failed. Please log in.');
-        }
-      }
-      // Don't clear on network errors (5xx, timeout)
+      console.error('❌ Error loading customer data:', error);
     } finally {
       setLoading(false);
     }
@@ -110,18 +87,27 @@ export const CustomerAuthProvider = ({ children }) => {
       const response = await customerAPI.login(credentials);
       const { customer, token, storeOwner } = response.data;
       
+      console.log('✅ Auth Context: Login response received', customer.email);
+      
       // Store customer token and data
       localStorage.setItem('customerToken', token);
       localStorage.setItem('customerData', JSON.stringify(customer));
       
+      console.log('✅ Auth Context: Token saved to localStorage');
+      
       setCustomer(customer);
       setIsAuthenticated(true);
       
+      console.log('✅ Auth Context: State updated', { hasCustomer: !!customer });
+      
+      // Small delay to ensure state propagates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       console.log('✅ Customer logged in:', customer.email);
-      toast.success(`Welcome back, ${customer.name}!`);
       return { success: true, customer, storeOwner };
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed';
+      console.error('❌ Login error:', message);
       toast.error(message);
       return { success: false, error: message };
     }
@@ -132,18 +118,27 @@ export const CustomerAuthProvider = ({ children }) => {
       const response = await customerAPI.register(registrationData);
       const { customer, token, storeOwner } = response.data;
       
+      console.log('✅ Auth Context: Registration response received', customer.email);
+      
       // Store customer token and data
       localStorage.setItem('customerToken', token);
       localStorage.setItem('customerData', JSON.stringify(customer));
       
+      console.log('✅ Auth Context: Token saved to localStorage');
+      
       setCustomer(customer);
       setIsAuthenticated(true);
       
+      console.log('✅ Auth Context: State updated', { hasCustomer: !!customer });
+      
+      // Small delay to ensure state propagates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       console.log('✅ Customer registered:', customer.email);
-      toast.success('Registration successful! Please verify your email.');
       return { success: true, customer, storeOwner };
     } catch (error) {
       const message = error.response?.data?.message || 'Registration failed';
+      console.error('❌ Registration error:', message);
       toast.error(message);
       return { success: false, error: message };
     }

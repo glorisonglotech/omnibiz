@@ -13,7 +13,7 @@ import { useCustomerAuth } from "@/context/CustomerAuthContext";
 const ClientSignup = () => {
   const { inviteCode } = useParams();
   const navigate = useNavigate();
-  const { register } = useCustomerAuth();
+  const { register, customer, isAuthenticated, loading: authLoading } = useCustomerAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [validating, setValidating] = useState(true);
@@ -39,6 +39,20 @@ const ClientSignup = () => {
     }
   }, [inviteCode, navigate]);
 
+  // Redirect if already logged in (only after loading completes)
+  // Add a small delay to ensure we're not redirecting during initial mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!authLoading && isAuthenticated && customer) {
+        console.log('✅ Already logged in, redirecting to storefront');
+        const targetUrl = inviteCode ? `/client/store/${inviteCode}` : '/client/store';
+        navigate(targetUrl, { replace: true });
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [authLoading, isAuthenticated, customer, inviteCode, navigate]);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -57,8 +71,14 @@ const ClientSignup = () => {
       });
       
       if (result.success) {
+        console.log('✅ Signup component: Registration successful');
         toast.success(`Welcome! You now have access to ${storeOwner.businessName}`);
-        navigate(`/client/store/${inviteCode}`);
+        
+        // Wait for auth state to propagate
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        console.log('🔄 Navigating to storefront after registration');
+        navigate(`/client/store/${inviteCode}`, { replace: true });
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -67,7 +87,8 @@ const ClientSignup = () => {
     }
   };
 
-  if (validating) {
+  // Show loading while checking auth
+  if (validating || authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-lg border-primary/10">

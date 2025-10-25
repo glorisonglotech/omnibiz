@@ -238,6 +238,8 @@ const ClientStorefront = () => {
   const navigate = useNavigate();
   const { customer, isAuthenticated, logout, loading: authLoading } = useCustomerAuth();
   const { socket, connected } = useSocket();
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
   // Storefront-specific theme state (separate from main dashboard)
   const [storefrontTheme, setStorefrontTheme] = useState(() => {
@@ -276,19 +278,7 @@ const ClientStorefront = () => {
     ownerName: "Store Owner",
   });
 
-  // Guide user to login for protected features (but allow navigation)
-  useEffect(() => {
-    const protectedTabs = ['chats', 'orders', 'account'];
-    if (protectedTabs.includes(activeTab) && !customer) {
-      toast.info('Please login to access all features', {
-        action: {
-          label: 'Login',
-          onClick: () => navigate(`/client/login/${inviteCode}`)
-        }
-      });
-      // Don't force redirect - let them see what's available
-    }
-  }, [activeTab, customer, inviteCode, navigate]);
+  // Note: Removed toast info on protected tabs to prevent auth loop
 
   // Fetch store owner data on mount
   useEffect(() => {
@@ -555,8 +545,9 @@ const ClientStorefront = () => {
       setActiveTab('account');
       toast.success(`Welcome ${customer.name}!`);
     } else {
-      toast.info('Please sign in to access more features');
-      navigate(`/client/login/${inviteCode}`);
+      console.log('🔒 Storefront: No customer yet, just setting tab');
+      setActiveTab('account');
+      // Don't show toast or navigate - just let them see the account tab
     }
   };
 
@@ -857,13 +848,43 @@ const ClientStorefront = () => {
     }
   };
 
+  // Initialize component
+  useEffect(() => {
+    console.log('🚀 ClientStorefront: Mounting...');
+    setMounted(true);
+    return () => {
+      console.log('💥 ClientStorefront: Unmounting...');
+      setMounted(false);
+    };
+  }, []);
+
+  // Mark auth as checked after loading completes - ONE TIME ONLY
+  useEffect(() => {
+    console.log('🔍 Storefront: Auth check running...', { 
+      mounted, 
+      authLoading, 
+      hasCheckedAuth,
+      isAuthenticated, 
+      hasCustomer: !!customer 
+    });
+    
+    if (mounted && !authLoading && !hasCheckedAuth) {
+      console.log('✅ Storefront: Auth check complete', { 
+        isAuthenticated, 
+        hasCustomer: !!customer 
+      });
+      setHasCheckedAuth(true);
+    }
+  }, [mounted, authLoading, isAuthenticated, customer, hasCheckedAuth]);
+
   // Show loading while checking authentication
-  if (authLoading) {
+  if (!mounted || authLoading || !hasCheckedAuth) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/10 to-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-lg text-muted-foreground">Loading storefront...</p>
+          {authLoading && <p className="text-xs text-muted-foreground mt-2">Verifying authentication...</p>}
         </div>
       </div>
     );
@@ -1549,7 +1570,7 @@ const ClientStorefront = () => {
                     Please log in to access your account, orders, and personalized features
                   </p>
                   <div className="flex gap-3 justify-center">
-                    <Button onClick={() => navigate(`/client/login/${inviteCode}`)}>
+                    <Button onClick={() => setActiveTab('account')}>
                       Sign In
                     </Button>
                     <Button variant="outline" onClick={() => navigate(`/client/register/${inviteCode}`)}>
@@ -1590,8 +1611,8 @@ const ClientStorefront = () => {
                           });
                           setShowEditProfile(true);
                         } else {
-                          toast.info('Please login to edit profile');
-                          navigate(`/client/login/${inviteCode}`);
+                          // Just show the account tab - don't force login redirect
+                          console.log('No customer to edit, just showing account tab');
                         }
                       }}
                     >
@@ -1892,13 +1913,8 @@ const ClientStorefront = () => {
                 <Button 
                   className="flex-1"
                   onClick={() => {
-                    if (!customer) {
-                      toast.error('Please log in to book services');
-                      navigate(`/client/login/${inviteCode}`);
-                      setSelectedService(null);
-                      return;
-                    }
-                    setActiveTab('account');
+                    // Just proceed with booking - let the booking component handle auth
+                    setActiveTab('services');
                     toast.success(`Selected: ${selectedService.name}`);
                     setSelectedService(null);
                   }}

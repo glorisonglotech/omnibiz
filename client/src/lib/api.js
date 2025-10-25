@@ -63,11 +63,9 @@ api.interceptors.response.use(
                             toast.error('Session expired. Please log in again.');
                         }
                         
-                        // Redirect to customer login if on customer pages
-                        if (window.location.pathname.includes('/client/')) {
-                            const inviteCode = window.location.pathname.split('/')[3] || '';
-                            window.location.href = `/client/login/${inviteCode}`;
-                        }
+                        // Don't auto-redirect - let components handle auth errors
+                        // This prevents redirect loops
+                        console.log('Customer auth error - let component handle redirect');
                     }
                 } else {
                     // Admin auth error

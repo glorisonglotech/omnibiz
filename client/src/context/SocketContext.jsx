@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { useCustomerAuth } from './CustomerAuthContext';
 import { toast } from 'sonner';
 
 const SocketContext = createContext();
@@ -8,7 +9,23 @@ const SocketContext = createContext();
 export const useSocket = () => {
   const context = useContext(SocketContext);
   if (!context) {
-    throw new Error('useSocket must be used within a SocketProvider');
+    // Return safe defaults instead of throwing
+    console.warn('useSocket called outside SocketProvider, returning defaults');
+    return {
+      socket: null,
+      connected: false,
+      notifications: [],
+      unreadCount: 0,
+      markAsRead: () => {},
+      markAllAsRead: () => {},
+      clearNotifications: () => {},
+      removeNotification: () => {},
+      joinRoom: () => {},
+      leaveRoom: () => {},
+      startTyping: () => {},
+      stopTyping: () => {},
+      emit: () => {}
+    };
   }
   return context;
 };
@@ -17,14 +34,34 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const { user, token } = useAuth();
+  
+  let user, token, customer;
+  
+  try {
+    ({ user, token } = useAuth());
+  } catch (e) {
+    // Not in AuthProvider scope
+    user = null;
+    token = null;
+  }
+  
+  try {
+    ({ customer } = useCustomerAuth());
+  } catch (e) {
+    // Not in CustomerAuthProvider scope
+    customer = null;
+  }
+
+  // Get the appropriate token (admin or customer)
+  const authToken = token || localStorage.getItem('customerToken');
+  const isAuthenticated = !!(user || customer);
 
   useEffect(() => {
-    if (user && token) {
+    if (isAuthenticated && authToken) {
       // Initialize socket connection
       const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
         auth: {
-          token: token
+          token: authToken
         },
         autoConnect: true
       });
@@ -150,7 +187,7 @@ export const SocketProvider = ({ children }) => {
         setConnected(false);
       };
     }
-  }, [user, token]);
+  }, [isAuthenticated, authToken, user, customer]);
 
   // Add notification to the list
   const addNotification = (notification) => {

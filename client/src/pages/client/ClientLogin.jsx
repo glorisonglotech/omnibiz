@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ const ClientLogin = () => {
   const navigate = useNavigate();
   const { inviteCode } = useParams();
   const { login, customer, isAuthenticated, loading } = useCustomerAuth();
+  const hasCheckedAuth = useRef(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -19,9 +20,10 @@ const ClientLogin = () => {
     password: "",
   });
 
-  // Redirect if already logged in (only after loading completes)
+  // Redirect if already logged in - ONE TIME ONLY
   useEffect(() => {
-    if (!loading && isAuthenticated && customer) {
+    if (!hasCheckedAuth.current && !loading && isAuthenticated && customer) {
+      hasCheckedAuth.current = true;
       console.log('✅ Already logged in, redirecting to storefront');
       const targetUrl = inviteCode ? `/client/store/${inviteCode}` : '/client/store';
       navigate(targetUrl, { replace: true });
@@ -44,12 +46,11 @@ const ClientLogin = () => {
       const result = await login(formData);
       
       if (result.success) {
-        console.log('✅ Login successful, customer:', result.customer?.email);
-        console.log('✅ Token saved to localStorage');
+        console.log('✅ Login component: Login successful');
         toast.success(`Welcome Back ${result.customer?.name || ''}!`);
         
-        // Wait for state to fully update before navigating
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Wait for auth state to propagate
+        await new Promise(resolve => setTimeout(resolve, 400));
         
         const targetUrl = inviteCode ? `/client/store/${inviteCode}` : '/client/store';
         console.log('🔄 Navigating to:', targetUrl);

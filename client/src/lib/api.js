@@ -12,16 +12,17 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     (config) => {
-        // Check if this is a customer API request (any /customers/ endpoint or public storefront)
-        const isCustomerRequest = config.url?.includes('/customers/') || 
+        // Check if this is a customer API request (any /customers/ or /customer/ endpoint or public storefront)
+        const isCustomerRequest = config.url?.includes('/customers/') ||
+                                 config.url?.includes('/customer/') ||  // Added singular form
                                  config.url?.includes('/public/orders') ||
                                  config.url?.includes('/public/appointments');
-        
+
         // Use appropriate token
-        const token = isCustomerRequest 
+        const token = isCustomerRequest
             ? localStorage.getItem('customerToken')
             : localStorage.getItem('token');
-            
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }

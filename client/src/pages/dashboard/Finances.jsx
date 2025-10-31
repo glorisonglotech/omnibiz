@@ -132,14 +132,14 @@ const Finances = () => {
         const invoicesList = extractInvoices(invoicesRes.data).map(normalizeInvoice);
         const expensesList = expensesRes.data || [];
         const ordersList = ordersRes.data || [];
-        
+
         setInvoices(invoicesList);
         setExpenses(expensesList);
         setOrders(ordersList);
-        
+
         // Calculate growth metrics
         calculateGrowthMetrics(invoicesList, expensesList, ordersList);
-        
+
         console.log('✅ Financial data loaded:', {
           invoices: invoicesList.length,
           expenses: expensesList.length,
@@ -152,11 +152,81 @@ const Finances = () => {
     };
 
     fetchFinancialData();
-    
+
     // Auto-refresh every 2 minutes
     const interval = setInterval(fetchFinancialData, 120000);
     return () => clearInterval(interval);
   }, [isAuthenticated]);
+
+  // Real-time Socket.IO listeners for live financial updates
+  useEffect(() => {
+    if (!socket || !connected) return;
+
+    console.log('🔌 Setting up real-time financial listeners...');
+
+    // Listen for new orders
+    const handleNewOrder = (order) => {
+      console.log('📦 New order received:', order);
+      setOrders(prev => [order, ...prev]);
+      toast.success('New order received!');
+      refreshFinancialData();
+    };
+
+    // Listen for order updates
+    const handleOrderUpdate = (updatedOrder) => {
+      console.log('📦 Order updated:', updatedOrder);
+      setOrders(prev => prev.map(o => o._id === updatedOrder._id ? updatedOrder : o));
+      refreshFinancialData();
+    };
+
+    // Listen for new invoices
+    const handleNewInvoice = (invoice) => {
+      console.log('📄 New invoice received:', invoice);
+      setInvoices(prev => [normalizeInvoice(invoice), ...prev]);
+      toast.success('New invoice created!');
+      refreshFinancialData();
+    };
+
+    // Listen for invoice updates
+    const handleInvoiceUpdate = (updatedInvoice) => {
+      console.log('📄 Invoice updated:', updatedInvoice);
+      setInvoices(prev => prev.map(inv => inv.id === updatedInvoice._id ? normalizeInvoice(updatedInvoice) : inv));
+      refreshFinancialData();
+    };
+
+    // Listen for new expenses
+    const handleNewExpense = (expense) => {
+      console.log('💰 New expense received:', expense);
+      setExpenses(prev => [expense, ...prev]);
+      toast.success('New expense recorded!');
+      refreshFinancialData();
+    };
+
+    // Listen for expense updates
+    const handleExpenseUpdate = (updatedExpense) => {
+      console.log('💰 Expense updated:', updatedExpense);
+      setExpenses(prev => prev.map(exp => exp._id === updatedExpense._id ? updatedExpense : exp));
+      refreshFinancialData();
+    };
+
+    // Attach listeners
+    socket.on('new_order', handleNewOrder);
+    socket.on('order_updated', handleOrderUpdate);
+    socket.on('new_invoice', handleNewInvoice);
+    socket.on('invoice_updated', handleInvoiceUpdate);
+    socket.on('new_expense', handleNewExpense);
+    socket.on('expense_updated', handleExpenseUpdate);
+
+    // Cleanup
+    return () => {
+      socket.off('new_order', handleNewOrder);
+      socket.off('order_updated', handleOrderUpdate);
+      socket.off('new_invoice', handleNewInvoice);
+      socket.off('invoice_updated', handleInvoiceUpdate);
+      socket.off('new_expense', handleNewExpense);
+      socket.off('expense_updated', handleExpenseUpdate);
+    };
+  }, [socket, connected, refreshFinancialData]);
   
   // Generate revenue vs expenses data for graphs
   const generateRevenueExpenseData = (ordersList, expensesList) => {

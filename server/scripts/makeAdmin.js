@@ -1,14 +1,46 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/omnibiz', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/ominbiz';
+mongoose.connect(MONGO_URI);
 
 const User = mongoose.model('User', new mongoose.Schema({}, { strict: false }));
+
+// Socket.IO setup for real-time notifications
+const http = require('http');
+const { Server } = require('socket.io');
+const server = http.createServer();
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Try to connect to existing server's Socket.IO if available
+let socketConnected = false;
+try {
+  const socketClient = require('socket.io-client');
+  const clientSocket = socketClient('http://localhost:5000');
+
+  clientSocket.on('connect', () => {
+    console.log('✅ Connected to main server Socket.IO');
+    socketConnected = true;
+  });
+
+  // Function to emit notification through client socket
+  global.emitNotification = (userId, notification) => {
+    if (socketConnected) {
+      clientSocket.emit('admin_notification', { userId, notification });
+    }
+  };
+} catch (error) {
+  console.log('⚠️  Could not connect to main server Socket.IO (this is okay)');
+  global.emitNotification = () => {}; // No-op if not connected
+}
 
 // Default super-admin users to create
 const defaultSuperAdmins = [
@@ -124,6 +156,8 @@ async function makeUserAdmin(email) {
     console.log('✅ User found:', user.name);
     console.log('   Current role:', user.role || 'user');
 
+    const oldRole = user.role || 'user';
+
     // Update to super_admin with all permissions
     user.role = 'super_admin';
     user.permissions = [
@@ -165,11 +199,28 @@ async function makeUserAdmin(email) {
     console.log('🎉 You now have full administrative privileges!');
     console.log('🔐 Login to access the security dashboard and all admin features\n');
 
+    // Send real-time notification to user
+    try {
+      global.emitNotification(user._id.toString(), {
+        type: 'role_update',
+        title: '🎉 Admin Privileges Granted!',
+        message: `Your account has been upgraded from ${oldRole} to SUPER_ADMIN with full system access.`,
+        timestamp: new Date(),
+        read: false
+      });
+      console.log('📡 Real-time notification sent to user\n');
+    } catch (notifError) {
+      console.log('⚠️  Could not send real-time notification (user may need to refresh)\n');
+    }
+
   } catch (error) {
     console.error('❌ Error:', error.message);
   } finally {
-    mongoose.connection.close();
-    process.exit(0);
+    // Give time for notification to be sent
+    setTimeout(() => {
+      mongoose.connection.close();
+      process.exit(0);
+    }, 1000);
   }
 }
 

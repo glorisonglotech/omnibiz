@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  MapPin, 
-  Navigation, 
-  Search, 
-  Filter, 
-  Maximize2, 
+import {
+  MapPin,
+  Navigation,
+  Search,
+  Filter,
+  Maximize2,
   Minimize2,
   Plus,
   Edit,
@@ -22,6 +25,65 @@ import {
   Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Fix Leaflet default marker icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+// Custom marker icons for different location types
+const createCustomIcon = (type, isSelected) => {
+  const colors = {
+    branch: isSelected ? '#2563eb' : '#ef4444',
+    warehouse: isSelected ? '#2563eb' : '#f59e0b',
+    office: isSelected ? '#2563eb' : '#8b5cf6',
+    store: isSelected ? '#2563eb' : '#10b981',
+    headquarters: isSelected ? '#2563eb' : '#ec4899',
+  };
+
+  const color = colors[type] || colors.branch;
+
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `
+      <div style="
+        background-color: ${color};
+        width: 30px;
+        height: 30px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <svg style="transform: rotate(45deg); width: 16px; height: 16px; fill: white;" viewBox="0 0 24 24">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30],
+  });
+};
+
+// Component to handle map center changes
+const MapController = ({ center, zoom }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (center) {
+      map.setView([center.lat, center.lng], zoom);
+    }
+  }, [center, zoom, map]);
+
+  return null;
+};
 
 const InteractiveMap = ({ 
   locations = [], 
@@ -338,45 +400,80 @@ const InteractiveMap = ({
           <div className={`grid ${showLocationList ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'} gap-6`}>
             {/* Map Container */}
             <div className="space-y-4">
-              <div 
+              <div
                 ref={mapRef}
-                className="w-full bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center relative"
+                className="w-full rounded-lg overflow-hidden border-2 border-gray-200"
                 style={{ height: `${height}px` }}
               >
-                <div className="text-center">
-                  <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-600 font-medium">Interactive Map</p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Map integration would display here
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Center: {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)} | Zoom: {zoom}
-                  </p>
-                </div>
-                
-                {/* Map overlay with location markers simulation */}
-                <div className="absolute inset-0 pointer-events-none">
-                  {filteredLocations.map((location, index) => (
-                    <div
+                <MapContainer
+                  center={[mapCenter.lat, mapCenter.lng]}
+                  zoom={zoom}
+                  style={{ height: '100%', width: '100%' }}
+                  scrollWheelZoom={true}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+
+                  <MapController center={mapCenter} zoom={zoom} />
+
+                  {filteredLocations.map((location) => (
+                    <Marker
                       key={location.id}
-                      className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
-                      style={{
-                        left: `${20 + (index * 15) % 60}%`,
-                        top: `${30 + (index * 10) % 40}%`
+                      position={[location.coordinates.lat, location.coordinates.lng]}
+                      icon={createCustomIcon(location.type, selectedLocation?.id === location.id)}
+                      eventHandlers={{
+                        click: () => handleLocationSelect(location),
                       }}
                     >
-                      <div 
-                        className={`w-6 h-6 rounded-full border-2 border-white shadow-lg cursor-pointer transition-all duration-200 hover:scale-110 ${
-                          selectedLocation?.id === location.id ? 'bg-blue-600' : 'bg-red-500'
-                        }`}
-                        onClick={() => handleLocationSelect(location)}
-                        title={location.name}
-                      >
-                        <MapPin className="h-4 w-4 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
-                      </div>
-                    </div>
+                      <Popup>
+                        <div className="p-2 min-w-[200px]">
+                          <h3 className="font-bold text-lg mb-2">{location.name}</h3>
+                          <div className="space-y-1 text-sm">
+                            <p className="text-gray-600">{location.address}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge variant={location.status === 'active' ? 'default' : 'secondary'}>
+                                {location.status}
+                              </Badge>
+                              <Badge variant="outline">{location.type}</Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mt-3 pt-2 border-t">
+                              <div>
+                                <p className="text-xs text-gray-500">Employees</p>
+                                <p className="font-semibold">{location.employees}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500">Performance</p>
+                                <p className="font-semibold">{location.performance}%</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => openInGoogleMaps(location)}
+                              >
+                                <Navigation className="h-3 w-3 mr-1" />
+                                Directions
+                              </Button>
+                              {onLocationEdit && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => onLocationEdit(location)}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Popup>
+                    </Marker>
                   ))}
-                </div>
+                </MapContainer>
               </div>
               
               {selectedLocation && (

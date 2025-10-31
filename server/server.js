@@ -102,6 +102,7 @@ app.use('/api/locations', locationRouter);
 app.use('/api/services', serviceRoutes);
 app.use('/api/discounts', discountRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/purchasing', require('./routes/purchasingRoutes')); // Purchase orders and suppliers
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/client', require('./routes/clientRoutes'));
 app.use('/api/customer', require('./routes/customerRoutes')); // Customer storefront routes

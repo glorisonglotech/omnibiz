@@ -117,9 +117,9 @@ const DashboardNotificationBell = () => {
         read: false,
         data: data
       };
-      
+
       addNotification(notification);
-      
+
       toast(
         <div className="flex items-start gap-3">
           <Bell className="h-5 w-5 text-orange-500 mt-0.5" />
@@ -132,11 +132,62 @@ const DashboardNotificationBell = () => {
       );
     });
 
+    // Role update notification
+    socket.on('role_updated', async (data) => {
+      console.log('🎉 Role updated:', data);
+
+      const notification = {
+        id: Date.now(),
+        type: 'role_update',
+        title: '🎉 Admin Privileges Granted!',
+        message: `Your account has been upgraded to ${data.newRole.toUpperCase()}. Refreshing your session...`,
+        timestamp: new Date(),
+        read: false,
+        data: data
+      };
+
+      addNotification(notification);
+
+      // Automatically refresh user profile from server
+      try {
+        const { refreshUserProfile } = await import('@/context/AuthContext');
+        if (refreshUserProfile) {
+          await refreshUserProfile();
+          console.log('✅ User profile refreshed with new role');
+        }
+      } catch (error) {
+        console.error('Error refreshing user profile:', error);
+      }
+
+      toast.success(
+        <div className="flex items-start gap-3">
+          <Bell className="h-5 w-5 text-green-500 mt-0.5" />
+          <div>
+            <p className="font-semibold">{notification.title}</p>
+            <p className="text-sm text-muted-foreground">Your privileges have been updated! Refreshing page...</p>
+          </div>
+        </div>,
+        {
+          duration: 3000,
+          action: {
+            label: 'Refresh Now',
+            onClick: () => window.location.reload()
+          }
+        }
+      );
+
+      // Auto-refresh page after 3 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    });
+
     return () => {
       socket.off('new_message_notification');
       socket.off('message_received');
       socket.off('order_notification');
       socket.off('system_notification');
+      socket.off('role_updated');
     };
   }, [socket, user]);
 

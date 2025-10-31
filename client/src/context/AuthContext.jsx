@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '@/lib/api'; // Import the configured axios instance (api)
+import { useSocket } from '@/context/SocketContext';
 
 const AuthContext = createContext();
 
@@ -12,31 +13,42 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Authentication state
   const [loading, setLoading] = useState(true); // Loading state for async actions
 
+  // Function to refresh user profile from server
+  const refreshUserProfile = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const res = await api.get('/auth/profile', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log('🔄 User profile refreshed:', res.data);
+      setUser(res.data);
+      setIsAuthenticated(true);
+      return res.data;
+    } catch (err) {
+      console.error('Error refreshing user profile:', err);
+      if (err.response && err.response.status === 401) {
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+      throw err;
+    }
+  };
+
   // Check if user is authenticated on page load
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Use the api instance to send the request
-      api
-        .get('/auth/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`, // Attach the token to the request
-          },
-        })
-        .then((res) => {
-          setUser(res.data);
-          setIsAuthenticated(true);
-        })
+      refreshUserProfile()
         .catch((err) => {
           console.error('Error checking authentication:', err);
-          // Only remove token if it's actually invalid (401), not on connection errors
-          if (err.response && err.response.status === 401) {
-            localStorage.removeItem('token');
-          }
-          setIsAuthenticated(false);
         })
         .finally(() => {
-          setLoading(false); // Once loading is done, update the state
+          setLoading(false);
         });
     } else {
       setLoading(false); // If no token, stop loading
@@ -76,6 +88,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    refreshUserProfile, // Expose refresh function
+    setUser, // Expose setUser for manual updates
   };
 
   if (loading) {

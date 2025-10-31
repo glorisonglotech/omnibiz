@@ -297,6 +297,16 @@ const initializeSocket = (server) => {
       }
     });
 
+    // Handle admin notification from makeAdmin script
+    socket.on('admin_notification', ({ userId, notification }) => {
+      console.log(`📡 Sending admin notification to user: ${userId}`);
+      io.to(`user_${userId}`).emit('notification', notification);
+      io.to(`user_${userId}`).emit('role_updated', {
+        newRole: 'super_admin',
+        timestamp: new Date()
+      });
+    });
+
     socket.on('typing_start', (data) => {
       const { conversationId } = data;
       socket.to(`conversation_${conversationId}`).emit('user_typing', {

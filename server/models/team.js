@@ -49,10 +49,27 @@ const teamMemberSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    assignedLocation: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Location",
+    },
+    skills: [{
+      type: String,
+    }],
+    availability: {
+      type: String,
+      enum: ["Full-time", "Part-time", "Contract", "On-call"],
+      default: "Full-time",
+    },
   },
   {
     timestamps: true,
   }
 );
+
+// Index for faster queries
+teamMemberSchema.index({ userId: 1 });
+teamMemberSchema.index({ assignedLocation: 1 });
+teamMemberSchema.index({ status: 1 });
 
 module.exports = mongoose.model("TeamMember", teamMemberSchema);

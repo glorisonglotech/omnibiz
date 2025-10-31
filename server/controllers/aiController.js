@@ -1,4 +1,5 @@
-const { geminiAI } = require('../services/geminiAI');
+const { aiService } = require('../services/aiService');
+const { geminiAI } = require('../services/geminiAI'); // Keep for backward compatibility
 const Order = require('../models/order');
 const Product = require('../models/product');
 const Transaction = require('../models/transaction');
@@ -15,9 +16,9 @@ exports.chat = async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Check if Gemini AI is initialized
-    if (!geminiAI || !geminiAI.initialized) {
-      console.error('❌ Gemini AI not initialized. Check GEMINI_API_KEY or DEEPSEEK_API_KEY in .env');
+    // Check if AI service is initialized
+    if (!aiService || !aiService.initialized) {
+      console.error('❌ AI service not initialized. Check GEMINI_API_KEY or DEEPSEEK_API_KEY in .env');
       // Return a helpful fallback response instead of error
       return res.json({
         response: 'AI assistant is currently unavailable. Please ensure your API key is configured in the .env file (GEMINI_API_KEY or DEEPSEEK_API_KEY). For now, I can still help you navigate the dashboard and access features.',
@@ -112,11 +113,12 @@ Remember: ${aiContext.isCustomer ? 'This is a valued customer, provide personali
         dashboard: dashboardType,
         user: aiContext.userName,
         role: aiContext.userRole,
-        messageLength: message.length
+        messageLength: message.length,
+        provider: aiService.currentProvider
       });
     }
 
-    const result = await geminiAI.generateResponse(promptToUse, aiContext);
+    const result = await aiService.generateResponse(promptToUse, aiContext);
 
     if (!result.success) {
       console.error('❌ AI generation failed:', result.error);
@@ -132,6 +134,7 @@ Remember: ${aiContext.isCustomer ? 'This is a valued customer, provide personali
     res.json({
       response: result.response,
       model: result.model,
+      provider: result.provider,
       dashboardType: aiContext.dashboardType,
       timestamp: new Date()
     });
@@ -196,7 +199,7 @@ exports.generateInsights = async (req, res) => {
     };
 
     // Generate AI insights
-    const insights = await geminiAI.generateBusinessInsights(data);
+    const insights = await aiService.generateBusinessInsights(data);
 
     // Emit real-time update
     try {
@@ -233,7 +236,7 @@ exports.analyzeSentiment = async (req, res) => {
       return res.status(400).json({ error: 'Text is required' });
     }
 
-    const result = await geminiAI.analyzeSentiment(text);
+    const result = await aiService.analyzeSentiment(text);
 
     res.json(result);
   } catch (error) {
@@ -253,7 +256,7 @@ exports.generateMarketing = async (req, res) => {
       return res.status(400).json({ error: 'Product details are required' });
     }
 
-    const result = await geminiAI.generateMarketingCopy(product, style);
+    const result = await aiService.generateMarketingCopy(product, style);
 
     if (!result.success) {
       return res.status(500).json({ error: result.error });
@@ -261,6 +264,7 @@ exports.generateMarketing = async (req, res) => {
 
     res.json({
       copy: result.response,
+      provider: result.provider,
       timestamp: new Date()
     });
   } catch (error) {
@@ -280,7 +284,7 @@ exports.generateSupportResponse = async (req, res) => {
       return res.status(400).json({ error: 'Question is required' });
     }
 
-    const result = await geminiAI.generateSupportResponse(question, ticketContext);
+    const result = await aiService.generateSupportResponse(question, ticketContext);
 
     if (!result.success) {
       return res.status(500).json({ error: result.error });
@@ -288,6 +292,7 @@ exports.generateSupportResponse = async (req, res) => {
 
     res.json({
       suggestedResponse: result.response,
+      provider: result.provider,
       timestamp: new Date()
     });
   } catch (error) {
@@ -319,7 +324,7 @@ exports.chatStream = async (req, res) => {
       ...JSON.parse(context || '{}')
     };
 
-    const stream = geminiAI.generateStreamingResponse(message, aiContext);
+    const stream = aiService.generateStreamingResponse(message, aiContext);
 
     for await (const chunk of stream) {
       if (chunk.error) {
@@ -327,7 +332,7 @@ exports.chatStream = async (req, res) => {
         break;
       }
       if (chunk.text) {
-        res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+        res.write(`data: ${JSON.stringify({ text: chunk.text, provider: chunk.provider })}\n\n`);
       }
     }
 
@@ -335,6 +340,19 @@ exports.chatStream = async (req, res) => {
     res.end();
   } catch (error) {
     console.error('Chat stream error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// @desc    Get AI service status
+// @route   GET /api/ai/status
+// @access  Public
+exports.getStatus = async (req, res) => {
+  try {
+    const status = aiService.getStatus();
+    res.json(status);
+  } catch (error) {
+    console.error('AI status error:', error);
     res.status(500).json({ error: error.message });
   }
 };

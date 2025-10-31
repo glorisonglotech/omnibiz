@@ -46,7 +46,26 @@ const DiscountBanner = ({ discounts = [] }) => {
   };
 
   return (
-    <div className="relative w-full overflow-hidden rounded-xl shadow-lg mb-6">
+    <div className="relative w-full overflow-hidden rounded-2xl shadow-2xl mb-6 border-2 border-primary/20 group">
+      {/* "LIVE DISCOUNT" indicator badge */}
+      <div className="absolute top-4 right-4 z-30">
+        <div className="relative">
+          <div className="absolute inset-0 bg-green-500 rounded-full blur-md animate-pulse"></div>
+          <div className="relative bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 border-2 border-white/30">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wider">Live Discount</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Animated background particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 animate-pulse"></div>
+      </div>
+
       <AnimatePresence mode="wait">
         <motion.div
           key={currentIndex}
@@ -54,7 +73,7 @@ const DiscountBanner = ({ discounts = [] }) => {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -100 }}
           transition={{ duration: 0.5 }}
-          className="relative w-full h-48 sm:h-56 md:h-64 lg:h-72"
+          className="relative w-full h-52 sm:h-60 md:h-72 lg:h-80"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >

@@ -8,8 +8,12 @@ const {
   analyzeSentiment,
   generateMarketing,
   generateSupportResponse,
-  chatStream
+  chatStream,
+  getStatus
 } = require('../controllers/aiController');
+
+// AI service status (public)
+router.get('/status', getStatus);
 
 // AI chat routes - Allow both authenticated and guest users
 router.post('/chat', optionalAuth, chat);

@@ -19,7 +19,9 @@ exports.createTeamMember = async (req, res) => {
 exports.getAllTeamMembers = async (req, res) => {
   try {
     // Only fetch team members that belong to the authenticated user
-    const teamMembers = await TeamMember.find({ userId: req.user._id }).populate("userId");
+    const teamMembers = await TeamMember.find({ userId: req.user._id })
+      .populate("userId")
+      .populate("assignedLocation", "name address city type");
     res.json(teamMembers);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -29,10 +31,12 @@ exports.getAllTeamMembers = async (req, res) => {
 // Get a single team member by ID (only if belongs to current user)
 exports.getTeamMemberById = async (req, res) => {
   try {
-    const teamMember = await TeamMember.findOne({ 
-      _id: req.params.id, 
-      userId: req.user._id 
-    }).populate("userId");
+    const teamMember = await TeamMember.findOne({
+      _id: req.params.id,
+      userId: req.user._id
+    })
+      .populate("userId")
+      .populate("assignedLocation", "name address city type");
     if (!teamMember) {
       return res.status(404).json({ error: "Team member not found" });
     }

@@ -42,10 +42,9 @@ export const CustomerAuthProvider = ({ children }) => {
 
     // Check if token is expired before making API call
     try {
-      const jwt = require('jsonwebtoken');
       const decoded = JSON.parse(atob(token.split('.')[1]));
       const now = Date.now() / 1000;
-      
+
       if (decoded.exp && decoded.exp < now) {
         console.log('⏰ Token expired, clearing session');
         localStorage.removeItem('customerToken');

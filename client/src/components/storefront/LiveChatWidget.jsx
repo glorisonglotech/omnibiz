@@ -4,16 +4,18 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  MessageCircle, X, Send, Bot, User as UserIcon, Sparkles, Brain, 
+import {
+  MessageCircle, X, Send, Bot, User as UserIcon, Sparkles, Brain,
   Lightbulb, TrendingUp, History, Download, Search, Trash2, Archive,
   Mic, MicOff, Paperclip, Settings, Maximize2, Minimize2, Star,
   ShoppingCart, TrendingDown, Package, DollarSign, Users, Zap,
-  BarChart3, RefreshCw, Copy, ThumbsUp, ThumbsDown, AlertCircle
+  BarChart3, RefreshCw, Copy, ThumbsUp, ThumbsDown, AlertCircle,
+  Phone, Video
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import CallDialog from "@/components/CallDialog";
 import api from "@/lib/api";
 
 const LiveChatWidget = () => {
@@ -37,9 +39,12 @@ const LiveChatWidget = () => {
   const [aiPersonality, setAiPersonality] = useState('professional'); // professional, friendly, technical
   const [trainingEnabled, setTrainingEnabled] = useState(true);
   const [realTimeData, setRealTimeData] = useState({});
+  const [callDialogOpen, setCallDialogOpen] = useState(false);
+  const [callType, setCallType] = useState('video'); // 'video' or 'audio'
+  const [businessOwner, setBusinessOwner] = useState(null); // Store business owner info for calls
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
-  
+
   // Store conversation history for learning
   const conversationHistoryRef = useRef([]);
 

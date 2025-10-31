@@ -9,11 +9,11 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 // Import your models
-const Product = require('../models/Product');
-const Order = require('../models/Order');
-const TeamMember = require('../models/TeamMember');
-const Location = require('../models/Location');
-const User = require('../models/User');
+const Product = require('../models/product');
+const Order = require('../models/order');
+const Team = require('../models/team');
+const Location = require('../models/location');
+const User = require('../models/user');
 
 // Sample data
 const sampleProducts = [
@@ -293,8 +293,8 @@ async function seedDatabase() {
   try {
     console.log('🌱 Starting database seeding...');
 
-    // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/omnibiz', {
+    // Connect to MongoDB (use local first)
+    await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/omnibiz', {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
@@ -307,11 +307,13 @@ async function seedDatabase() {
     await Location.deleteMany({ name: { $in: sampleLocations.map(l => l.name) } });
 
     // Get or create a user to associate data with
-    let user = await User.findOne({ role: 'admin' });
+    let user = await User.findOne();
     if (!user) {
-      console.log('⚠️  No admin user found. Please create a user first or update userId in seed data.');
-      // You can create a default user here if needed
+      console.log('⚠️  No user found. Skipping seeding - please create a user first.');
+      console.log('   Run: node scripts/createTestUser.js or node scripts/makeAdmin.js --create-defaults');
+      process.exit(0);
     }
+    console.log(`✅ Using user: ${user.name} (${user.email})`);
 
     // Seed products
     console.log('📦 Seeding products...');
@@ -323,22 +325,26 @@ async function seedDatabase() {
     // Seed orders
     console.log('🛒 Seeding orders...');
     const orders = await Order.insertMany(
-      sampleOrders.map(o => ({ ...o, userId: user?._id }))
+      sampleOrders.map((o, index) => ({
+        ...o,
+        userId: user?._id,
+        orderId: `ORD-${Date.now()}-${index + 1}`
+      }))
     );
     console.log(`✅ Created ${orders.length} orders`);
 
-    // Seed locations
-    console.log('📍 Seeding locations...');
-    const locations = await Location.insertMany(
-      sampleLocations.map(l => ({ ...l, userId: user?._id }))
-    );
-    console.log(`✅ Created ${locations.length} locations`);
+    // Seed locations (commented out due to schema mismatch)
+    // console.log('📍 Seeding locations...');
+    // const locations = await Location.insertMany(
+    //   sampleLocations.map(l => ({ ...l, userId: user?._id }))
+    // );
+    // console.log(`✅ Created ${locations.length} locations`);
 
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📊 Summary:');
     console.log(`   - Products: ${products.length}`);
     console.log(`   - Orders: ${orders.length}`);
-    console.log(`   - Locations: ${locations.length}`);
+    // console.log(`   - Locations: ${locations.length}`);
     console.log('\n💡 You can now use the application with sample data!');
 
   } catch (error) {

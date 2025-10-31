@@ -42,21 +42,22 @@ const fetchDashboardData = async () => {
       api.get('/products', { headers }),
       api.get('/transactions', { headers }),
       api.get('/appointments', { headers }),
-      api.get('/customers', { headers })
+      api.get('/messages/customers', { headers }) // Fixed: Use correct endpoint for business owner's customers
     ]);
 
     // Process orders data
     const orders = ordersRes.status === 'fulfilled' ? ordersRes.value?.data || [] : [];
     const totalOrders = orders.length;
-    
+
     // Calculate revenue from transactions
     const transactions = transactionsRes.status === 'fulfilled' ? transactionsRes.value?.data || [] : [];
-    const totalRevenue = Array.isArray(transactions) 
+    const totalRevenue = Array.isArray(transactions)
       ? transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
       : 0;
-    
+
     // Get customer count
-    const customers = customersRes.status === 'fulfilled' ? customersRes.value?.data || [] : [];
+    const customersData = customersRes.status === 'fulfilled' ? customersRes.value?.data : null;
+    const customers = customersData?.customers || [];
     const totalCustomers = customers.length;
     
     // Ensure no NaN values

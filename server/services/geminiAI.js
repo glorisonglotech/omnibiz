@@ -3,8 +3,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 class GeminiAIService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
-    this.model_name = 'gemini-pro'; // Use the standard model name
-    this.visionModel = 'gemini-pro-vision';
+    this.model_name = 'gemini-2.0-flash-exp'; // Latest stable model (2025)
+    this.visionModel = 'gemini-2.0-flash-exp'; // Latest stable model (2025)
     this.maxTokens = parseInt(process.env.GEMINI_MAX_TOKENS) || 2048;
     this.temperature = parseFloat(process.env.GEMINI_TEMPERATURE) || 0.7;
     this.initialized = false;

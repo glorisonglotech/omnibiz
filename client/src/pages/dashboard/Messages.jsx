@@ -6,13 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { 
-  MessageCircle, Send, Search, Phone, Video, MoreVertical, 
+import {
+  MessageCircle, Send, Search, Phone, Video, MoreVertical,
   Paperclip, Smile, Check, CheckCheck, Clock, Pin, Archive,
   Mic, Image as ImageIcon, FileText, Plus, Users, Settings, UserPlus
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DashboardNotificationBell from '@/components/dashboard/DashboardNotificationBell';
+import CallDialog from '@/components/CallDialog';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { toast } from 'sonner';
@@ -20,7 +21,7 @@ import { formatDistanceToNow } from 'date-fns';
 import api from '@/lib/api';
 
 const Messages = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { socket, connected } = useSocket();
   const [conversations, setConversations] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -32,6 +33,8 @@ const Messages = () => {
   const [typingUsers, setTypingUsers] = useState({});
   const [activeTab, setActiveTab] = useState('conversations');
   const [loading, setLoading] = useState(false);
+  const [callDialogOpen, setCallDialogOpen] = useState(false);
+  const [callType, setCallType] = useState('video'); // 'video' or 'audio'
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -582,10 +585,26 @@ const Messages = () => {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => toast.info('Voice call - Coming soon')}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setCallType('audio');
+                        setCallDialogOpen(true);
+                      }}
+                      title="Start voice call"
+                    >
                       <Phone className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => window.open('/dashboard/sessions', '_blank')}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setCallType('video');
+                        setCallDialogOpen(true);
+                      }}
+                      title="Start video call"
+                    >
                       <Video className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon">
@@ -685,6 +704,23 @@ const Messages = () => {
           )}
         </Card>
       </div>
+
+      {/* Call Dialog */}
+      {activeConversation && (
+        <CallDialog
+          isOpen={callDialogOpen}
+          onClose={() => setCallDialogOpen(false)}
+          callType={callType}
+          participant={{
+            id: activeConversation.customerId || activeConversation.id,
+            name: activeConversation.name,
+            email: activeConversation.email,
+            avatar: activeConversation.avatar
+          }}
+          user={user}
+          token={token}
+        />
+      )}
     </div>
   );
 };

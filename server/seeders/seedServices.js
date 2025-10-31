@@ -205,13 +205,19 @@ const seedServices = async () => {
     console.log('Connected to MongoDB');
 
     // Find all admin/super_admin users to seed services for
-    const users = await User.find({ 
-      role: { $in: ['admin', 'super_admin'] } 
+    let users = await User.find({
+      role: { $in: ['admin', 'super_admin'] }
     }).limit(10);
 
+    // If no admin users, use any user with inviteCode
     if (users.length === 0) {
-      console.log('No admin users found. Please create an admin user first.');
-      process.exit(1);
+      console.log('No admin users found. Looking for users with inviteCode...');
+      users = await User.find({ inviteCode: { $exists: true, $ne: null } }).limit(10);
+
+      if (users.length === 0) {
+        console.log('No users with inviteCode found. Please create a user first.');
+        process.exit(1);
+      }
     }
 
     console.log(`Found ${users.length} admin user(s). Creating services...`);

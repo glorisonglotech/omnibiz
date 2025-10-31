@@ -989,6 +989,13 @@ const ClientStorefront = () => {
             </TabsTrigger>
           </TabsList>
 
+          {/* Enhanced Discount Banner - Positioned at top of tabs for Shop and Services */}
+          {(activeTab === 'shop' || activeTab === 'services') && activeDiscounts.length > 0 && (
+            <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
+              <DiscountBanner discounts={activeDiscounts} />
+            </div>
+          )}
+
           <TabsContent value="shop" className="space-y-6">
             {/* Trust Badges */}
             <div className="flex flex-wrap items-center justify-center gap-4 py-4">
@@ -1004,11 +1011,6 @@ const ClientStorefront = () => {
                 <ShieldCheck className="h-4 w-4 text-warning" />
                 7-Day Returns
               </Badge>
-            </div>
-
-            {/* Animated Discount Banners - Better positioned */}
-            <div className="mb-6">
-              <DiscountBanner discounts={activeDiscounts} />
             </div>
 
             {/* Search and Filters */}

@@ -1,11 +1,13 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const path = require('path');
 const User = require('../models/user');
 const Transaction = require('../models/transaction');
 const Invoice = require('../models/invoice');
 const Expense = require('../models/expense');
 
-dotenv.config();
+// Load .env from server directory
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const connectDB = async () => {
   try {

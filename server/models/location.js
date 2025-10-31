@@ -75,10 +75,36 @@ const locationSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
+    coordinates: {
+      lat: {
+        type: Number,
+        default: -1.2921, // Nairobi default latitude
+      },
+      lng: {
+        type: Number,
+        default: 36.8219, // Nairobi default longitude
+      },
+    },
+    type: {
+      type: String,
+      enum: ["branch", "warehouse", "office", "store", "headquarters"],
+      default: "branch",
+    },
+    customers: {
+      type: Number,
+      default: 0,
+    },
+    revenue: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+// Index for geospatial queries
+locationSchema.index({ 'coordinates.lat': 1, 'coordinates.lng': 1 });
 
 module.exports = mongoose.model("Location", locationSchema);

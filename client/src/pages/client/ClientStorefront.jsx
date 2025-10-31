@@ -651,7 +651,14 @@ const ClientStorefront = () => {
           storefrontContainer.style.setProperty('--input', `${primaryHSL.split(' ')[0]} 30% 80%`);
           storefrontContainer.style.setProperty('--ring', primaryHSL);
 
-          console.log('✅ Storefront theme applied:', storefrontTheme);
+          // Set background color directly on container (ISOLATED from main dashboard)
+          storefrontContainer.style.backgroundColor = currentTheme.colors.background;
+          storefrontContainer.style.color = currentTheme.colors.foreground;
+
+          // Ensure full height
+          storefrontContainer.style.minHeight = '100vh';
+
+          console.log('✅ Storefront theme applied (INDEPENDENT from dashboard):', storefrontTheme);
         };
 
         applyToContainer();

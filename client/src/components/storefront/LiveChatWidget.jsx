@@ -904,6 +904,32 @@ This is interaction #${history.length + 1} with this user.`;
                   >
                     <Settings className="h-4 w-4" />
                   </Button>
+                  {/* Video Call Button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setCallType('video');
+                      setCallDialogOpen(true);
+                    }}
+                    className="text-primary-foreground hover:bg-primary-foreground/20 transition-all duration-300"
+                    title="Start Video Call"
+                  >
+                    <Video className="h-4 w-4" />
+                  </Button>
+                  {/* Audio Call Button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setCallType('audio');
+                      setCallDialogOpen(true);
+                    }}
+                    className="text-primary-foreground hover:bg-primary-foreground/20 transition-all duration-300"
+                    title="Start Audio Call"
+                  >
+                    <Phone className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1338,6 +1364,25 @@ This is interaction #${history.length + 1} with this user.`;
           </Card>
         </div>
       )}
+
+      {/* Call Dialog for Video/Audio Calls */}
+      <CallDialog
+        isOpen={callDialogOpen}
+        onClose={() => setCallDialogOpen(false)}
+        callType={callType}
+        participant={businessOwner || {
+          id: 'business-owner',
+          name: 'Business Owner',
+          email: 'support@business.com',
+          avatar: null
+        }}
+        user={user || {
+          id: 'guest',
+          name: 'Guest User',
+          email: 'guest@example.com'
+        }}
+        token={localStorage.getItem('token') || localStorage.getItem('customerToken')}
+      />
     </>
   );
 };

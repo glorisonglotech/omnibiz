@@ -1,0 +1,63 @@
+# Netlify Configuration for OmniBiz Client
+# Auto-deployment: Enabled when connected to GitHub repository
+
+[build]
+  # Build command
+  command = "pnpm install && pnpm run build"
+  
+  # Publish directory (output of build)
+  publish = "dist"
+  
+  # Base directory
+  base = "client"
+
+[build.environment]
+  # Node version
+  NODE_VERSION = "20"
+  
+  # API URL (Render backend)
+  VITE_API_URL = "https://omnibiz.onrender.com"
+  VITE_SOCKET_URL = "https://omnibiz.onrender.com"
+
+# Redirect rules for SPA (Single Page Application)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Functions (if needed in future)
+[functions]
+  directory = "netlify/functions"
+
+# Dev settings
+[dev]
+  command = "pnpm run dev"
+  port = 5173
+  targetPort = 5173
+  autoLaunch = false
+

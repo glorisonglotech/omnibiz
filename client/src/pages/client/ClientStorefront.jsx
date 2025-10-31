@@ -433,6 +433,33 @@ const ClientStorefront = () => {
     return isNaN(finalPrice) ? price : finalPrice;
   };
 
+  // Load wishlist from database on mount
+  useEffect(() => {
+    const loadWishlist = async () => {
+      try {
+        const token = localStorage.getItem('customerToken') || localStorage.getItem('token');
+        const guestId = localStorage.getItem('guestId') || `guest_${Date.now()}`;
+
+        let response;
+        if (token) {
+          response = await api.get('/api/wishlist', {
+            headers: { 'x-customer-token': token }
+          });
+        } else {
+          localStorage.setItem('guestId', guestId); // Persist guest ID
+          response = await api.get(`/api/wishlist?guestId=${guestId}`);
+        }
+
+        setWishlist(response.data || []);
+      } catch (error) {
+        console.error('Error loading wishlist:', error);
+        // Don't show error toast on initial load
+      }
+    };
+
+    loadWishlist();
+  }, [inviteCode]);
+
   // Socket.IO real-time updates
   useEffect(() => {
     if (!socket || !connected || !inviteCode) return;
@@ -809,22 +836,73 @@ const ClientStorefront = () => {
     }
   };
 
-  // Wishlist functions
-  const toggleWishlist = (product) => {
+  // Wishlist functions (with database persistence)
+  const toggleWishlist = async (product) => {
     const productId = product._id || product.id;
-    const isInWishlist = wishlist.some(item => (item._id || item.id) === productId);
-    
-    if (isInWishlist) {
-      setWishlist(wishlist.filter(item => (item._id || item.id) !== productId));
-      toast.info(`${product.name} removed from wishlist`);
-    } else {
-      setWishlist([...wishlist, product]);
-      toast.success(`❤️ ${product.name} added to wishlist`);
+    const isInWishlist = wishlist.some(item => {
+      const itemProductId = item.productId?._id || item.productId || item._id || item.id;
+      return itemProductId === productId;
+    });
+
+    try {
+      if (isInWishlist) {
+        // Remove from wishlist
+        setWishlist(wishlist.filter(item => {
+          const itemProductId = item.productId?._id || item.productId || item._id || item.id;
+          return itemProductId !== productId;
+        }));
+        toast.info(`${product.name} removed from wishlist`);
+
+        // Call API to remove from database
+        const token = localStorage.getItem('customerToken') || localStorage.getItem('token');
+        const guestId = localStorage.getItem('guestId') || `guest_${Date.now()}`;
+
+        if (token) {
+          await api.delete(`/api/wishlist/${productId}`, {
+            headers: token ? { 'x-customer-token': token } : {}
+          });
+        } else {
+          await api.delete(`/api/wishlist/${productId}?guestId=${guestId}`);
+        }
+      } else {
+        // Add to wishlist
+        setWishlist([...wishlist, product]);
+        toast.success(`❤️ ${product.name} added to wishlist`);
+
+        // Call API to add to database
+        const token = localStorage.getItem('customerToken') || localStorage.getItem('token');
+        const guestId = localStorage.getItem('guestId') || `guest_${Date.now()}`;
+        localStorage.setItem('guestId', guestId); // Persist guest ID
+
+        if (token) {
+          await api.post('/api/wishlist',
+            { productId },
+            { headers: { 'x-customer-token': token } }
+          );
+        } else {
+          await api.post('/api/wishlist', { productId, guestId });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating wishlist:', error);
+      toast.error('Failed to update wishlist. Please try again.');
+      // Revert optimistic update on error
+      if (isInWishlist) {
+        setWishlist([...wishlist, product]);
+      } else {
+        setWishlist(wishlist.filter(item => {
+          const itemProductId = item.productId?._id || item.productId || item._id || item.id;
+          return itemProductId !== productId;
+        }));
+      }
     }
   };
 
   const isInWishlist = (productId) => {
-    return wishlist.some(item => (item._id || item.id) === productId);
+    return wishlist.some(item => {
+      const itemProductId = item.productId?._id || item.productId || item._id || item.id;
+      return itemProductId === productId;
+    });
   };
 
   const handleCheckout = () => {

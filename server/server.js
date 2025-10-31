@@ -22,6 +22,7 @@ const mpesaRoutes = require('./routes/mpesaRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const discountRoutes = require('./routes/discountRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
+const wishlistRoutes = require('./routes/wishlistRoutes');
 
 dotenv.config();
 connectDB();
@@ -102,6 +103,7 @@ app.use('/api/locations', locationRouter);
 app.use('/api/services', serviceRoutes);
 app.use('/api/discounts', discountRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/wishlist', wishlistRoutes); // Wishlist for users, customers, and guests
 app.use('/api/purchasing', require('./routes/purchasingRoutes')); // Purchase orders and suppliers
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/client', require('./routes/clientRoutes'));

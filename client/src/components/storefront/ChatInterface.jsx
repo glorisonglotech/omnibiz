@@ -5,9 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   MessageCircle, Send, Phone, Video, MoreVertical,
-  Paperclip, Smile, Check, CheckCheck, Clock, AlertCircle, Loader2
+  Paperclip, Smile, Check, CheckCheck, Clock, AlertCircle, Loader2,
+  Download, Trash2, Archive, Settings, UserPlus, Info
 } from 'lucide-react';
 import { useCustomerAuth } from '@/context/CustomerAuthContext';
 import { useSocket } from '@/context/SocketContext';
@@ -373,9 +382,69 @@ const ChatInterface = () => {
             <Button variant="ghost" size="icon" onClick={() => toast.info('Video call - Coming soon')}>
               <Video className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
+
+            {/* More Options Dropdown Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Chat Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => {
+                  const chatData = JSON.stringify(messages, null, 2);
+                  const blob = new Blob([chatData], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `chat-${format(new Date(), 'yyyy-MM-dd-HHmm')}.json`;
+                  a.click();
+                  toast.success('Chat exported successfully');
+                }}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Chat
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  if (confirm('Are you sure you want to clear this conversation?')) {
+                    setMessages([]);
+                    toast.success('Conversation cleared');
+                  }
+                }}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear Conversation
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  const chatHistory = {
+                    id: Date.now(),
+                    date: new Date(),
+                    messages: messages,
+                    participant: selectedChat?.name || 'Support'
+                  };
+                  const saved = JSON.parse(localStorage.getItem('chat_history') || '[]');
+                  saved.push(chatHistory);
+                  localStorage.setItem('chat_history', JSON.stringify(saved));
+                  toast.success('Chat archived');
+                }}>
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archive Chat
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => toast.info('Chat settings - Coming soon')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Chat Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info('Add participant - Coming soon')}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Add Participant
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info('Chat info - Coming soon')}>
+                  <Info className="mr-2 h-4 w-4" />
+                  Chat Info
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>
